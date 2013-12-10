@@ -1,3 +1,4 @@
+import com.typesafe.sbt.SbtNativePackager.packageArchetype
 import sbt._
 import Keys._
 
@@ -20,5 +21,5 @@ object EasyriderBuild extends Build {
   lazy val root = Project(
     id = "easyrider",
     base = file("."),
-    settings = Project.defaultSettings ++ settings ++ super.settings)
+    settings = Project.defaultSettings ++ settings ++ super.settings ++ packageArchetype.java_application)
 }
