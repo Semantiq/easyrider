@@ -1,5 +1,6 @@
-import com.typesafe.sbt.SbtNativePackager.packageArchetype
-import com.typesafe.sbt.packager.linux.Keys._
+import com.typesafe.sbt.SbtNativePackager
+import com.typesafe.sbt.SbtNativePackager._
+import com.typesafe.sbt.packager.Keys._
 import sbt._
 import Keys._
 
@@ -8,6 +9,7 @@ object EasyriderBuild extends Build {
 
   override val settings = Seq(
     scalaVersion := "2.10.3",
+    organization := "eu.semantiq",
     libraryDependencies ++= Seq(
       // main
       "com.typesafe.akka" % "akka-actor_2.10" % akkaVersion,
@@ -16,13 +18,16 @@ object EasyriderBuild extends Build {
       // test
       "org.scalatest" % "scalatest_2.10" % "2.0" % "test",
       "com.typesafe.akka" % "akka-testkit_2.10" % akkaVersion % "test"
-    ),
-    packageDescription := "A simple tool to run application straight from Git easily",
-    maintainer := "SemantiQ"
+    )
+  )
+
+  val debianSettings = SbtNativePackager.packagerSettings ++ Seq(
+    maintainer in Debian := "SemantiQ",
+    packageDescription in Debian := "A simple tool to run application straight from Git easily"
   )
 
   lazy val root = Project(
     id = "easyrider",
     base = file("."),
-    settings = Project.defaultSettings ++ settings ++ super.settings ++ packageArchetype.java_server)
+    settings = Project.defaultSettings ++ settings ++ debianSettings ++ super.settings)
 }
