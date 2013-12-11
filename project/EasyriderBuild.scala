@@ -1,4 +1,5 @@
 import com.typesafe.sbt.SbtNativePackager.packageArchetype
+import com.typesafe.sbt.packager.linux.Keys._
 import sbt._
 import Keys._
 
@@ -15,11 +16,13 @@ object EasyriderBuild extends Build {
       // test
       "org.scalatest" % "scalatest_2.10" % "2.0" % "test",
       "com.typesafe.akka" % "akka-testkit_2.10" % akkaVersion % "test"
-    )
+    ),
+    packageDescription := "A simple tool to run application straight from Git easily",
+    maintainer := "SemantiQ"
   )
 
   lazy val root = Project(
     id = "easyrider",
     base = file("."),
-    settings = Project.defaultSettings ++ settings ++ super.settings ++ packageArchetype.java_application)
+    settings = Project.defaultSettings ++ settings ++ super.settings ++ packageArchetype.java_server)
 }
