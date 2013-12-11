@@ -21,9 +21,9 @@ object EasyriderBuild extends Build {
     )
   )
 
-  val debianSettings = SbtNativePackager.packagerSettings ++ Seq(
-    maintainer in Debian := "SemantiQ",
-    packageDescription in Debian := "A simple tool to run application straight from Git easily"
+  val debianSettings = packageArchetype.java_server  ++ Seq(
+    maintainer := "SemantiQ",
+    packageDescription := "A simple tool to run application straight from Git easily"
   )
 
   lazy val root = Project(
