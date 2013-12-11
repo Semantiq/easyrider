@@ -1,4 +1,3 @@
-import com.typesafe.sbt.SbtNativePackager
 import com.typesafe.sbt.SbtNativePackager._
 import com.typesafe.sbt.packager.Keys._
 import sbt._
@@ -8,8 +7,9 @@ object EasyriderBuild extends Build {
   private val akkaVersion = "2.2.3"
 
   override val settings = Seq(
-    scalaVersion := "2.10.3",
+    version := "0.1",
     organization := "eu.semantiq",
+    scalaVersion := "2.10.3",
     libraryDependencies ++= Seq(
       // main
       "com.typesafe.akka" % "akka-actor_2.10" % akkaVersion,
@@ -21,7 +21,7 @@ object EasyriderBuild extends Build {
     )
   )
 
-  val debianSettings = packageArchetype.java_server  ++ Seq(
+  val debianSettings = packageArchetype.java_application ++ Seq(
     maintainer := "SemantiQ",
     packageDescription := "A simple tool to run application straight from Git easily"
   )
