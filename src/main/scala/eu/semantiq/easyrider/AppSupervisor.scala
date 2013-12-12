@@ -1,11 +1,13 @@
 package eu.semantiq.easyrider
 
-import akka.actor.{ActorLogging, Props, ActorRef, Actor}
+import akka.actor._
 import java.io.File
 import akka.event.LoggingReceive
 import scala.concurrent.duration._
+import eu.semantiq.easyrider.Application
+import scala.Some
 
-class AppSupervisor(app: Application) extends Actor with ActorLogging {
+class AppSupervisor(app: Application) extends Actor with ActorLogging with Stash {
   import AppSupervisor._
 
   def created: Receive = {
@@ -19,16 +21,16 @@ class AppSupervisor(app: Application) extends Actor with ActorLogging {
   def preparing(git: ActorRef): Receive = {
     case WorkingCopyUpdated => app.commands.compile match {
       case None => becomeRunning(git)
-      case Some(command) =>
-        val compilation = context.actorOf(Props[CommandRunner], "compilation")
-        compilation ! CommandRunner.Run("compilation", command, new File(s"working/${app.name}"), timeout = 2.minutes)
-        context.become(compiling(git, compilation))
+      case Some(command) => becomeCompiling(command, git)
     }
     case GitCloneFailed => context.stop(self)
   }
 
+
   def compiling(git: ActorRef, compilation: ActorRef): Receive = {
-    case CommandRunner.CommandExitCode("compilation", 0, _) => becomeRunning(git)
+    case CommandRunner.CommandExitCode("compilation", 0, _) =>
+      unstashAll()
+      becomeRunning(git)
     case CommandRunner.CommandExitCode("compilation", _, _) =>
       log.error("compilation failed")
       context.become(preparing(git))
@@ -36,10 +38,8 @@ class AppSupervisor(app: Application) extends Actor with ActorLogging {
       log.error("compilation timed-out")
       context.become(preparing(git))
     case WorkingCopyUpdated =>
-      log.info("new version available - aborting compilation")
-      compilation ! CommandRunner.Abort
-      self ! WorkingCopyUpdated
-      context.become(preparing(git))
+      log.info("new version available, but will wait until current compilation is finished")
+      stash()
   }
 
   def running(git: ActorRef, process: ActorRef) = LoggingReceive {
@@ -50,7 +50,16 @@ class AppSupervisor(app: Application) extends Actor with ActorLogging {
     case WorkingCopyUpdated =>
       log.info("new version available")
       process ! ProcessWrapper.Stop
-      process ! ProcessWrapper.Start
+      app.commands.compile match {
+        case Some(command) => becomeCompiling(command, git)
+        case None => context.become(restarting(git))
+      }
+  }
+
+  def restarting(git: ActorRef) = LoggingReceive {
+    case ProcessWrapper.ProcessStopped(code) =>
+      log.info("App stopped - starting again")
+      becomeRunning(git)
   }
 
   def receive: Actor.Receive = created
@@ -63,6 +72,12 @@ class AppSupervisor(app: Application) extends Actor with ActorLogging {
     val process = context.actorOf(Props(classOf[ProcessWrapper], app.commands.run + " " + settingsString, new File(s"working/${app.name}")), "processWrapper")
     process ! ProcessWrapper.Start
     context.become(running(git, process))
+  }
+
+  private def becomeCompiling(command: String, git: ActorRef) {
+    val compilation = context.actorOf(Props[CommandRunner], "compilation")
+    compilation ! CommandRunner.Run("compilation", command, new File(s"working/${app.name}"), timeout = 10.minutes)
+    context.become(compiling(git, compilation))
   }
 }
 
