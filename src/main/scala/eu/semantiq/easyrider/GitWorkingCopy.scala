@@ -1,33 +1,34 @@
 package eu.semantiq.easyrider
 
-import akka.actor.{ActorRef, Props, ActorLogging, Actor}
-import scala.sys.process.{ProcessLogger, Process}
 import java.io.File
 import scala.concurrent.Future
-import scala.util.{Failure, Success}
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits._
+import akka.actor.{ActorRef, Props, ActorLogging, Actor}
 import akka.event.LoggingReceive
+import akka.pattern.PipeToSupport
 
-class GitWorkingCopy(listener: ActorRef, name: String, repository: GitRepositoryRef, workingDirectory: File) extends Actor with ActorLogging {
+class GitWorkingCopy(listener: ActorRef, name: String, repository: GitRepositoryRef, workingDirectory: File)
+  extends Actor with ActorLogging with PipeToSupport {
   import GitWorkingCopy._
   import CommandRunner._
 
-  context.system.scheduler.schedule(10.seconds, 30.seconds, self, Pull)
+  val pullSchedule = context.system.scheduler.schedule(10.seconds, 30.seconds, self, Pull)
   workingDirectory.mkdir()
+
+  override def postStop() = pullSchedule.cancel
 
   def passive = LoggingReceive {
     case Activate =>
-      isCloned onComplete {
-        case Success(true) => self ! CloneComplete
-        case Success(false) => self ! Clone
-        case Failure(e) => throw e
-      }
+      isCloned map {
+        case true => CloneComplete
+        case false => Clone
+      } pipeTo self
       context.become(activating)
   }
 
   def activating: Receive = LoggingReceive {
-    case Clone => runCommand("clone", s"git clone ${repository.url} ${name}", dir = workingDirectory)
+    case Clone => cloneRepo
     case CommandExitCode("clone", 0, _) => self ! CloneComplete
     case CloneComplete => checkout
     case CommandExitCode("checkout", 0, _) => self ! CheckoutComplete
@@ -50,6 +51,7 @@ class GitWorkingCopy(listener: ActorRef, name: String, repository: GitRepository
 
   def receive = passive
   private def isCloned = Future { new File(workingDirectory, name).exists() }
+  private def cloneRepo = runCommand("clone", s"git clone ${repository.url} ${name}", dir = workingDirectory)
   private def pullRepo = runCommand("pull", s"git pull", dir = repoDirectory)
   private def checkout = runCommand("checkout", s"git checkout ${repository.branch}", dir = repoDirectory)
   private def getRevision = runCommand("get-revision", s"git log -n 1", dir = repoDirectory, collectOutput = true)

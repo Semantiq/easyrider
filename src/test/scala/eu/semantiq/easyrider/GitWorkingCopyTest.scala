@@ -2,7 +2,7 @@ package eu.semantiq.easyrider
 
 import akka.testkit.{ImplicitSender, TestKit}
 import akka.actor.{Props, ActorSystem}
-import org.scalatest.{Matchers, FunSpecLike}
+import org.scalatest.{BeforeAndAfter, Matchers, FunSpecLike}
 import org.apache.commons.io.FileUtils
 import java.io.File
 import scala.concurrent.duration._
