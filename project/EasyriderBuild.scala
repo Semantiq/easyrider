@@ -18,7 +18,8 @@ object EasyriderBuild extends Build {
       // test
       "org.scalatest" % "scalatest_2.10" % "2.0" % "test",
       "com.typesafe.akka" % "akka-testkit_2.10" % akkaVersion % "test"
-    )
+    ),
+    fork in Test := true
   )
 
   val debianSettings = packageArchetype.java_application ++ Seq(

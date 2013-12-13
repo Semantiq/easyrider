@@ -1,21 +1,41 @@
 package eu.semantiq.easyrider
 
+import java.io.File
+import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext.Implicits.global
 import akka.actor._
 import org.json4s._
 import org.json4s.jackson.JsonMethods._
-import java.io.File
 
-class ConfigurationManager(configurationListener: ActorRef, source: File) extends Actor {
+class ConfigurationManager(listener: ActorRef, source: File, checkInterval: FiniteDuration) extends Actor {
   import ConfigurationManager._
-  implicit val formats = DefaultFormats
+  private implicit val formats = DefaultFormats
 
-  configurationListener ! Reconfigured(configuration)
+  private var configuration = getConfiguration()
 
-  def receive: Receive = Actor.emptyBehavior
+  private val timerSubscription = context.system.scheduler.schedule(checkInterval, checkInterval, self, CheckForConfigurationChanges)
+  listener ! Reconfigured(configuration)
 
-  private def configuration: Seq[Application] = parse(source).extract[Seq[Application]]
+  override def postStop() {
+    timerSubscription.cancel()
+  }
+
+  def receive: Receive = {
+    case CheckForConfigurationChanges => {
+      val checked = getConfiguration()
+      if (getConfiguration != checked) {
+        configuration = checked
+        listener ! Reconfigured(configuration)
+      }
+    }
+  }
+
+  private def getConfiguration() = parse(source).extract[Seq[Application]]
 }
 
 object ConfigurationManager {
+  def apply(configurationListener: ActorRef, source: File, checkInterval: FiniteDuration = 30.seconds) = Props(classOf[ConfigurationManager],
+    configurationListener, source, checkInterval)
   case class Reconfigured(configuration: Seq[Application])
+  private object CheckForConfigurationChanges
 }

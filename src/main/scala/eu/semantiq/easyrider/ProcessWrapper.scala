@@ -26,7 +26,7 @@ class ProcessWrapper(command: String, dir: File) extends Actor with ActorLogging
   def started(process: Process) = LoggingReceive {
     case Stop =>
       process.destroy()
-      context.become(stopped)
+      context.stop(self)
   }
 
   def receive = stopped
