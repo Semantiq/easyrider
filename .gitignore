@@ -4,4 +4,8 @@ target
 .idea
 .idea_modules
 working
-
+.cache
+.classpath
+.project
+configuration.json
+test-configuration.json

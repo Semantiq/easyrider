@@ -4,10 +4,9 @@ import akka.actor._
 import java.io.File
 import akka.event.LoggingReceive
 import scala.concurrent.duration._
-import eu.semantiq.easyrider.Application
-import scala.Some
+import eu.semantiq.easyrider.{Application=>EasyRiderApplication}
 
-class AppSupervisor(app: Application) extends Actor with ActorLogging with Stash {
+class AppSupervisor(app: EasyRiderApplication) extends Actor with ActorLogging with Stash {
   import AppSupervisor._
 
   def created: Receive = {
