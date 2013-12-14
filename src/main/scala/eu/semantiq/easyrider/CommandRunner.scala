@@ -22,7 +22,7 @@ class CommandRunner extends Actor with ActorLogging {
       context.become(running(id, p, new StringBuilder))
       Future(p.exitValue()) onComplete {
         case Success(code) => self ! Completed(code)
-        case Failure(e) => throw e
+        case Failure(e) => throw e // FIXME: handle this in the actor
       }
       if (timeout.isFinite) {
         context.system.scheduler.scheduleOnce(timeout.asInstanceOf[FiniteDuration]) {
