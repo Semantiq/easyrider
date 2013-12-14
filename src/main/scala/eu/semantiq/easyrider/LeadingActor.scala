@@ -2,11 +2,12 @@ package eu.semantiq.easyrider
 
 import akka.actor._
 import java.io.File
+import scala.concurrent.duration._
 
 class LeadingActor extends Actor with Stash {
   import LeadingActor._
 
-  context.actorOf(Props(classOf[ConfigurationManager], self, configFileLocation), "configuration-manager")
+  context.actorOf(Props(classOf[ConfigurationManager], self, configFileLocation, 10.seconds), "configuration-manager")
 
   def configured(configuration: Seq[Application]): Receive = {
     case Start =>

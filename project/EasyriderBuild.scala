@@ -1,4 +1,5 @@
 import com.typesafe.sbt.SbtNativePackager._
+import spray.revolver.RevolverPlugin._
 import com.typesafe.sbt.packager.Keys._
 import sbt._
 import Keys._
@@ -12,12 +13,12 @@ object EasyriderBuild extends Build {
     scalaVersion := "2.10.3",
     libraryDependencies ++= Seq(
       // main
-      "com.typesafe.akka" % "akka-actor_2.10" % akkaVersion,
+      "com.typesafe.akka" %% "akka-actor" % akkaVersion,
       "org.json4s" %% "json4s-jackson" % "3.2.4",
       "org.apache.commons" % "commons-io" % "1.3.2",
       // test
-      "org.scalatest" % "scalatest_2.10" % "2.0" % "test",
-      "com.typesafe.akka" % "akka-testkit_2.10" % akkaVersion % "test"
+      "org.scalatest" %% "scalatest" % "2.0" % "test",
+      "com.typesafe.akka" %% "akka-testkit" % akkaVersion % "test"
     ),
     fork in Test := true
   )
@@ -30,5 +31,5 @@ object EasyriderBuild extends Build {
   lazy val root = Project(
     id = "easyrider",
     base = file("."),
-    settings = Project.defaultSettings ++ settings ++ debianSettings ++ super.settings)
+    settings = Project.defaultSettings ++ Revolver.settings ++ settings ++ debianSettings ++ super.settings)
 }
