@@ -5,11 +5,12 @@ import java.io.File
 import scala.concurrent.duration.FiniteDuration
 import eu.semantiq.easyrider.CommandRunner._
 import akka.actor.Terminated
+import akka.event.LoggingReceive
 
 class Compiler(listener: ActorRef, workingDir: File, command: Option[String], timeout: FiniteDuration) extends Actor with ActorLogging {
   import Compiler._
 
-  def waiting: Receive = {
+  def waiting: Receive = LoggingReceive {
     case Compile =>
       command match {
         case Some(command) =>
@@ -20,7 +21,7 @@ class Compiler(listener: ActorRef, workingDir: File, command: Option[String], ti
       }
   }
 
-  def compiling(commandRunner: ActorRef): Receive = {
+  def compiling(commandRunner: ActorRef): Receive = LoggingReceive {
     case Compile =>
       commandRunner ! Abort
       context.watch(commandRunner)
@@ -29,8 +30,8 @@ class Compiler(listener: ActorRef, workingDir: File, command: Option[String], ti
     case _: CommandCompleted => listener ! CompilationFailure
   }
 
-  def restarting: Receive = {
-    case Terminated =>
+  def restarting: Receive = LoggingReceive {
+    case _: Terminated =>
       context.become(waiting)
       self ! Compile
     case Compile => log.debug("received compilation request merged with previous one")

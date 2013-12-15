@@ -7,6 +7,7 @@ import scala.concurrent.duration.{FiniteDuration, Duration}
 import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.Future
 import scala.util.{Success, Failure}
+import akka.event.LoggingReceive
 
 class CommandRunner extends Actor with ActorLogging {
   import CommandRunner._
@@ -31,7 +32,7 @@ class CommandRunner extends Actor with ActorLogging {
       }
   }
 
-  def running(id: String, p: Process, output: StringBuilder): Receive = {
+  def running(id: String, p: Process, output: StringBuilder): Receive = LoggingReceive {
     case Completed(code) =>
       context.parent ! CommandExitCode(id, code, if(output.size == 0) None else Some(output.toString))
       context.stop(self)
