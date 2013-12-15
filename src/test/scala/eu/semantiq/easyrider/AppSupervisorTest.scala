@@ -13,7 +13,7 @@ class AppSupervisorTest extends TestKit(ActorSystem("AppSupervisorTest")) with I
     val id = "initial-startup"
     val git = gitRepository(id)
     FileUtils.deleteDirectory(new File(s"working/$id"))
-    val supervisor = system.actorOf(AppSupervisor(), id)
+    val supervisor = system.actorOf(AppSupervisor(new File("working")), id)
     system.eventStream.subscribe(testActor, classOf[AppLifecycleEvent])
 
     supervisor ! ConfigurationUpdated(Application(id, git.gitURL, Commands("sh run.sh", Some("sh compile.sh"))))
@@ -27,7 +27,7 @@ class AppSupervisorTest extends TestKit(ActorSystem("AppSupervisorTest")) with I
     val id = "restart-on-update"
     val git = gitRepository(id)
     FileUtils.deleteDirectory(new File(s"working/$id"))
-    val supervisor = system.actorOf(AppSupervisor(), id)
+    val supervisor = system.actorOf(AppSupervisor(new File("working")), id)
     system.eventStream.subscribe(testActor, classOf[AppLifecycleEvent])
 
     val initialConfiguration: Application = Application(id, git.gitURL, Commands("sh run.sh", Some("sh compile.sh")))

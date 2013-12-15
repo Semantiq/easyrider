@@ -6,18 +6,17 @@ import akka.event.LoggingReceive
 import scala.concurrent.duration._
 import eu.semantiq.easyrider.{Application=>EasyRiderApplication}
 
-class AppSupervisor extends Actor with ActorLogging with Stash {
+class AppSupervisor(workingDirectory: File) extends Actor with ActorLogging with Stash {
   import AppSupervisor._
 
   var app: EasyRiderApplication = _
 
   def created: Receive = {
-    case ConfigurationUpdated(configuration) => {
+    case ConfigurationUpdated(configuration) =>
       app = configuration
-      val git = context.actorOf(Props(classOf[GitWorkingCopy], self, app.name, app.repository, new File("working")), "repository")
+      val git = context.actorOf(Props(classOf[GitWorkingCopy], self, app.name, app.repository, workingDirectory), "repository")
       git ! GitWorkingCopy.Activate
       context.become(preparing(git))
-    }
   }
 
   def preparing(git: ActorRef): Receive = {
@@ -74,7 +73,7 @@ class AppSupervisor extends Actor with ActorLogging with Stash {
     context.system.eventStream.publish(Started(app.name, "TODO"))
     val settingsString = app.settings.map {
       case (key, value) => s"-D$key=$value"
-    } mkString(" ")
+    } mkString " "
     val process = context.actorOf(Props(classOf[ProcessWrapper], app.commands.run + " " + settingsString, new File(s"working/${app.name}")), "processWrapper")
     process ! ProcessWrapper.Start
     context.become(running(git, process))
@@ -82,13 +81,13 @@ class AppSupervisor extends Actor with ActorLogging with Stash {
 
   private def becomeCompiling(command: String, git: ActorRef) {
     val compilation = context.actorOf(Props[CommandRunner], "compilation")
-    compilation ! CommandRunner.Run("compilation", command, new File(s"working/${app.name}"), timeout = 10.minutes)
+    compilation ! CommandRunner.Run("compilation", command, new File(workingDirectory, app.name), timeout = 10.minutes)
     context.become(compiling(git, compilation))
   }
 }
 
 object AppSupervisor {
-  def apply() = Props(classOf[AppSupervisor])
+  def apply(workingDirectory: File) = Props(classOf[AppSupervisor], workingDirectory)
   case class ConfigurationUpdated(app: EasyRiderApplication)
   object Start
   object WorkingCopyUpdated
