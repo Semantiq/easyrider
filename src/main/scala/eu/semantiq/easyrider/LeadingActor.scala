@@ -3,6 +3,7 @@ package eu.semantiq.easyrider
 import akka.actor._
 import java.io.File
 import scala.concurrent.duration._
+import eu.semantiq.easyrider.AppSupervisor.ConfigurationUpdated
 
 class LeadingActor extends Actor with Stash {
   import LeadingActor._
@@ -11,14 +12,14 @@ class LeadingActor extends Actor with Stash {
 
   def configured(configuration: Seq[Application]): Receive = {
     case Start =>
-      val appSupervisors = configuration map {
-        app => context.actorOf(Props(classOf[AppSupervisor], app), s"${app.name}-supervisor")
+      configuration foreach {
+        app => context.actorOf(Props(classOf[AppSupervisor]), app.name)
       }
-      appSupervisors foreach { _ ! AppSupervisor.Start }
-      context.become(running(configuration, appSupervisors))
+      configuration.foreach(app => context.child(app.name).get ! ConfigurationUpdated(app))
+      context.become(running(configuration))
   }
 
-  def running(configuration: Seq[Application], appSupervisors: Seq[ActorRef]): Receive = {
+  def running(configuration: Seq[Application]): Receive = {
     case Stop => context.stop(self)
   }
 

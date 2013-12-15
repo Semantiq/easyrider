@@ -6,11 +6,14 @@ import akka.event.LoggingReceive
 import scala.concurrent.duration._
 import eu.semantiq.easyrider.{Application=>EasyRiderApplication}
 
-class AppSupervisor(app: EasyRiderApplication) extends Actor with ActorLogging with Stash {
+class AppSupervisor extends Actor with ActorLogging with Stash {
   import AppSupervisor._
 
+  var app: EasyRiderApplication = _
+
   def created: Receive = {
-    case Start => {
+    case ConfigurationUpdated(configuration) => {
+      app = configuration
       val git = context.actorOf(Props(classOf[GitWorkingCopy], self, app.name, app.repository, new File("working")), "repository")
       git ! GitWorkingCopy.Activate
       context.become(preparing(git))
@@ -18,16 +21,19 @@ class AppSupervisor(app: EasyRiderApplication) extends Actor with ActorLogging w
   }
 
   def preparing(git: ActorRef): Receive = {
-    case WorkingCopyUpdated => app.commands.compile match {
-      case None => becomeRunning(git)
-      case Some(command) => becomeCompiling(command, git)
-    }
+    case WorkingCopyUpdated =>
+      context.system.eventStream.publish(Updated(app.name, "TODO"))
+      app.commands.compile match {
+        case None => becomeRunning(git)
+        case Some(command) => becomeCompiling(command, git)
+      }
     case GitCloneFailed => context.stop(self)
   }
 
 
   def compiling(git: ActorRef, compilation: ActorRef): Receive = {
     case CommandRunner.CommandExitCode("compilation", 0, _) =>
+      context.system.eventStream.publish(Compiled(app.name, "TODO"))
       unstashAll()
       becomeRunning(git)
     case CommandRunner.CommandExitCode("compilation", _, _) =>
@@ -65,6 +71,7 @@ class AppSupervisor(app: EasyRiderApplication) extends Actor with ActorLogging w
 
   private def becomeRunning(git: ActorRef) {
     log.info("ready to rock")
+    context.system.eventStream.publish(Started(app.name, "TODO"))
     val settingsString = app.settings.map {
       case (key, value) => s"-D$key=$value"
     } mkString(" ")
@@ -81,7 +88,13 @@ class AppSupervisor(app: EasyRiderApplication) extends Actor with ActorLogging w
 }
 
 object AppSupervisor {
+  def apply() = Props(classOf[AppSupervisor])
+  case class ConfigurationUpdated(app: EasyRiderApplication)
   object Start
   object WorkingCopyUpdated
   object GitCloneFailed
+  sealed trait AppLifecycleEvent
+  case class Updated(app: String, rev: String) extends AppLifecycleEvent
+  case class Compiled(app: String, rev: String) extends AppLifecycleEvent
+  case class Started(app: String, rev: String) extends  AppLifecycleEvent
 }
