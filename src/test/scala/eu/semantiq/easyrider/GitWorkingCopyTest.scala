@@ -9,33 +9,31 @@ import scala.concurrent.duration._
 
 class GitWorkingCopyTest extends TestKit(ActorSystem("GitWorkingCopyTest")) with ImplicitSender with FunSpecLike with Matchers {
   it("should clone the repository at startup") {
-    // given
-    val repo = new DummyGitRepository("cloneTest")
-    val folder = notExistingFolder("target/cloneTestWorkingCopy")
-    // when
-    val gitWorkingCopy = makeGitWorkingCopy(folder, repo)
-    // then
-    gitWorkingCopy ! GitWorkingCopy.Activate
-    expectMsg(AppSupervisor.WorkingCopyUpdated)
-  }
+    val id = "cloneTest"
+    val repo = new DummyGitRepository(id)
+    val folder = notExistingFolder(s"target/${id}WorkingCopy")
+    val gitWorkingCopy = makeGitWorkingCopy(folder)
 
-  private def makeGitWorkingCopy(folder: File, repo: DummyGitRepository) = {
-    system.actorOf(Props(classOf[GitWorkingCopy], testActor, folder.getName, repo.gitURL, folder.getParentFile), folder.getName)
+    gitWorkingCopy ! GitWorkingCopy.ConfigurationUpdated(repo.gitURL)
+    expectMsg(AppSupervisor.WorkingCopyUpdated)
   }
 
   it("should poll for incoming changes") {
-    // given
-    val repo = new DummyGitRepository("pollingTest")
-    val folder = notExistingFolder("target/pollingTestWorkingCopy")
-    // when
-    val gitWorkingCopy = makeGitWorkingCopy(folder, repo)
-    // then
-    gitWorkingCopy ! GitWorkingCopy.Activate
+    val id = "pollingTest"
+    val repo = new DummyGitRepository(id)
+    val folder = notExistingFolder(s"target/${id}WorkingCopy")
+    val gitWorkingCopy = makeGitWorkingCopy(folder)
+
+    gitWorkingCopy ! GitWorkingCopy.ConfigurationUpdated(repo.gitURL)
     expectMsg(AppSupervisor.WorkingCopyUpdated)
-    expectNoMsg
+    expectNoMsg()
     repo.updateFile("anything", "new content")
     expectMsg(15.seconds, AppSupervisor.WorkingCopyUpdated)
-    expectNoMsg
+    expectNoMsg()
+  }
+
+  private def makeGitWorkingCopy(folder: File) = {
+    system.actorOf(GitWorkingCopy(testActor, folder), folder.getName)
   }
 
   private def notExistingFolder(folder: String) = {

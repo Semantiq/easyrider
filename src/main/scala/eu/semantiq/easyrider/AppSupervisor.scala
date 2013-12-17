@@ -11,64 +11,53 @@ class AppSupervisor(workingDirectory: File) extends Actor with ActorLogging with
 
   var app: EasyRiderApplication = _
 
+  workingDirectory.mkdir()
+  val repoDirectory = new File(workingDirectory, "repo")
+  val git = context.actorOf(GitWorkingCopy(self, repoDirectory), "repository")
+  val compiler = context.actorOf(Compiler(self, repoDirectory, 60.seconds), "compiler")
+
   def created: Receive = {
     case ConfigurationUpdated(configuration) =>
       app = configuration
-      val git = context.actorOf(Props(classOf[GitWorkingCopy], self, app.name, app.repository, workingDirectory), "repository")
-      git ! GitWorkingCopy.Activate
-      context.become(preparing(git))
+      git ! GitWorkingCopy.ConfigurationUpdated(configuration.repository)
+      context.become(preparing)
   }
 
-  def preparing(git: ActorRef): Receive = {
+  def preparing: Receive = {
     case WorkingCopyUpdated =>
       context.system.eventStream.publish(Updated(app.name, "TODO"))
-      app.commands.compile match {
-        case None => becomeRunning(git)
-        case Some(command) => becomeCompiling(command, git)
-      }
+      compiler ! Compiler.Compile(app.commands.compile)
+      context.become(compiling)
     case GitCloneFailed => context.stop(self)
   }
 
-
-  def compiling(git: ActorRef, compilation: ActorRef): Receive = {
-    case CommandRunner.CommandExitCode("compilation", 0, _) =>
+  def compiling: Receive = {
+    case Compiler.CompilationSuccessful =>
       context.system.eventStream.publish(Compiled(app.name, "TODO"))
       unstashAll()
-      becomeRunning(git)
-    case CommandRunner.CommandExitCode("compilation", _, _) =>
-      log.error("compilation failed")
-      context.become(preparing(git))
-    case CommandRunner.CommandTimedOut =>
-      log.error("compilation timed-out")
-      context.become(preparing(git))
+      becomeRunning()
+    case Compiler.CompilationFailure =>
+      context.become(preparing)
     case WorkingCopyUpdated =>
       log.info("new version available, but will wait until current compilation is finished")
       stash()
   }
 
-  def running(git: ActorRef, process: ActorRef) = LoggingReceive {
+  def running(process: ActorRef) = LoggingReceive {
     case ProcessWrapper.ProcessStopped(code) =>
       log.error("App crashed with code {}", code)
       context.stop(process)
-      context.become(preparing(git))
+      context.become(preparing)
     case WorkingCopyUpdated =>
       log.info("new version available")
       process ! ProcessWrapper.Stop
-      app.commands.compile match {
-        case Some(command) => becomeCompiling(command, git)
-        case None => context.become(restarting(git))
-      }
-  }
-
-  def restarting(git: ActorRef) = LoggingReceive {
-    case ProcessWrapper.ProcessStopped(code) =>
-      log.info("App stopped - starting again")
-      becomeRunning(git)
+      compiler ! Compiler.Compile
+      context.become(compiling)
   }
 
   def receive: Actor.Receive = created
 
-  private def becomeRunning(git: ActorRef) {
+  private def becomeRunning() {
     log.info("ready to rock")
     context.system.eventStream.publish(Started(app.name, "TODO"))
     val settingsString = app.settings.map {
@@ -76,20 +65,13 @@ class AppSupervisor(workingDirectory: File) extends Actor with ActorLogging with
     } mkString " "
     val process = context.actorOf(Props(classOf[ProcessWrapper], app.commands.run + " " + settingsString, new File(s"working/${app.name}")), "processWrapper")
     process ! ProcessWrapper.Start
-    context.become(running(git, process))
-  }
-
-  private def becomeCompiling(command: String, git: ActorRef) {
-    val compilation = context.actorOf(Props[CommandRunner], "compilation")
-    compilation ! CommandRunner.Run("compilation", command, new File(workingDirectory, app.name), timeout = 10.minutes)
-    context.become(compiling(git, compilation))
+    context.become(running(process))
   }
 }
 
 object AppSupervisor {
   def apply(workingDirectory: File) = Props(classOf[AppSupervisor], workingDirectory)
   case class ConfigurationUpdated(app: EasyRiderApplication)
-  object Start
   object WorkingCopyUpdated
   object GitCloneFailed
   sealed trait AppLifecycleEvent

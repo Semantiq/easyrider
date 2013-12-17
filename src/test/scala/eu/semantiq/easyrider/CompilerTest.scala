@@ -10,30 +10,30 @@ class CompilerTest extends TestKit(ActorSystem("CompilerTest")) with ImplicitSen
   val workingCopy = new DummyWorkingCopy
 
   it("should compile whenever working copy is available and notify success") {
-    val compiler = system.actorOf(Compiler(testActor, workingCopy.location, Some("sh ok.sh"), 2.seconds), "compiler-ok")
+    val compiler = system.actorOf(Compiler(testActor, workingCopy.location, 2.seconds), "compiler-ok")
 
     expectNoMsg(500.milliseconds)
-    compiler ! Compile
+    compiler ! Compile(Some("sh ok.sh"))
     expectMsg(200.milliseconds, Compiler.CompilationSuccessful)
   }
   it("should safely abort compilation if working copy is updated during compilation") {
-    val compiler = system.actorOf(Compiler(testActor, workingCopy.location, Some("sh 1sec.sh"), 2.seconds), "compiler-restart")
+    val compiler = system.actorOf(Compiler(testActor, workingCopy.location, 2.seconds), "compiler-restart")
 
-    compiler ! Compile
-    compiler ! Compile
+    compiler ! Compile(Some("sh 1sec.sh"))
+    compiler ! Compile(Some("sh 1sec.sh"))
     expectMsg(CompilationSuccessful)
     expectNoMsg(2.seconds)
   }
   it("should notify about compilation failures") {
-    val compiler = system.actorOf(Compiler(testActor, workingCopy.location, Some("sh failing.sh"), 2.seconds))
+    val compiler = system.actorOf(Compiler(testActor, workingCopy.location, 2.seconds))
 
-    compiler ! Compile
+    compiler ! Compile(Some("sh failing.sh"))
     expectMsg(CompilationFailure)
   }
   it("should notify about compilation failure in case of timeout") {
-    val compiler = system.actorOf(Compiler(testActor, workingCopy.location, Some("sh 10sec.sh"), 500.milliseconds))
+    val compiler = system.actorOf(Compiler(testActor, workingCopy.location, 500.milliseconds))
 
-    compiler ! Compile
+    compiler ! Compile(Some("sh 10sec.sh"))
     expectMsg(CompilationFailure)
   }
 }

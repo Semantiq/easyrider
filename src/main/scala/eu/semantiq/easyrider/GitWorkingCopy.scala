@@ -8,18 +8,20 @@ import akka.actor.{ActorRef, Props, ActorLogging, Actor}
 import akka.event.LoggingReceive
 import akka.pattern.PipeToSupport
 
-class GitWorkingCopy(listener: ActorRef, name: String, repository: GitRepositoryRef, workingDirectory: File)
+class GitWorkingCopy(listener: ActorRef, repoDirectory: File)
   extends Actor with ActorLogging with PipeToSupport {
   import GitWorkingCopy._
   import CommandRunner._
 
   val pullSchedule = context.system.scheduler.schedule(10.seconds, 30.seconds, self, Pull)
-  workingDirectory.mkdir()
 
-  override def postStop() = pullSchedule.cancel
+  var repository: GitRepositoryRef = _
+
+  override def postStop() = pullSchedule.cancel()
 
   def passive = LoggingReceive {
-    case Activate =>
+    case ConfigurationUpdated(newConfig) =>
+      repository = newConfig
       isCloned map {
         case true => CloneComplete
         case false => Clone
@@ -50,20 +52,21 @@ class GitWorkingCopy(listener: ActorRef, name: String, repository: GitRepository
   }
 
   def receive = passive
-  private def isCloned = Future { new File(workingDirectory, name).exists() }
-  private def cloneRepo = runCommand("clone", s"git clone ${repository.url} ${name}", dir = workingDirectory)
+  private def isCloned = Future { repoDirectory.exists() }
+  private def cloneRepo = runCommand("clone", s"git clone ${repository.url} ${repoDirectory.getName}", dir = repoDirectory.getParentFile)
   private def pullRepo = runCommand("pull", s"git pull", dir = repoDirectory)
   private def checkout = runCommand("checkout", s"git checkout ${repository.branch}", dir = repoDirectory)
   private def getRevision = runCommand("get-revision", s"git log -n 1", dir = repoDirectory, collectOutput = true)
-  private def runCommand(id: String, command: String, dir: File = workingDirectory, collectOutput: Boolean = false) {
+  private def runCommand(id: String, command: String, dir: File, collectOutput: Boolean = false) = {
     val runner = context.actorOf(Props[CommandRunner], id)
     runner ! Run(id, command, dir, collectOutput = collectOutput)
+    runner
   }
-  private def repoDirectory = new File(workingDirectory, name)
 }
 
 object GitWorkingCopy {
-  object Activate
+  def apply(listener: ActorRef, workingDirectory: File) = Props(classOf[GitWorkingCopy], listener, workingDirectory)
+  case class ConfigurationUpdated(repo: GitRepositoryRef)
   private object Clone
   private object CloneComplete
   private object CheckoutComplete

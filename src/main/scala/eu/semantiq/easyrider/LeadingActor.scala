@@ -13,7 +13,7 @@ class LeadingActor extends Actor with Stash {
   def configured(configuration: Seq[Application]): Receive = {
     case Start =>
       configuration foreach {
-        app => context.actorOf(Props(classOf[AppSupervisor]), app.name)
+        app => context.actorOf(AppSupervisor(new File("working")), app.name)
       }
       configuration.foreach(app => context.child(app.name).get ! ConfigurationUpdated(app))
       context.become(running(configuration))
