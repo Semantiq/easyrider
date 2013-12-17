@@ -8,12 +8,12 @@ import akka.actor.{ActorRef, Props, ActorLogging, Actor}
 import akka.event.LoggingReceive
 import akka.pattern.PipeToSupport
 
-class GitWorkingCopy(listener: ActorRef, repoDirectory: File)
+class GitWorkingCopy(listener: ActorRef, repoDirectory: File, pullFrequency: FiniteDuration)
   extends Actor with ActorLogging with PipeToSupport {
   import GitWorkingCopy._
   import CommandRunner._
 
-  val pullSchedule = context.system.scheduler.schedule(10.seconds, 30.seconds, self, Pull)
+  val pullSchedule = context.system.scheduler.schedule(pullFrequency, pullFrequency, self, Pull)
 
   var repository: GitRepositoryRef = _
 
@@ -65,7 +65,9 @@ class GitWorkingCopy(listener: ActorRef, repoDirectory: File)
 }
 
 object GitWorkingCopy {
-  def apply(listener: ActorRef, workingDirectory: File) = Props(classOf[GitWorkingCopy], listener, workingDirectory)
+  def apply(listener: ActorRef, workingDirectory: File, pullFrequency: FiniteDuration = 30.seconds) =
+    Props(classOf[GitWorkingCopy], listener, workingDirectory, pullFrequency)
+
   case class ConfigurationUpdated(repo: GitRepositoryRef)
   private object Clone
   private object CloneComplete

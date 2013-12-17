@@ -9,31 +9,28 @@ import scala.concurrent.duration._
 
 class GitWorkingCopyTest extends TestKit(ActorSystem("GitWorkingCopyTest")) with ImplicitSender with FunSpecLike with Matchers {
   it("should clone the repository at startup") {
-    val id = "cloneTest"
-    val repo = new DummyGitRepository(id)
-    val folder = notExistingFolder(s"target/${id}WorkingCopy")
-    val gitWorkingCopy = makeGitWorkingCopy(folder)
+    val (repo, gitWorkingCopy) = setup("cloneTest")
 
     gitWorkingCopy ! GitWorkingCopy.ConfigurationUpdated(repo.gitURL)
     expectMsg(AppSupervisor.WorkingCopyUpdated)
   }
 
   it("should poll for incoming changes") {
-    val id = "pollingTest"
-    val repo = new DummyGitRepository(id)
-    val folder = notExistingFolder(s"target/${id}WorkingCopy")
-    val gitWorkingCopy = makeGitWorkingCopy(folder)
+    val (repo, gitWorkingCopy) = setup("pollingTest")
 
     gitWorkingCopy ! GitWorkingCopy.ConfigurationUpdated(repo.gitURL)
     expectMsg(AppSupervisor.WorkingCopyUpdated)
-    expectNoMsg()
+    expectNoMsg(1.second)
     repo.updateFile("anything", "new content")
-    expectMsg(15.seconds, AppSupervisor.WorkingCopyUpdated)
-    expectNoMsg()
+    expectMsg(AppSupervisor.WorkingCopyUpdated)
+    expectNoMsg(1.second)
   }
 
-  private def makeGitWorkingCopy(folder: File) = {
-    system.actorOf(GitWorkingCopy(testActor, folder), folder.getName)
+  private def setup(id: String) = {
+    val repo = new DummyGitRepository(id)
+    val folder = notExistingFolder(s"target/${id}WorkingCopy")
+    val gitWorkingCopy = system.actorOf(GitWorkingCopy(testActor, folder, 200.milliseconds), folder.getName)
+    (repo, gitWorkingCopy)
   }
 
   private def notExistingFolder(folder: String) = {
