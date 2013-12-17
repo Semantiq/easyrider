@@ -16,7 +16,7 @@ class AppSupervisorTest extends TestKit(ActorSystem("AppSupervisorTest")) with I
     expectMsgClass(classOf[Updated])
     expectMsgClass(classOf[Compiled])
     expectMsgClass(classOf[Started])
-    expectNoMsg()
+    expectNoMsg(200.milliseconds)
   }
 
   it("should should recompile and start new version of application, upon a change") {
@@ -27,12 +27,12 @@ class AppSupervisorTest extends TestKit(ActorSystem("AppSupervisorTest")) with I
     expectMsgClass(classOf[Updated])
     expectMsgClass(classOf[Compiled])
     expectMsgClass(classOf[Started])
-    expectNoMsg()
+    expectNoMsg(200.milliseconds)
     git.updateFile("compile.sh", """echo world > run.sh""")
-    expectMsgClass(40.seconds, classOf[Updated])
+    expectMsgClass(classOf[Updated])
     expectMsgClass(classOf[Compiled])
     expectMsgClass(classOf[Started])
-    expectNoMsg()
+    expectNoMsg(200.milliseconds)
   }
 
   it("should keep the application running until new version is compiled successfully") {
@@ -43,15 +43,15 @@ class AppSupervisorTest extends TestKit(ActorSystem("AppSupervisorTest")) with I
     expectMsgClass(classOf[Updated])
     expectMsgClass(classOf[Compiled])
     expectMsgClass(classOf[Started])
-    expectNoMsg()
+    expectNoMsg(200.milliseconds)
     git.updateFile("compile.sh", """exit 1""")
-    expectMsgClass(40.seconds, classOf[Updated])
-    expectNoMsg()
+    expectMsgClass(classOf[Updated])
+    expectNoMsg(200.milliseconds)
     git.updateFile("compile.sh", """echo world > run.sh""")
-    expectMsgClass(40.seconds, classOf[Updated])
+    expectMsgClass(classOf[Updated])
     expectMsgClass(classOf[Compiled])
     expectMsgClass(classOf[Started])
-    expectNoMsg()
+    expectNoMsg(200.milliseconds)
   }
 
   private def gitRepository(id: String) = {
@@ -65,8 +65,9 @@ class AppSupervisorTest extends TestKit(ActorSystem("AppSupervisorTest")) with I
 
   private def setup(id: String) = {
     val git = gitRepository(id)
-    FileUtils.deleteDirectory(new File(s"working/$id"))
-    val supervisor = system.actorOf(AppSupervisor(new File(s"working/$id")), id)
+    val workingDirectory = new File(s"working/$id")
+    FileUtils.deleteDirectory(workingDirectory)
+    val supervisor = system.actorOf(AppSupervisor(workingDirectory, 50.milliseconds, 2.seconds), id)
     system.eventStream.subscribe(testActor, classOf[AppLifecycleEvent])
     (git, supervisor)
   }

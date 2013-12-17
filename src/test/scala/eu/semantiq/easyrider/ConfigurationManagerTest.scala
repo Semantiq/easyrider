@@ -11,17 +11,17 @@ class ConfigurationManagerTest extends TestKit(ActorSystem("ConfigurationManager
   it("should send the current configuration at startup") {
     system.actorOf(ConfigurationManager(testActor, new File("src/test/resources/test-configuration.json")), "configuration-manager")
 
-    val message = receiveOne(1.second).asInstanceOf[Reconfigured]
+    val message = receiveOne(3.seconds).asInstanceOf[Reconfigured]
     message.configuration should have size 1
   }
 
   it("should send an update if configuration is changed") {
     val configFile = new DummyConfigFile
-    system.actorOf(ConfigurationManager(testActor, configFile.location, checkInterval = 1.second), "updating-configuration-manager")
+    system.actorOf(ConfigurationManager(testActor, configFile.location, checkInterval = 100.microseconds), "updating-configuration-manager")
 
-    receiveOne(1.second)
-    expectNoMsg(5.seconds)
+    receiveOne(200.milliseconds)
+    expectNoMsg(200.milliseconds)
     configFile.update("[]")
-    receiveOne(5.seconds)
+    receiveOne(200.milliseconds)
   }
 }

@@ -6,15 +6,15 @@ import akka.event.LoggingReceive
 import scala.concurrent.duration._
 import eu.semantiq.easyrider.{Application=>EasyRiderApplication}
 
-class AppSupervisor(workingDirectory: File) extends Actor with ActorLogging with Stash {
+class AppSupervisor(workingDirectory: File, pullFrequency: FiniteDuration, compilationTimeout: FiniteDuration) extends Actor with ActorLogging with Stash {
   import AppSupervisor._
 
   var app: EasyRiderApplication = _
 
   workingDirectory.mkdir()
   val repoDirectory = new File(workingDirectory, "repo")
-  val git = context.actorOf(GitWorkingCopy(self, repoDirectory), "repository")
-  val compiler = context.actorOf(Compiler(self, repoDirectory, 60.seconds), "compiler")
+  val git = context.actorOf(GitWorkingCopy(self, repoDirectory, pullFrequency), "repository")
+  val compiler = context.actorOf(Compiler(self, repoDirectory, compilationTimeout), "compiler")
 
   def created: Receive = {
     case ConfigurationUpdated(configuration) =>
@@ -70,7 +70,8 @@ class AppSupervisor(workingDirectory: File) extends Actor with ActorLogging with
 }
 
 object AppSupervisor {
-  def apply(workingDirectory: File) = Props(classOf[AppSupervisor], workingDirectory)
+  def apply(workingDirectory: File, pullFrequency: FiniteDuration = 30.seconds, compilationTimeout: FiniteDuration = 5.minutes) =
+    Props(classOf[AppSupervisor], workingDirectory, pullFrequency, compilationTimeout)
   case class ConfigurationUpdated(app: EasyRiderApplication)
   object WorkingCopyUpdated
   object GitCloneFailed
