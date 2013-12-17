@@ -20,16 +20,16 @@ class GitWorkingCopyTest extends TestKit(ActorSystem("GitWorkingCopyTest")) with
 
     gitWorkingCopy ! GitWorkingCopy.ConfigurationUpdated(repo.gitURL)
     expectMsg(AppSupervisor.WorkingCopyUpdated)
-    expectNoMsg(1.second)
+    expectNoMsg(200.milliseconds)
     repo.updateFile("anything", "new content")
     expectMsg(AppSupervisor.WorkingCopyUpdated)
-    expectNoMsg(1.second)
+    expectNoMsg(200.milliseconds)
   }
 
   private def setup(id: String) = {
     val repo = new DummyGitRepository(id)
     val folder = notExistingFolder(s"target/${id}WorkingCopy")
-    val gitWorkingCopy = system.actorOf(GitWorkingCopy(testActor, folder, 200.milliseconds), folder.getName)
+    val gitWorkingCopy = system.actorOf(GitWorkingCopy(testActor, folder, 50.milliseconds), folder.getName)
     (repo, gitWorkingCopy)
   }
 
