@@ -63,7 +63,7 @@ class AppSupervisor(workingDirectory: File, pullFrequency: FiniteDuration, compi
     val settingsString = app.settings.map {
       case (key, value) => s"-D$key=$value"
     } mkString " "
-    val process = context.actorOf(Props(classOf[ProcessWrapper], app.commands.run + " " + settingsString, new File(s"working/${app.name}")), "processWrapper")
+    val process = context.actorOf(Props(classOf[ProcessWrapper], app.commands.run + " " + settingsString, repoDirectory), "processWrapper")
     process ! ProcessWrapper.Start
     context.become(running(process))
   }
