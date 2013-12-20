@@ -14,6 +14,8 @@ object EasyriderBuild extends Build {
     libraryDependencies ++= Seq(
       // main
       "com.typesafe.akka" %% "akka-actor" % akkaVersion,
+      "com.typesafe.akka" %% "akka-slf4j" % akkaVersion,
+      "ch.qos.logback" % "logback-classic" % "1.0.0" % "runtime",
       "org.json4s" %% "json4s-jackson" % "3.2.4",
       "org.apache.commons" % "commons-io" % "1.3.2",
       // test
