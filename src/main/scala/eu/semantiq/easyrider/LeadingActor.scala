@@ -13,7 +13,7 @@ class LeadingActor extends Actor with Stash {
   def configured(configuration: Seq[Application]): Receive = {
     case Start =>
       configuration foreach {
-        app => context.actorOf(AppSupervisor(new File(s"working/${app.name}")), app.name)
+        app => context.actorOf(AppSupervisor(new File(workingDirectory, app.name)), app.name)
       }
       configuration.foreach(app => context.child(app.name).get ! ConfigurationUpdated(app))
       context.become(running(configuration))
@@ -31,6 +31,7 @@ class LeadingActor extends Actor with Stash {
   }
 
   private def configFileLocation: File = new File(System.getProperty("configuration", "configuration.json"))
+  private def workingDirectory: File = new File(System.getProperty("working.directory", "working"))
 }
 
 object LeadingActor {
