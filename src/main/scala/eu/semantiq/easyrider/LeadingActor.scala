@@ -10,7 +10,7 @@ class LeadingActor extends Actor with Stash {
 
   context.actorOf(Props(classOf[ConfigurationManager], self, configFileLocation, 10.seconds), "configuration-manager")
   private val statusMonitor = context.actorOf(Props[StatusMonitor], "status-monitor")
-  private val dispatcher = context.actorOf(Props[HttpDispatcher], "http-dispatcher")
+  private val dispatcher = context.actorOf(HttpDispatcher(statusMonitor), "http-dispatcher")
 
   def configured(configuration: Seq[Application]): Receive = {
     case Start =>

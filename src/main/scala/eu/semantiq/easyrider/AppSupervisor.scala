@@ -56,7 +56,7 @@ class AppSupervisor(workingDirectory: File, pullFrequency: FiniteDuration, compi
       context.become(compiling)
   }
 
-  def receive: Actor.Receive = created
+  def receive: Receive = created
 
   private def becomeRunning() {
     log.info("ready to rock")
@@ -76,7 +76,9 @@ object AppSupervisor {
   case class ConfigurationUpdated(app: EasyRiderApplication)
   object WorkingCopyUpdated
   object GitCloneFailed
-  sealed trait AppLifecycleEvent
+  sealed trait AppLifecycleEvent {
+    def app: String
+  }
   case class Updated(app: String, rev: String) extends AppLifecycleEvent
   case class Compiled(app: String, rev: String) extends AppLifecycleEvent
   case class Started(app: String, rev: String) extends  AppLifecycleEvent

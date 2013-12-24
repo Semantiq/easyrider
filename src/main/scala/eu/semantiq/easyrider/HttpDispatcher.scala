@@ -1,13 +1,13 @@
 package eu.semantiq.easyrider
 
-import akka.actor.Actor
+import akka.actor.{Props, ActorRef, Actor}
 import akka.io.{Tcp, IO}
 import spray.can.server.websockets.Sockets
 import spray.can.Http
 import spray.can.Http.Register
 import eu.semantiq.easyrider.HttpDispatcher.NewConfiguration
 
-class HttpDispatcher extends Actor {
+class HttpDispatcher(statusMonitor: ActorRef) extends Actor {
   private implicit val system = context.system
 
   def initializing: Receive = {
@@ -17,7 +17,7 @@ class HttpDispatcher extends Actor {
   }
 
   def started: Receive = {
-    case _: Tcp.Connected => sender ! Register(context.actorOf(StatusController()))
+    case _: Tcp.Connected => sender ! Register(context.actorOf(StatusController(statusMonitor)))
   }
 
 
@@ -25,5 +25,7 @@ class HttpDispatcher extends Actor {
 }
 
 object HttpDispatcher {
+  def apply(statusMonitor: ActorRef) = Props(classOf[HttpDispatcher], statusMonitor)
+
   case class NewConfiguration(port: Int)
 }

@@ -1,6 +1,6 @@
 package eu.semantiq.easyrider
 
-import akka.actor.{Props, ActorLogging, Actor}
+import akka.actor.{ActorRef, Props, ActorLogging, Actor}
 import spray.can.server.websockets.Sockets
 import spray.http._
 import spray.http.StatusCode._
@@ -9,15 +9,14 @@ import spray.http.HttpResponse
 import spray.http.HttpMethods._
 import org.apache.commons.io.IOUtils
 
-class StatusController extends Actor with ActorLogging {
-
+class StatusController(statusMonitor: ActorRef) extends Actor with ActorLogging {
   private val htmlContentType = ContentType(MediaType.custom("text/html"), HttpCharset.custom("UTF-8"))
 
   def receive = {
     case HttpRequest(GET, Uri.Path("/"), _, _, _) =>
       sender ! responseFromResource("/static/index.html")
     case req @ HttpRequest(GET, Uri.Path("/api"), _, _, _) =>
-      sender ! Sockets.UpgradeServer(Sockets.acceptAllFunction(req), context.actorOf(ApiController()))
+      sender ! Sockets.UpgradeServer(Sockets.acceptAllFunction(req), context.actorOf(ApiController(statusMonitor)))
     case HttpRequest(GET, Uri.Path(path), _, _, _) =>
       sender ! responseFromResource(s"/static$path")
   }
@@ -31,5 +30,5 @@ class StatusController extends Actor with ActorLogging {
 }
 
 object StatusController {
-  def apply() = Props[StatusController]
+  def apply(statusMonitor: ActorRef) = Props(classOf[StatusController], statusMonitor)
 }
