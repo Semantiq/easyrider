@@ -46,6 +46,7 @@ class AppSupervisor(workingDirectory: File, pullFrequency: FiniteDuration, compi
   def running(process: ActorRef) = LoggingReceive {
     case ProcessWrapper.ProcessStopped(code) =>
       log.error("App crashed with code {}", code)
+      context.system.eventStream.publish(Stopped(app.name))
       context.stop(process)
       context.become(preparing)
     case WorkingCopyUpdated =>
@@ -79,5 +80,5 @@ object AppSupervisor {
   case class Updated(app: String, rev: String) extends AppLifecycleEvent
   case class Compiled(app: String, rev: String) extends AppLifecycleEvent
   case class Started(app: String, rev: String) extends  AppLifecycleEvent
-  // TODO: implement application crashed event
+  case class Stopped(app: String) extends AppLifecycleEvent
 }
