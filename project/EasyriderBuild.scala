@@ -34,4 +34,5 @@ object EasyriderBuild extends Build {
     id = "easyrider",
     base = file("."),
     settings = Project.defaultSettings ++ Revolver.settings ++ settings ++ debianSettings ++ super.settings)
+      .dependsOn(uri("git://github.com/lihaoyi/SprayWebSockets.git"))
 }
