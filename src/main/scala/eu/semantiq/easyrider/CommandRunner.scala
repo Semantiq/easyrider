@@ -15,7 +15,7 @@ class CommandRunner extends Actor with ActorLogging with PipeToSupport {
 
   def await: Receive = {
     case Run(id, command, dir, collectOutput, timeout) =>
-      log.info(s"Running $command in $dir")
+      log.debug(s"Running $command in $dir")
       val logger = collectOutput match {
         case true => ProcessLogger(m => self ! Line(m), m => log.debug(s"$command: $m"))
         case false => ProcessLogger(m => log.debug(s"$command: $m"))

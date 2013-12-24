@@ -1,37 +1,35 @@
 package eu.semantiq.easyrider
 
-import akka.actor.Actor
-import eu.semantiq.easyrider.StatusController.NewConfiguration
+import akka.actor.{Props, ActorLogging, Actor}
 import spray.can.server.websockets.Sockets
-import akka.io.{Tcp, IO}
-import spray.can.Http
-import spray.can.Http.Register
+import spray.http._
+import spray.http.StatusCode._
 import spray.http.HttpRequest
-import spray.can.server.websockets.model.{OpCode, Frame}
-import akka.util.ByteString
-import scala.concurrent.duration._
+import spray.http.HttpResponse
+import spray.http.HttpMethods._
+import org.apache.commons.io.IOUtils
 
-class StatusController extends Actor {
+class StatusController extends Actor with ActorLogging {
 
-  implicit val system = context.system
+  private val htmlContentType = ContentType(MediaType.custom("text/html"), HttpCharset.custom("UTF-8"))
 
-  def initializing: Receive = {
-    case NewConfiguration(port: Int) =>
-      IO(Sockets) ! Http.Bind(self, "0.0.0.0", port)
-      context.become(started)
+  def receive = {
+    case HttpRequest(GET, Uri.Path("/"), _, _, _) =>
+      sender ! responseFromResource("/static/index.html")
+    case req @ HttpRequest(GET, Uri.Path("/api"), _, _, _) =>
+      sender ! Sockets.UpgradeServer(Sockets.acceptAllFunction(req), context.actorOf(ApiController()))
+    case HttpRequest(GET, Uri.Path(path), _, _, _) =>
+      sender ! responseFromResource(s"/static$path")
   }
 
-  def started: Receive = {
-    case x: Tcp.Connected => sender ! Register(self)
-    case req: HttpRequest => sender ! Sockets.UpgradeServer(Sockets.acceptAllFunction(req), self)
-    case Sockets.Upgraded => println("Upgrade successful")
-    case f: Frame => sender ! Frame(opcode = OpCode.Text, data = ByteString("hello " + f.stringData))
+  private def responseFromResource(resourceName: String) = {
+    Option(getClass.getResourceAsStream(resourceName)) match {
+      case Some(input) => HttpResponse(200, HttpEntity(htmlContentType, IOUtils.toByteArray(input)))
+      case None => HttpResponse(404, "Not found")
+    }
   }
-
-  def receive = initializing
-
 }
 
 object StatusController {
-  case class NewConfiguration(port: Int)
+  def apply() = Props[StatusController]
 }

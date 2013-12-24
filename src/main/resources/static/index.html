@@ -1,0 +1,29 @@
+<!doctype html>
+<html>
+	<head>
+		<title>EasyRider</title>
+	</head>
+	<body>
+		<script>
+			function IO() {
+				var me = this;
+				me.connect = function() {
+					me.ws = new WebSocket("ws://" + window.location.host + "/api");
+					me.ws.onmessage = function(e) {
+						console.log(e.data);
+					};
+					me.ws.onclose = function() {
+						setTimeout(function() {
+							me.connect();
+						}, 100);
+					};
+				};
+				me.send = function(obj) {
+					me.ws.send(JSON.stringify(obj));
+				};
+				me.connect();
+			}
+			var io = new IO();
+		</script>
+	</body>
+</html>

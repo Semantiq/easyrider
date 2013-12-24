@@ -79,4 +79,5 @@ object AppSupervisor {
   case class Updated(app: String, rev: String) extends AppLifecycleEvent
   case class Compiled(app: String, rev: String) extends AppLifecycleEvent
   case class Started(app: String, rev: String) extends  AppLifecycleEvent
+  // TODO: implement application crashed event
 }
