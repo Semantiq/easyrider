@@ -2,15 +2,32 @@
 <html>
 	<head>
 		<title>EasyRider</title>
+		<link rel="stylesheet" href="main.css" />
 	</head>
-	<body>
+	<body ng-app="app">
+		<div ng-controller="AppsCtrl" class="container">
+			<div class="row">
+				<div class="col-md-12">
+					<div class="well" ng-repeat="(app, lastEvent) in status.apps">
+						<div class="pull-right btn-toolbar">
+							<button ng-click="start(app)">Start</button>
+							<button ng-click="stop(app)">Stop</button>
+						</div>
+						<h1>{{app}}</h1>
+						<p>{{lastEvent}}</p>
+					</div>
+				</div>
+			</div>
+		</div>
+		<script src="angular.min.js"></script>
 		<script>
-			function IO() {
+			function IO($scope) {
 				var me = this;
 				me.connect = function() {
 					me.ws = new WebSocket("ws://" + window.location.host + "/api");
 					me.ws.onmessage = function(e) {
-						console.log(e.data);
+						var msg = JSON.parse(e.data);
+						$scope.$emit("newStatus", msg);
 					};
 					me.ws.onclose = function() {
 						setTimeout(function() {
@@ -23,7 +40,25 @@
 				};
 				me.connect();
 			}
-			var io = new IO();
+			
+
+			var app = new angular.module("app", []);
+
+			app.controller("AppsCtrl", function($scope) {
+				var io = new IO($scope);
+				$scope.start = function(app) {
+					io.send({ jsonClass: "eu.semantiq.easyrider.AppSupervisor$Start", app: app });
+				};
+				$scope.stop = function(app) {
+					io.send({ jsonClass: "eu.semantiq.easyrider.AppSupervisor$Stop", app: app });
+				};
+
+				$scope.$on("newStatus", function(e, status) {
+					$scope.$apply(function() {
+						$scope.status = status;
+					});
+				});
+			});
 		</script>
 	</body>
 </html>

@@ -14,6 +14,9 @@ import akka.actor.SupervisorStrategy.Resume
 
 class StatusController(statusMonitor: ActorRef) extends Actor with ActorLogging {
   private val htmlContentType = ContentType(MediaType.custom("text/html"), HttpCharset.custom("UTF-8"))
+  private val cssContentType = ContentType(MediaType.custom("text/css"), HttpCharset.custom("UTF-8"))
+  private val jsContentType = ContentType(MediaType.custom("application/javascript"), HttpCharset.custom("UTF-8"))
+  private val contentTypeForExtension = Map("html" -> htmlContentType, "css" -> cssContentType, "js" -> jsContentType)
 
   override def supervisorStrategy = OneForOneStrategy(maxNrOfRetries = 10, withinTimeRange = 1.minute) {
     case _: Exception => Resume
@@ -29,8 +32,9 @@ class StatusController(statusMonitor: ActorRef) extends Actor with ActorLogging 
   }
 
   private def responseFromResource(resourceName: String) = {
+    val extension = resourceName.split("\\.").last
     Option(getClass.getResourceAsStream(resourceName)) match {
-      case Some(input) => HttpResponse(200, HttpEntity(htmlContentType, IOUtils.toByteArray(input)))
+      case Some(input) => HttpResponse(200, HttpEntity(contentTypeForExtension(extension), IOUtils.toByteArray(input)))
       case None => HttpResponse(404, "Not found")
     }
   }
