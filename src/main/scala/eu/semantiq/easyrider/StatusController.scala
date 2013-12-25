@@ -1,16 +1,23 @@
 package eu.semantiq.easyrider
 
-import akka.actor.{ActorRef, Props, ActorLogging, Actor}
+import akka.actor._
 import spray.can.server.websockets.Sockets
 import spray.http._
 import spray.http.StatusCode._
-import spray.http.HttpRequest
-import spray.http.HttpResponse
 import spray.http.HttpMethods._
 import org.apache.commons.io.IOUtils
+import spray.http.HttpRequest
+import spray.http.HttpResponse
+import scala.Some
+import scala.concurrent.duration._
+import akka.actor.SupervisorStrategy.Resume
 
 class StatusController(statusMonitor: ActorRef) extends Actor with ActorLogging {
   private val htmlContentType = ContentType(MediaType.custom("text/html"), HttpCharset.custom("UTF-8"))
+
+  override def supervisorStrategy = OneForOneStrategy(maxNrOfRetries = 10, withinTimeRange = 1.minute) {
+    case _: Exception => Resume
+  }
 
   def receive = {
     case HttpRequest(GET, Uri.Path("/"), _, _, _) =>

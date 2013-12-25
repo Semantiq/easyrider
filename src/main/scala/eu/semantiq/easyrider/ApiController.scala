@@ -5,12 +5,14 @@ import spray.can.server.websockets.Sockets
 import spray.can.server.websockets.model.{OpCode, Frame}
 import akka.util.ByteString
 import org.json4s._
+import org.json4s.jackson.JsonMethods._
 import org.json4s.jackson.Serialization
-import org.json4s.jackson.Serialization.write
+import org.json4s.jackson.Serialization.{write, read}
 import eu.semantiq.easyrider.StatusMonitor.{GetStatus, Status}
+import eu.semantiq.easyrider.AppSupervisor.AppLifecycleCommand
 
 class ApiController(statusMonitor: ActorRef) extends Actor with ActorLogging {
-  implicit val formats = Serialization.formats(NoTypeHints)
+  implicit val formats = Serialization.formats(FullTypeHints(List(classOf[AppLifecycleCommand])))
 
   def initializing: Receive = {
     case Sockets.Upgraded =>
@@ -21,6 +23,9 @@ class ApiController(statusMonitor: ActorRef) extends Actor with ActorLogging {
 
   def running(peer: ActorRef): Receive = {
     case event: Status => peer ! Frame(opcode = OpCode.Text, data = ByteString(write(event)))
+    case Frame(_, _, OpCode.Text, _, data) =>
+      val command = parse(data.utf8String).extract[AppLifecycleCommand]
+      context.system.eventStream.publish(command)
   }
 
   def receive: Receive = initializing

@@ -15,6 +15,7 @@ class AppSupervisor(workingDirectory: File, pullFrequency: FiniteDuration, compi
   val repoDirectory = new File(workingDirectory, "repo")
   val git = context.actorOf(GitWorkingCopy(self, repoDirectory, pullFrequency), "repository")
   val compiler = context.actorOf(Compiler(self, repoDirectory, compilationTimeout), "compiler")
+  context.system.eventStream.subscribe(self, classOf[AppLifecycleCommand])
 
   def created: Receive = {
     case ConfigurationUpdated(configuration) =>
@@ -54,6 +55,15 @@ class AppSupervisor(workingDirectory: File, pullFrequency: FiniteDuration, compi
       process ! ProcessWrapper.Stop
       compiler ! Compiler.Compile
       context.become(compiling)
+    case Stop(targetApp) if targetApp == app.name =>
+      process ! ProcessWrapper.Stop
+      context.system.eventStream.publish(Stopped(app.name))
+      context.become(stopped)
+  }
+
+  def stopped: Receive = {
+    case Start(targetApp) if targetApp == app.name =>
+      becomeRunning()
   }
 
   def receive: Receive = created
@@ -83,4 +93,10 @@ object AppSupervisor {
   case class Compiled(app: String, rev: String) extends AppLifecycleEvent
   case class Started(app: String, rev: String) extends  AppLifecycleEvent
   case class Stopped(app: String) extends AppLifecycleEvent
+
+  sealed trait AppLifecycleCommand {
+    def app: String
+  }
+  case class Start(app: String) extends AppLifecycleCommand
+  case class Stop(app: String) extends AppLifecycleCommand
 }
