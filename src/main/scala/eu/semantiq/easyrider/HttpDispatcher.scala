@@ -7,6 +7,7 @@ import spray.can.Http
 import spray.can.Http.Register
 import eu.semantiq.easyrider.HttpDispatcher.NewConfiguration
 
+// TODO: HTTP to separate package
 class HttpDispatcher(statusMonitor: ActorRef) extends Actor {
   private implicit val system = context.system
 

@@ -7,10 +7,11 @@ import akka.util.ByteString
 import org.json4s._
 import org.json4s.jackson.JsonMethods._
 import org.json4s.jackson.Serialization
-import org.json4s.jackson.Serialization.{write, read}
+import org.json4s.jackson.Serialization.write
 import eu.semantiq.easyrider.StatusMonitor.{GetStatus, Status}
 import eu.semantiq.easyrider.AppSupervisor.AppLifecycleCommand
 
+// TODO: separate from WebSocket handling code
 class ApiController(statusMonitor: ActorRef) extends Actor with ActorLogging {
   implicit val formats = Serialization.formats(FullTypeHints(List(classOf[AppLifecycleCommand])))
 
