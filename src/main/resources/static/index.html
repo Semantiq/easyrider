@@ -3,18 +3,23 @@
 	<head>
 		<title>EasyRider</title>
 		<link rel="stylesheet" href="main.css" />
+		<style>* { outline: none; }</style>
 	</head>
 	<body ng-app="app">
-		<div ng-controller="AppsCtrl" class="container">
-			<div class="row">
+		<div ng-controller="AppsCtrl" class="container-fluid">
+			<div class="row-fluid">
 				<div class="col-md-12">
-					<div class="well" ng-repeat="(app, lastEvent) in status.apps">
+					<div class="page-header">
+						<h1>EasyRider Apps <small>{{connection}}</small></h1>
+						
+					</div>
+					<div class="page-header" ng-repeat="(app, lastEvent) in status.apps">
 						<div class="pull-right btn-toolbar">
-							<button ng-click="start(app)">Start</button>
-							<button ng-click="stop(app)">Stop</button>
+							<button class="bnt btn-success btn-lg" ng-click="start(app)">Start</button>
+							<button class="bnt btn-danger btn-lg" ng-click="stop(app)">Stop</button>
 						</div>
-						<h1>{{app}}</h1>
-						<p>{{lastEvent}}</p>
+						<h2>{{app}} <small>{{lastEvent}}</small></h2>
+						<br style="clear:both" />
 					</div>
 				</div>
 			</div>
@@ -30,9 +35,17 @@
 						$scope.$emit("newStatus", msg);
 					};
 					me.ws.onclose = function() {
+						$scope.$apply(function() {
+							$scope.connection = "Offline";
+						});
 						setTimeout(function() {
 							me.connect();
 						}, 100);
+					};
+					me.ws.onopen = function() {
+						$scope.$apply(function() {
+							$scope.connection = "Online";
+						});
 					};
 				};
 				me.send = function(obj) {
