@@ -20,6 +20,7 @@ class LeadingActor extends Actor with Stash {
       configuration.foreach(app => context.child(app.name).get ! ConfigurationUpdated(app))
       dispatcher ! HttpDispatcher.NewConfiguration(8080)
       context.become(running(configuration))
+    //case ConfigurationManager.Reconfigured(configuration) =>
   }
 
   def running(configuration: Seq[Application]): Receive = {

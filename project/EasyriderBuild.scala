@@ -17,7 +17,7 @@ object EasyriderBuild extends Build {
       "com.typesafe.akka" %% "akka-slf4j" % akkaVersion,
       "ch.qos.logback" % "logback-classic" % "1.0.0" % "runtime",
       "org.json4s" %% "json4s-jackson" % "3.2.4",
-      "org.apache.commons" % "commons-io" % "1.3.2",
+      "commons-io" % "commons-io" % "2.4",
       // test
       "org.scalatest" %% "scalatest" % "2.0" % "test",
       "com.typesafe.akka" %% "akka-testkit" % akkaVersion % "test"
