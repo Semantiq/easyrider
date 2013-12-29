@@ -1,8 +1,9 @@
-package eu.semantiq.easyrider
+package eu.semantiq.easyrider.builder
 
 import java.io.File
 import scala.sys.process._
 import org.apache.commons.io.FileUtils
+import eu.semantiq.easyrider.GitRepositoryRef
 
 class DummyGitRepository(name: String) {
   private val folder = new File(s"target/$name")

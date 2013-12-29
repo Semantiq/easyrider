@@ -11,6 +11,7 @@ import akka.event.LoggingReceive
 import akka.pattern.PipeToSupport
 
 class CommandRunner extends Actor with ActorLogging with PipeToSupport {
+  // TODO: implement postStop
   import CommandRunner._
 
   def await: Receive = {

@@ -1,28 +1,29 @@
-package eu.semantiq.easyrider
+package eu.semantiq.easyrider.builder
 
 import akka.testkit.{ImplicitSender, TestKit}
-import akka.actor.{Props, ActorSystem}
-import org.scalatest.{BeforeAndAfter, Matchers, FunSpecLike}
+import akka.actor.ActorSystem
+import org.scalatest.{Matchers, FunSpecLike}
 import org.apache.commons.io.FileUtils
 import java.io.File
 import scala.concurrent.duration._
+import eu.semantiq.easyrider.builder.GitWorkingCopy.WorkingCopyUpdated
 
 class GitWorkingCopyTest extends TestKit(ActorSystem("GitWorkingCopyTest")) with ImplicitSender with FunSpecLike with Matchers {
   it("should clone the repository at startup") {
     val (repo, gitWorkingCopy) = setup("cloneTest")
 
     gitWorkingCopy ! GitWorkingCopy.ConfigurationUpdated(repo.gitURL)
-    expectMsg(AppSupervisor.WorkingCopyUpdated)
+    expectMsgClass(classOf[WorkingCopyUpdated])
   }
 
   it("should poll for incoming changes") {
     val (repo, gitWorkingCopy) = setup("pollingTest")
 
     gitWorkingCopy ! GitWorkingCopy.ConfigurationUpdated(repo.gitURL)
-    expectMsg(AppSupervisor.WorkingCopyUpdated)
+    expectMsgClass(classOf[WorkingCopyUpdated])
     expectNoMsg(200.milliseconds)
     repo.updateFile("anything", "new content")
-    expectMsg(AppSupervisor.WorkingCopyUpdated)
+    expectMsgClass(classOf[WorkingCopyUpdated])
     expectNoMsg(200.milliseconds)
   }
 

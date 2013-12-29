@@ -7,12 +7,13 @@ import eu.semantiq.easyrider.AppSupervisor._
 import scala.concurrent.duration._
 import org.apache.commons.io.FileUtils
 import java.io.File
+import eu.semantiq.easyrider.builder.DummyGitRepository
 
 class AppSupervisorTest extends TestKit(ActorSystem("AppSupervisorTest")) with ImplicitSender with FunSpecLike with Matchers {
   it("should clone, compile and run when receives configuration") {
     val (git, supervisor) = setup("initial-startup")
 
-    supervisor ! ConfigurationUpdated(Application("initial-startup", git.gitURL, Commands("sh run.sh", Some("sh compile.sh"))))
+    supervisor ! ConfigurationUpdated(Application("initial-startup", git.gitURL, Compilation(Some("sh compile.sh"), "."), Running("sh run.sh")))
     expectMsgClass(classOf[Updated])
     expectMsgClass(classOf[Compiled])
     expectMsgClass(classOf[Started])
@@ -22,8 +23,7 @@ class AppSupervisorTest extends TestKit(ActorSystem("AppSupervisorTest")) with I
   it("should should recompile and start new version of application, upon a change") {
     val (git, supervisor) = setup("restart-on-update")
 
-    val initialConfiguration: Application = Application("restart-on-update", git.gitURL, Commands("sh run.sh", Some("sh compile.sh")))
-    supervisor ! ConfigurationUpdated(initialConfiguration)
+    supervisor ! ConfigurationUpdated(Application("restart-on-update", git.gitURL, Compilation(Some("sh compile.sh"), "."), Running("sh run.sh")))
     expectMsgClass(classOf[Updated])
     expectMsgClass(classOf[Compiled])
     expectMsgClass(classOf[Started])
@@ -38,8 +38,7 @@ class AppSupervisorTest extends TestKit(ActorSystem("AppSupervisorTest")) with I
   it("should keep the application running until new version is compiled successfully") {
     val (git, supervisor) = setup("restart-on-successful-compilation")
 
-    val initialConfiguration: Application = Application("restart-on-successful-compilation", git.gitURL, Commands("sh run.sh", Some("sh compile.sh")))
-    supervisor ! ConfigurationUpdated(initialConfiguration)
+    supervisor ! ConfigurationUpdated(Application("restart-on-successful-compilation", git.gitURL, Compilation(Some("sh compile.sh"), "."), Running("sh run.sh")))
     expectMsgClass(classOf[Updated])
     expectMsgClass(classOf[Compiled])
     expectMsgClass(classOf[Started])

@@ -1,4 +1,4 @@
-package eu.semantiq.easyrider
+package eu.semantiq.easyrider.builder
 
 import java.io.File
 import scala.concurrent.Future
@@ -7,17 +7,15 @@ import scala.concurrent.ExecutionContext.Implicits._
 import akka.actor.{ActorRef, Props, ActorLogging, Actor}
 import akka.event.LoggingReceive
 import akka.pattern.PipeToSupport
+import eu.semantiq.easyrider.{GitRepositoryRef, CommandRunner}
+import eu.semantiq.easyrider.CommandRunner.{Run, CommandCompleted, CommandExitCode}
 
 class GitWorkingCopy(listener: ActorRef, repoDirectory: File, pullFrequency: FiniteDuration)
   extends Actor with ActorLogging with PipeToSupport {
   import GitWorkingCopy._
-  import CommandRunner._
-
-  val pullSchedule = context.system.scheduler.schedule(pullFrequency, pullFrequency, self, Pull)
+  // TODO: implement configuration update
 
   var repository: GitRepositoryRef = _
-
-  override def postStop() = pullSchedule.cancel()
 
   def passive = LoggingReceive {
     case ConfigurationUpdated(newConfig) =>
@@ -37,7 +35,7 @@ class GitWorkingCopy(listener: ActorRef, repoDirectory: File, pullFrequency: Fin
     case CheckoutComplete => getRevision
     case CommandExitCode("get-revision", 0, Some(revision)) =>
        context.become(active(revision))
-       listener ! AppSupervisor.WorkingCopyUpdated
+       listener ! WorkingCopyUpdated(extractVersion(revision))
     case failure: CommandCompleted => throw new RuntimeException("Command execution failed: " + failure)
   }
 
@@ -52,7 +50,7 @@ class GitWorkingCopy(listener: ActorRef, repoDirectory: File, pullFrequency: Fin
     case CommandExitCode("pull", 0, _) => getRevision
     case CommandExitCode("get-revision", 0, Some(newRevision)) => if (newRevision != revision) {
       context.become(active(newRevision))
-      listener ! AppSupervisor.WorkingCopyUpdated
+      listener ! WorkingCopyUpdated(extractVersion(revision))
     } else {
       context.become(active(revision))
     }
@@ -70,6 +68,7 @@ class GitWorkingCopy(listener: ActorRef, repoDirectory: File, pullFrequency: Fin
     runner ! Run(id, command, dir, collectOutput = collectOutput)
     runner
   }
+  private def extractVersion(revision: String) = revision // TODO: extract just the hash code
 }
 
 object GitWorkingCopy {
@@ -77,9 +76,10 @@ object GitWorkingCopy {
     Props(classOf[GitWorkingCopy], listener, workingDirectory, pullFrequency)
 
   case class ConfigurationUpdated(repo: GitRepositoryRef)
+  case class WorkingCopyUpdated(version: String)
+  object Pull
   private object Clone
   private object CloneComplete
   private object CheckoutComplete
-  private object Pull
   private case class Revision(revision: String)
 }
