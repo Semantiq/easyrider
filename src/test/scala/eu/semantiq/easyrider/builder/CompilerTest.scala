@@ -1,12 +1,13 @@
-package eu.semantiq.easyrider
+package eu.semantiq.easyrider.builder
 
 import scala.concurrent.duration._
 import akka.testkit.{ImplicitSender, TestKit}
 import akka.actor.ActorSystem
 import org.scalatest.{Matchers, FunSpecLike}
-import Compiler._
+import eu.semantiq.easyrider.{DummyWorkingCopy, builder}
 
 class CompilerTest extends TestKit(ActorSystem("CompilerTest")) with ImplicitSender with FunSpecLike with Matchers {
+  import Compiler._
   val workingCopy = new DummyWorkingCopy
 
   it("should compile whenever working copy is available and notify success") {
@@ -14,7 +15,7 @@ class CompilerTest extends TestKit(ActorSystem("CompilerTest")) with ImplicitSen
 
     expectNoMsg(500.milliseconds)
     compiler ! Compile(Some("sh ok.sh"))
-    expectMsg(200.milliseconds, Compiler.CompilationSuccessful)
+    expectMsg(200.milliseconds, builder.Compiler.CompilationSuccessful)
   }
   it("should safely abort compilation if working copy is updated during compilation") {
     val compiler = system.actorOf(Compiler(testActor, workingCopy.location, 2.seconds), "compiler-restart")

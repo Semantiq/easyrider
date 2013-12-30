@@ -13,7 +13,7 @@ class AppSupervisorTest extends TestKit(ActorSystem("AppSupervisorTest")) with I
   it("should clone, compile and run when receives configuration") {
     val (git, supervisor) = setup("initial-startup")
 
-    supervisor ! ConfigurationUpdated(Application("initial-startup", git.gitURL, Compilation(Some("sh compile.sh"), "."), Running("sh run.sh")))
+    supervisor ! ConfigurationUpdated(Application("initial-startup", git.gitURL))
     expectMsgClass(classOf[Updated])
     expectMsgClass(classOf[Compiled])
     expectMsgClass(classOf[Started])
@@ -23,7 +23,7 @@ class AppSupervisorTest extends TestKit(ActorSystem("AppSupervisorTest")) with I
   it("should should recompile and start new version of application, upon a change") {
     val (git, supervisor) = setup("restart-on-update")
 
-    supervisor ! ConfigurationUpdated(Application("restart-on-update", git.gitURL, Compilation(Some("sh compile.sh"), "."), Running("sh run.sh")))
+    supervisor ! ConfigurationUpdated(Application("restart-on-update", git.gitURL))
     expectMsgClass(classOf[Updated])
     expectMsgClass(classOf[Compiled])
     expectMsgClass(classOf[Started])
@@ -38,7 +38,7 @@ class AppSupervisorTest extends TestKit(ActorSystem("AppSupervisorTest")) with I
   it("should keep the application running until new version is compiled successfully") {
     val (git, supervisor) = setup("restart-on-successful-compilation")
 
-    supervisor ! ConfigurationUpdated(Application("restart-on-successful-compilation", git.gitURL, Compilation(Some("sh compile.sh"), "."), Running("sh run.sh")))
+    supervisor ! ConfigurationUpdated(Application("restart-on-successful-compilation", git.gitURL))
     expectMsgClass(classOf[Updated])
     expectMsgClass(classOf[Compiled])
     expectMsgClass(classOf[Started])

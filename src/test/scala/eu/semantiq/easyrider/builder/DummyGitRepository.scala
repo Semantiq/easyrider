@@ -11,6 +11,17 @@ class DummyGitRepository(name: String) {
   FileUtils.deleteDirectory(folder)
   run(s"git init ${folder.getAbsolutePath}", folder.getParentFile)
   updateFile("run.sh", "#!/bin/sh\n\necho \"Hello!\"\n")
+  updateFile(".easyrider.json",
+    """
+      |{
+      |  "compilation": {
+      |    "command": "sh compile.sh",
+      |    "distributionFolder": "."},
+      |  "running": {
+      |    "command": "sh run.sh"
+      |  }
+      |}
+    """.stripMargin)
 
   def updateFile(name: String, content: String) {
     FileUtils.writeStringToFile(new File(folder, name), content)

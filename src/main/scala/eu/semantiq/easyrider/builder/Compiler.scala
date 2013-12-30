@@ -1,4 +1,4 @@
-package eu.semantiq.easyrider
+package eu.semantiq.easyrider.builder
 
 import akka.actor._
 import java.io.File
@@ -6,6 +6,7 @@ import scala.concurrent.duration.FiniteDuration
 import eu.semantiq.easyrider.CommandRunner._
 import akka.actor.Terminated
 import akka.event.LoggingReceive
+import eu.semantiq.easyrider.CommandRunner
 
 class Compiler(listener: ActorRef, workingDir: File, timeout: FiniteDuration) extends Actor with ActorLogging {
   import Compiler._

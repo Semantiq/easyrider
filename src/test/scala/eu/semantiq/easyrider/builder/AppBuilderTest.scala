@@ -10,18 +10,18 @@ import org.scalatest.Matchers._
 class AppBuilderTest extends TestKit(ActorSystem("AppBuilderTest")) with ImplicitSender with FunSpecLike {
 
   it("should build and deploy new version of the application each time a commit is successfully built") {
-    val (builder, git, appRepo) = prepareCase("successCase")
+    val (builder, git, appRepo) = setup("successCase")
 
-    builder ! AppBuilder.ConfigurationUpdated(git.gitURL, Compilation(Some("sh compile.sh"), "."))
+    builder ! AppBuilder.ConfigurationUpdated(git.gitURL)
     git.updateFile("compile.sh", "#!/bin/sh\necho Hello > run.sh")
     val deployment = appRepo.expectMsgClass(classOf[AppRepository.DeployVersion])
-    deployment.app should be ("demo")
+    deployment.app should be ("successCase")
   }
 
-  private def prepareCase(id: String) = {
+  private def setup(id: String) = {
     val git = new DummyGitRepository("AppBuilderTest." + id)
     val appRepo = TestProbe()
-    val builder = system.actorOf(AppBuilder(appRepo.ref, workingDirectory(id)))
+    val builder = system.actorOf(AppBuilder(id, appRepo.ref, workingDirectory(id)))
     (builder, git, appRepo)
   }
 
