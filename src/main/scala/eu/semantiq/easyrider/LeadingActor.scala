@@ -3,7 +3,8 @@ package eu.semantiq.easyrider
 import akka.actor._
 import java.io.File
 import scala.concurrent.duration._
-import eu.semantiq.easyrider.AppSupervisor.ConfigurationUpdated
+import eu.semantiq.easyrider.supervisor.AppSupervisor
+import AppSupervisor.ConfigurationUpdated
 
 class LeadingActor extends Actor with Stash {
   import LeadingActor._

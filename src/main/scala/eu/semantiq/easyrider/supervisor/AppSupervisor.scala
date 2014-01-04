@@ -1,4 +1,4 @@
-package eu.semantiq.easyrider
+package eu.semantiq.easyrider.supervisor
 
 import akka.actor._
 import java.io.File

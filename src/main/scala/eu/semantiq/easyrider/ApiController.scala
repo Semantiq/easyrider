@@ -9,7 +9,8 @@ import org.json4s.jackson.JsonMethods._
 import org.json4s.jackson.Serialization
 import org.json4s.jackson.Serialization.write
 import eu.semantiq.easyrider.StatusMonitor.{GetStatus, Status}
-import eu.semantiq.easyrider.AppSupervisor.AppLifecycleCommand
+import eu.semantiq.easyrider.supervisor.AppSupervisor
+import AppSupervisor.AppLifecycleCommand
 
 // TODO: separate from WebSocket handling code
 class ApiController(statusMonitor: ActorRef) extends Actor with ActorLogging {

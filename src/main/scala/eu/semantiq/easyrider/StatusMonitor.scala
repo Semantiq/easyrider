@@ -1,7 +1,8 @@
 package eu.semantiq.easyrider
 
 import akka.actor.{ActorLogging, Actor}
-import eu.semantiq.easyrider.AppSupervisor.AppLifecycleEvent
+import eu.semantiq.easyrider.supervisor.AppSupervisor
+import AppSupervisor.AppLifecycleEvent
 import eu.semantiq.easyrider.StatusMonitor.{Status, GetStatus}
 
 class StatusMonitor extends Actor with ActorLogging {

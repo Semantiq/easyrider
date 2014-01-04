@@ -1,13 +1,14 @@
-package eu.semantiq.easyrider
+package eu.semantiq.easyrider.supervisor
 
 import akka.testkit.{ImplicitSender, TestKit}
 import akka.actor.ActorSystem
 import org.scalatest.{Matchers, FunSpecLike}
-import eu.semantiq.easyrider.AppSupervisor._
+import AppSupervisor._
 import scala.concurrent.duration._
 import org.apache.commons.io.FileUtils
 import java.io.File
 import eu.semantiq.easyrider.builder.DummyGitRepository
+import eu.semantiq.easyrider.Application
 
 class AppSupervisorTest extends TestKit(ActorSystem("AppSupervisorTest")) with ImplicitSender with FunSpecLike with Matchers {
   it("should clone, compile and run when receives configuration") {

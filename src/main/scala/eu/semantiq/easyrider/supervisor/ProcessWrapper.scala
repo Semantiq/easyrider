@@ -1,4 +1,4 @@
-package eu.semantiq.easyrider
+package eu.semantiq.easyrider.supervisor
 
 import akka.actor.{Stash, ActorLogging, Actor}
 import java.io.File
@@ -20,7 +20,7 @@ class ProcessWrapper(dir: File) extends Actor with ActorLogging with Stash {
     case Start =>
       val p = Process(command, dir, "PATH" -> System.getenv("PATH")).run(ProcessLogger(m => log.debug("process: {}", m)))
       context.become(started(command, p))
-      Future(p.exitValue) onComplete  {
+      Future(p.exitValue()) onComplete  {
         case Success(code) => self ! ProcessStopped(code)
         case Failure(e) => self ! e
       }
