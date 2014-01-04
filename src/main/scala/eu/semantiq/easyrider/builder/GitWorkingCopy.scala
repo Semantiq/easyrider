@@ -89,7 +89,7 @@ class GitWorkingCopy(listener: ActorRef, repoDirectory: File, pullFrequency: Fin
     runner ! Run(id, command, dir, collectOutput = collectOutput)
     runner
   }
-  private def extractVersion(revision: String) = revision // TODO: extract just the hash code
+  private def extractVersion(revision: String) = "\\b[0-9a-f]{5,40}\\b".r.findFirstIn(revision).get
 }
 
 object GitWorkingCopy {

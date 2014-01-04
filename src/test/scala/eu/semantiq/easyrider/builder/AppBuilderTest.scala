@@ -23,6 +23,9 @@ class AppBuilderTest extends TestKit(ActorSystem("AppBuilderTest")) with Implici
     deployment.appPackage.extractTo(temp)
 
     deployment.app should be ("successCase")
+    deployment.version shouldNot include(" ")
+    deployment.version shouldNot include("\n")
+    deployment.version shouldNot include("\t")
     new File(temp, "run.sh") should exist
   }
 
