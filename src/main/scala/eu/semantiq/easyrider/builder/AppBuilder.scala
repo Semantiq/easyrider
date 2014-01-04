@@ -1,7 +1,7 @@
 package eu.semantiq.easyrider.builder
 
 import akka.actor.{Stash, Props, Actor, ActorRef}
-import eu.semantiq.easyrider.{Commands, AppRepository, Compilation, GitRepositoryRef}
+import eu.semantiq.easyrider.{PackageMetadata, AppRepository, Compilation, GitRepositoryRef}
 import eu.semantiq.easyrider.builder.AppBuilder.{Pull, ConfigurationUpdated}
 import java.io.File
 import scala.concurrent.duration._
@@ -35,7 +35,7 @@ class AppBuilder(app: String, appRepo: ActorRef, workingDirectory: File, gitPoll
   def compiling(version: String): Receive = {
     case Compiler.CompilationSuccessful =>
       val packageRef = PackageRef.fromFolder(new File(workingCopyLocation, compilationSettings.compilation.distributionFolder))
-      appRepo ! AppRepository.DeployVersion(app, version, packageRef)
+      appRepo ! AppRepository.DeployVersion(app, version, packageRef, compilationSettings)
       context.become(awaitingCommits)
       unstashAll()
     case Compiler.CompilationFailure =>
@@ -48,7 +48,7 @@ class AppBuilder(app: String, appRepo: ActorRef, workingDirectory: File, gitPoll
   def receive = created
 
   private def workingCopyLocation = new File(workingDirectory, "working-copy")
-  private def compilationSettings = parse(new File(workingCopyLocation, ".easyrider.json")).extract[Commands]
+  private def compilationSettings = parse(new File(workingCopyLocation, ".easyrider.json")).extract[PackageMetadata]
 }
 
 object AppBuilder {
