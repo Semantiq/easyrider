@@ -16,13 +16,14 @@ class GitWorkingCopyTest extends TestKit(ActorSystem("GitWorkingCopyTest")) with
     expectMsgClass(classOf[WorkingCopyUpdated])
   }
 
-  it("should poll for incoming changes") {
-    val (repo, gitWorkingCopy) = setup("pollingTest")
+  it("should pull for incoming changes on request") {
+    val (repo, gitWorkingCopy) = setup("pullTest")
 
     gitWorkingCopy ! GitWorkingCopy.ConfigurationUpdated(repo.gitURL)
     expectMsgClass(classOf[WorkingCopyUpdated])
     expectNoMsg(200.milliseconds)
     repo.updateFile("anything", "new content")
+    gitWorkingCopy ! GitWorkingCopy.Pull
     expectMsgClass(classOf[WorkingCopyUpdated])
     expectNoMsg(200.milliseconds)
   }
