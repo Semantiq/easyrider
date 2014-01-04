@@ -1,8 +1,7 @@
 package eu.semantiq.easyrider.builder
 
 import akka.actor.{Stash, Props, Actor, ActorRef}
-import eu.semantiq.easyrider.{PackageMetadata, AppRepository, Compilation, GitRepositoryRef}
-import eu.semantiq.easyrider.builder.AppBuilder.{Pull, ConfigurationUpdated}
+import eu.semantiq.easyrider.{PackageMetadata, AppRepository, GitRepositoryRef}
 import java.io.File
 import scala.concurrent.duration._
 import eu.semantiq.easyrider.AppRepository.PackageRef
@@ -12,10 +11,15 @@ import org.json4s.jackson.JsonMethods._
 
 class AppBuilder(app: String, appRepo: ActorRef, workingDirectory: File, gitPollingInterval: FiniteDuration,
                   compilationTimeout: FiniteDuration) extends Actor with Stash {
+  import AppBuilder._
   private implicit val formats = DefaultFormats
   private val git = context.actorOf(GitWorkingCopy(self, workingCopyLocation, gitPollingInterval), "working-copy")
-  private val compiler = context.actorOf(Compiler(self, workingCopyLocation, compilationTimeout))
+  private val compiler = context.actorOf(Compiler(self, workingCopyLocation, compilationTimeout), "compiler")
   context.system.scheduler.schedule(gitPollingInterval, gitPollingInterval, self, Pull)
+
+  override def preStart() {
+    workingDirectory.mkdir()
+  }
 
   def created: Receive = {
     case ConfigurationUpdated(gitConfig) =>
@@ -28,7 +32,7 @@ class AppBuilder(app: String, appRepo: ActorRef, workingDirectory: File, gitPoll
     case GitWorkingCopy.WorkingCopyUpdated(version) =>
       compiler ! Compiler.Compile(compilationSettings.compilation.command)
       context.become(compiling(version))
-    case ConfigurationUpdated(gitConfig) => git ! ConfigurationUpdated(gitConfig)
+    case ConfigurationUpdated(gitConfig) => git ! GitWorkingCopy.ConfigurationUpdated(gitConfig)
     case Pull => git ! GitWorkingCopy.Pull
   }
 

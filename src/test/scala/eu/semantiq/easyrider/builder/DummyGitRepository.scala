@@ -10,7 +10,7 @@ class DummyGitRepository(name: String) {
 
   FileUtils.deleteDirectory(folder)
   run(s"git init ${folder.getAbsolutePath}", folder.getParentFile)
-  updateFile("run.sh", "#!/bin/sh\n\necho \"Hello!\"\n")
+  updateFile("compile.sh", "#!/bin/sh\n\necho \"echo hello\" > run.sh\n")
   updateFile(".easyrider.json",
     """
       |{

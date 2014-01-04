@@ -4,14 +4,19 @@ import java.io.File
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits._
-import akka.actor.{ActorRef, Props, ActorLogging, Actor}
+import akka.actor._
 import akka.event.LoggingReceive
 import akka.pattern.PipeToSupport
 import eu.semantiq.easyrider.{GitRepositoryRef, CommandRunner}
 import eu.semantiq.easyrider.CommandRunner.{Run, CommandCompleted, CommandExitCode}
+import org.apache.commons.io.FileUtils
+import eu.semantiq.easyrider.CommandRunner.CommandExitCode
+import eu.semantiq.easyrider.GitRepositoryRef
+import scala.Some
+import eu.semantiq.easyrider.CommandRunner.Run
 
 class GitWorkingCopy(listener: ActorRef, repoDirectory: File, pullFrequency: FiniteDuration)
-  extends Actor with ActorLogging with PipeToSupport {
+  extends Actor with ActorLogging with PipeToSupport with Stash {
   import GitWorkingCopy._
   // TODO: implement configuration update
 
@@ -21,7 +26,7 @@ class GitWorkingCopy(listener: ActorRef, repoDirectory: File, pullFrequency: Fin
     case ConfigurationUpdated(newConfig) =>
       repository = newConfig
       isCloned map {
-        case true => CloneComplete
+        case true => Checkout
         case false => Clone
       } pipeTo self
       context.become(activating)
@@ -29,8 +34,8 @@ class GitWorkingCopy(listener: ActorRef, repoDirectory: File, pullFrequency: Fin
 
   def activating: Receive = LoggingReceive {
     case Clone => cloneRepo
-    case CommandExitCode("clone", 0, _) => self ! CloneComplete
-    case CloneComplete => checkout
+    case CommandExitCode("clone", 0, _) => self ! Checkout
+    case Checkout => checkout
     case CommandExitCode("checkout", 0, _) => self ! CheckoutComplete
     case CheckoutComplete => getRevision
     case CommandExitCode("get-revision", 0, Some(revision)) =>
@@ -43,6 +48,19 @@ class GitWorkingCopy(listener: ActorRef, repoDirectory: File, pullFrequency: Fin
     case Pull =>
       pullRepo
       context.become(updating(revision))
+    case message @ ConfigurationUpdated(newRepository) =>
+      if (repository.url != newRepository.url) {
+        log.info("Git url changed, scheduling fresh clone from {}", newRepository)
+        repository = newRepository
+        FileUtils.deleteDirectory(repoDirectory)
+        context.become(passive)
+        self ! message
+      } else if (repository.branch != newRepository.branch) {
+        log.info("Git branch changed, scheduling checkout of {}", newRepository)
+        repository = newRepository
+        context.become(activating)
+        self ! Checkout
+      }
   }
 
   def updating(revision: String): Receive = {
@@ -51,10 +69,13 @@ class GitWorkingCopy(listener: ActorRef, repoDirectory: File, pullFrequency: Fin
     case CommandExitCode("get-revision", 0, Some(newRevision)) => if (newRevision != revision) {
       context.become(active(newRevision))
       listener ! WorkingCopyUpdated(extractVersion(revision))
+      unstashAll()
     } else {
       context.become(active(revision))
+      unstashAll()
     }
     case failure: CommandCompleted => throw new RuntimeException("Command execution failed: " + failure)
+    case _ => stash()
   }
 
   def receive = passive
@@ -79,7 +100,7 @@ object GitWorkingCopy {
   case class WorkingCopyUpdated(version: String)
   object Pull
   private object Clone
-  private object CloneComplete
+  private object Checkout
   private object CheckoutComplete
   private case class Revision(revision: String)
 }
