@@ -16,17 +16,32 @@ class AppRepositoryTest extends TestKit(ActorSystem("AppRepositoryTest")) with I
 
   it("deploy, notify and download scenario") {
     val repo = system.actorOf(AppRepository(storageFolder))
-    val pkg = AppRepository.PackageRef.fromFolder(new File("src/test/resources/samplePackage"))
     system.eventStream.subscribe(testActor, classOf[VersionAvailable])
 
-    repo ! AppRepository.DeployVersion("sample", "1", pkg, PackageMetadata(Compilation(None, "not relevant"), Running("sh run.sh")))
-    val version = receiveOne(timeoutDuration).asInstanceOf[VersionAvailable]
+    repo ! deploy
+
+    val version = expectMsgClass(timeoutDuration, classOf[VersionAvailable])
     repo ! GetVersion(version.app, version.version)
-    val response = receiveOne(timeoutDuration).asInstanceOf[GetVersionResponse]
+    val response = expectMsgClass(timeoutDuration, classOf[GetVersionResponse])
     response.packageRef.extractTo(downloadFolder)
 
     response.packageMetadata.running should be (Running("sh run.sh"))
     new File(downloadFolder, "run.sh") should exist
+  }
+
+  it("should respond to GetVersionAvailable") {
+    val repo = system.actorOf(AppRepository(storageFolder))
+    system.eventStream.subscribe(testActor, classOf[VersionAvailable])
+
+    repo ! deploy
+
+    repo ! AppRepository.GetVersionAvailable("sample")
+    expectMsgClass(classOf[AppRepository.VersionAvailable])
+  }
+
+  private def deploy = {
+    val pkg = AppRepository.PackageRef.fromFolder(new File("src/test/resources/samplePackage"))
+    AppRepository.DeployVersion("sample", "1", pkg, PackageMetadata(Compilation(None, "not relevant"), Running("sh run.sh")))
   }
 
   private def exist: Matcher[File] = new Matcher[File] {

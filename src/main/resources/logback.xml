@@ -8,7 +8,7 @@
             <pattern>%d{HH:mm:ss.SSS} [%X{akkaSource}] %-5level %logger{36} - %msg%n</pattern>
         </encoder>
     </appender>
-    <root level="INFO">
+    <root level="DEBUG">
         <appender-ref ref="FILE" />
     </root>
 </configuration>

@@ -1,6 +1,6 @@
 package eu.semantiq.easyrider.supervisor
 
-import akka.actor.{Stash, ActorLogging, Actor}
+import akka.actor.{Props, Stash, ActorLogging, Actor}
 import java.io.File
 import scala.sys.process._
 import scala.concurrent.Future
@@ -8,42 +8,43 @@ import scala.concurrent.ExecutionContext.Implicits._
 import scala.util.{Failure, Success}
 import akka.event.LoggingReceive
 
-class ProcessWrapper(dir: File) extends Actor with ActorLogging with Stash {
+class ProcessWrapper extends Actor with ActorLogging with Stash {
   // TODO: implement postStop
   import ProcessWrapper._
 
   def created: Receive = {
-    case ConfigurationUpdated(command) => context.become(stopped(command))
+    case configuration: ConfigurationUpdated => context.become(stopped(configuration))
   }
 
-  def stopped(command: String): Receive = LoggingReceive {
+  def stopped(configuration: ConfigurationUpdated): Receive = LoggingReceive {
     case Start =>
-      val p = Process(command, dir, "PATH" -> System.getenv("PATH")).run(ProcessLogger(m => log.debug("process: {}", m)))
-      context.become(started(command, p))
+      val environment = configuration.settings + ("PATH" -> System.getenv("PATH"))
+      val p = Process(configuration.command, configuration.workingDirectory, environment.toSeq :_*).run(ProcessLogger(m => log.debug("process: {}", m)))
+      context.become(started(configuration, p))
       Future(p.exitValue()) onComplete  {
         case Success(code) => self ! ProcessStopped(code)
         case Failure(e) => self ! e
       }
   }
 
-  def started(command: String, process: Process): Receive = {
+  def started(configuration: ConfigurationUpdated, process: Process): Receive = {
     case Stop =>
       terminate(process)
-      context.become(stopping(command))
+      context.become(stopping(configuration))
     case Restart =>
-      restart(command, process)
-    case ConfigurationUpdated(newCommand) =>
-      context.become(started(newCommand, process))
+      restart(configuration, process)
+    case newConfiguration: ConfigurationUpdated =>
+      context.become(started(newConfiguration, process))
     case event: ProcessStopped =>
-      log.error("Process {} died unexpectedly with exit code {}", command, event.exitCode)
+      log.error("Process {} died unexpectedly with exit code {}", configuration, event.exitCode)
       context.parent ! event
-      context.become(stopped(command))
+      context.become(stopped(configuration))
   }
 
-  def stopping(command: String): Receive = {
+  def stopping(configuration: ConfigurationUpdated): Receive = {
     case event: ProcessStopped =>
       context.parent ! event
-      context.become(stopped(command))
+      context.become(stopped(configuration))
       unstashAll()
     case Start => stash()
   }
@@ -51,17 +52,19 @@ class ProcessWrapper(dir: File) extends Actor with ActorLogging with Stash {
   def receive = created
 
   private def terminate(process: Process) = process.destroy()
-  private def restart(command: String, process: Process) {
+  private def restart(configuration: ConfigurationUpdated, process: Process) {
     terminate(process)
-    context.become(stopping(command))
+    context.become(stopping(configuration))
     self ! Start
   }
 }
 
 object ProcessWrapper {
+  def apply() = Props(classOf[ProcessWrapper])
+
   object Start
   object Stop
   object Restart
-  case class ConfigurationUpdated(command: String)
+  case class ConfigurationUpdated(command: String, workingDirectory: File, settings: Map[String, String])
   case class ProcessStopped(exitCode: Int)
 }

@@ -27,7 +27,7 @@ class LeadingActor extends Actor with Stash {
       }
       removedApps.foreach(app => context.stop(context.child(app.name).get))
       newApps foreach createAppSupervisor
-      modifiedApps foreach (app => context.child(app.name).get ! ConfigurationUpdated(app))
+      modifiedApps foreach (app => context.child(app.name).get ! ConfigurationUpdated(app.settings))
       context.become(configured(newConfiguration))
   }
 
@@ -45,8 +45,8 @@ class LeadingActor extends Actor with Stash {
   private def configFileLocation: File = new File(System.getProperty("configuration", "configuration.json"))
   private def workingDirectory: File = new File(System.getProperty("working.directory", "working"))
   private def createAppSupervisor(app: Application) = {
-    val appSupervisor = context.actorOf(AppSupervisor(new File(workingDirectory, app.name)), app.name)
-    appSupervisor ! ConfigurationUpdated(app)
+    val appSupervisor = context.actorOf(AppSupervisor(app.name, ???, new File(workingDirectory, app.name)), app.name)
+    appSupervisor ! ConfigurationUpdated(app.settings)
     appSupervisor
   }
 }

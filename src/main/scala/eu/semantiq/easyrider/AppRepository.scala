@@ -19,17 +19,22 @@ class AppRepository(storageFolder: File) extends Actor {
       ref.extractTo(location)
       saveMetadata(location, metadata)
       context.system.eventStream.publish(VersionAvailable(app, version))
+      setPreferredVersion(app, version)
     case GetVersion(app, version) =>
       val location = packageLocation(app, version)
       sender ! GetVersionResponse(app, version, PackageRef.fromFolder(location), readMetadata(location))
+    case GetVersionAvailable(app) =>
+      getPreferredVersion(app).foreach(version => sender ! VersionAvailable(app, version))
   }
 
+  private def appLocation(app: String) = new File(storageFolder, app)
   private def packageLocation(app: String, version: String) = {
-    val appLocation = new File(storageFolder, app)
-    appLocation.mkdir()
-    val versionLocation = new File(appLocation, version)
+    val location = appLocation(app)
+    location.mkdir()
+    val versionLocation = new File(location, version)
     versionLocation
   }
+  private def preferredVersionFile(app: String) = new File(appLocation(app), "preferred-version")
   private def saveMetadata(location: File, metadata: PackageMetadata) {
     val w = new FileWriter(new File(location, ".easyrider.json"))
     try {
@@ -41,6 +46,11 @@ class AppRepository(storageFolder: File) extends Actor {
   private def readMetadata(location: File) = {
     parse(new File(location, ".easyrider.json")).extract[PackageMetadata]
   }
+  private def setPreferredVersion(app: String, version: String) = FileUtils.write(preferredVersionFile(app), version)
+  private def getPreferredVersion(app: String) = preferredVersionFile(app) match {
+    case f: File if f.exists() => Some(FileUtils.readFileToString(f))
+    case _ => None
+  }
 }
 
 object AppRepository {
@@ -49,6 +59,7 @@ object AppRepository {
   case class GetVersion(app: String, version: String)
   case class GetVersionResponse(app: String, version: String, packageRef: PackageRef, packageMetadata: PackageMetadata)
   case class VersionAvailable(app: String, version: String)
+  case class GetVersionAvailable(app: String)
   trait PackageRef {
     def extractTo(folder: File)
   }

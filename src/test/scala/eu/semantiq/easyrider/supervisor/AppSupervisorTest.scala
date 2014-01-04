@@ -1,74 +1,81 @@
 package eu.semantiq.easyrider.supervisor
 
 import akka.testkit.{ImplicitSender, TestKit}
-import akka.actor.ActorSystem
+import akka.actor.{ActorRef, ActorSystem}
 import org.scalatest.{Matchers, FunSpecLike}
-import AppSupervisor._
-import scala.concurrent.duration._
-import org.apache.commons.io.FileUtils
+import eu.semantiq.easyrider._
 import java.io.File
-import eu.semantiq.easyrider.builder.DummyGitRepository
-import eu.semantiq.easyrider.Application
+import org.apache.commons.io.FileUtils
+import org.scalatest.concurrent.Eventually._
+import scala.concurrent.duration._
 
 class AppSupervisorTest extends TestKit(ActorSystem("AppSupervisorTest")) with ImplicitSender with FunSpecLike with Matchers {
-  it("should clone, compile and run when receives configuration") {
-    val (git, supervisor) = setup("initial-startup")
+  import AppSupervisor._
 
-    supervisor ! ConfigurationUpdated(Application("initial-startup", git.gitURL))
-    expectMsgClass(classOf[Updated])
-    expectMsgClass(classOf[Compiled])
-    expectMsgClass(classOf[Started])
-    expectNoMsg(200.milliseconds)
+  it("should start application after receiving VersionAvailable and ConfigurationUpdated") {
+    val (supervisor, appName, workingDirectory) = setup("simpleCase")
+
+    supervisor ! ConfigurationUpdated(Map("FILE" -> "marker"))
+    expectMsg(AppRepository.GetVersionAvailable(appName))
+    supervisor ! AppRepository.VersionAvailable(appName, "1")
+    expectMsg(AppRepository.GetVersion(appName, "1"))
+    supervisor ! AppRepository.GetVersionResponse(appName, "1", createTestPackage("createFilePackage"), defaultMetadata)
+
+    eventually {
+      new File(workingDirectory, "1/marker") should exist
+    }
   }
 
-  it("should should recompile and start new version of application, upon a change") {
-    val (git, supervisor) = setup("restart-on-update")
+  it("should start new version of application upon VersionAvailable") {
+    val (supervisor, appName, workingDirectory) = setup("packageUpdate")
 
-    supervisor ! ConfigurationUpdated(Application("restart-on-update", git.gitURL))
-    expectMsgClass(classOf[Updated])
-    expectMsgClass(classOf[Compiled])
-    expectMsgClass(classOf[Started])
-    expectNoMsg(200.milliseconds)
-    git.updateFile("compile.sh", """echo world > run.sh""")
-    expectMsgClass(classOf[Updated])
-    expectMsgClass(classOf[Compiled])
-    expectMsgClass(classOf[Started])
-    expectNoMsg(200.milliseconds)
+    supervisor ! ConfigurationUpdated(Map("FILE" -> "marker"))
+
+    expectMsg(AppRepository.GetVersionAvailable(appName))
+    supervisor ! AppRepository.VersionAvailable(appName, "1")
+
+    expectMsg(AppRepository.GetVersion(appName, "1"))
+    supervisor ! AppRepository.GetVersionResponse(appName, "1", createTestPackage("createFilePackage"), defaultMetadata)
+    eventually {
+      new File(workingDirectory, "1/marker") should exist
+    }
+
+    system.eventStream.publish(AppRepository.VersionAvailable(appName, "2"))
+
+    expectMsg(AppRepository.GetVersion(appName, "2"))
+    supervisor ! AppRepository.GetVersionResponse(appName, "2", createTestPackage("alternativeCreateFilePackage"), defaultMetadata)
+    eventually {
+      new File(workingDirectory, "2/alternative_marker")
+    }
   }
 
-  it("should keep the application running until new version is compiled successfully") {
-    val (git, supervisor) = setup("restart-on-successful-compilation")
+  it("should restart with new settings upon ConfigurationUpdated") {
+    val (supervisor, appName, workingDirectory) = setup("configUpdate")
 
-    supervisor ! ConfigurationUpdated(Application("restart-on-successful-compilation", git.gitURL))
-    expectMsgClass(classOf[Updated])
-    expectMsgClass(classOf[Compiled])
-    expectMsgClass(classOf[Started])
-    expectNoMsg(200.milliseconds)
-    git.updateFile("compile.sh", """exit 1""")
-    expectMsgClass(classOf[Updated])
-    expectNoMsg(200.milliseconds)
-    git.updateFile("compile.sh", """echo world > run.sh""")
-    expectMsgClass(classOf[Updated])
-    expectMsgClass(classOf[Compiled])
-    expectMsgClass(classOf[Started])
-    expectNoMsg(200.milliseconds)
-  }
+    supervisor ! ConfigurationUpdated(Map("FILE" -> "marker"))
 
-  private def gitRepository(id: String) = {
-    val git = new DummyGitRepository(id)
-    git.updateFile("compile.sh",
-      """#!/bin/sh
-        |echo "echo hello" > run.sh
-      """.stripMargin)
-    git
+    expectMsg(AppRepository.GetVersionAvailable(appName))
+    supervisor ! AppRepository.VersionAvailable(appName, "1")
+
+    expectMsg(AppRepository.GetVersion(appName, "1"))
+    supervisor ! AppRepository.GetVersionResponse(appName, "1", createTestPackage("createFilePackage"), defaultMetadata)
+    eventually {
+      new File(workingDirectory, "1/marker") should exist
+    }
+
+    supervisor ! ConfigurationUpdated(Map("FILE" -> "updated_marker"))
+    eventually {
+      new File(workingDirectory, "1/updated_marker") should exist
+    }
   }
 
   private def setup(id: String) = {
-    val git = gitRepository(id)
-    val workingDirectory = new File(s"working/$id")
+    val workingDirectory = new File(s"target/AppSupervisorTest.$id")
     FileUtils.deleteDirectory(workingDirectory)
-    val supervisor = system.actorOf(AppSupervisor(workingDirectory, 50.milliseconds, 2.seconds), id)
-    system.eventStream.subscribe(testActor, classOf[AppLifecycleEvent])
-    (git, supervisor)
+    val supervisor: ActorRef = system.actorOf(AppSupervisor(id, testActor, workingDirectory), id)
+    (supervisor, id, workingDirectory)
   }
+
+  private def createTestPackage(name: String) = AppRepository.PackageRef.fromFolder(new File(s"src/test/resources/$name"))
+  private def defaultMetadata = PackageMetadata(Compilation(None, "."), Running("sh run.sh"))
 }
