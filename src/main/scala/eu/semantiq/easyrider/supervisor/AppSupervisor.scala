@@ -10,6 +10,7 @@ class AppSupervisor(app: String, repositoryRef: ActorRef, workingDirectory: File
 
   override def preStart() {
     context.system.eventStream.subscribe(self, classOf[AppRepository.VersionAvailable])
+    context.system.eventStream.subscribe(self, classOf[AppLifecycleCommand])
     log.debug("Subscribed to AppRepository update")
     workingDirectory.mkdir()
     repositoryRef ! AppRepository.GetVersionAvailable(app)
@@ -19,6 +20,7 @@ class AppSupervisor(app: String, repositoryRef: ActorRef, workingDirectory: File
   var configuration: Option[Map[String, String]] = None
   var metadata: Option[PackageMetadata] = None
   var version: Option[String] = None
+  var expectRunning = true
 
   def created: Receive = LoggingReceive {
     case AppRepository.VersionAvailable(newApp, newVersion) if app == newApp =>
@@ -32,13 +34,17 @@ class AppSupervisor(app: String, repositoryRef: ActorRef, workingDirectory: File
     case ConfigurationUpdated(newConfiguration) =>
       configuration = Some(newConfiguration)
       becomeRunningIfConfigured()
-    case Start => becomeRunningIfConfigured()
+    case Start(newApp) if newApp == app =>
+      expectRunning = true
+      becomeRunningIfConfigured()
   }
 
   def running = LoggingReceive {
     case Stop(targetApp) if targetApp == app =>
+      expectRunning = false
       process ! ProcessWrapper.Stop
       context.become(stopped)
+      context.system.eventStream.publish(Stopped(app))
     case ConfigurationUpdated(newConfiguration) =>
       configuration = Some(newConfiguration)
       process ! createConfigurationUpdatedMessage
@@ -61,9 +67,7 @@ class AppSupervisor(app: String, repositoryRef: ActorRef, workingDirectory: File
 
   def crashed = created
 
-  def stopped: Receive = {
-    case Start(targetApp) if targetApp == app => ???
-  }
+  def stopped = created
 
   def receive: Receive = created
 
@@ -73,7 +77,7 @@ class AppSupervisor(app: String, repositoryRef: ActorRef, workingDirectory: File
     for {
       config <- configuration
       newVersion <- version
-      meta <- metadata
+      meta <- metadata if expectRunning
     } {
       context.become(running)
       context.system.eventStream.publish(Started(app, newVersion))

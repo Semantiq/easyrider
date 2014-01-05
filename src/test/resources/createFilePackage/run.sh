@@ -4,6 +4,7 @@ echo "Ok!" > $FILE
 
 if [ "$CRASH" != "true" ]; then
     while [ "1" == "1" ]; do
-        sleep 10
+        sleep 1
+        touch $FILE
     done
 fi
