@@ -2,7 +2,6 @@
     {
         "name": "Test App",
         "repository":{"url":"file://target/testRepo","branch":"master"},
-        "commands":{"run":"sh run.sh"},
         "settings":{"port":"9090"}
     }
 ]

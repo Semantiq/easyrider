@@ -32,7 +32,7 @@ class DummyGitRepository(name: String) {
   def gitURL = GitRepositoryRef(s"file://${folder.getAbsolutePath}", "master")
 
   private def run(command: String, dir: File) {
-    val code = Process(command, dir, "PATH" -> System.getenv("PATH")) !;
+    val code = Process(command, dir, "PATH" -> System.getenv("PATH")).!(ProcessLogger(_ => ()))
     assert(code == 0, s"$command returned code $code")
   }
 }

@@ -9,8 +9,14 @@ import scala.util.{Failure, Success}
 import akka.event.LoggingReceive
 
 class ProcessWrapper extends Actor with ActorLogging with Stash {
-  // TODO: implement postStop
   import ProcessWrapper._
+
+  var process: Option[Process] = None
+
+  override def postStop() {
+    log.info(s"Terminating process: ${process.isDefined}")
+    process foreach terminate
+  }
 
   def created: Receive = {
     case configuration: ConfigurationUpdated => context.become(stopped(configuration))
@@ -20,7 +26,8 @@ class ProcessWrapper extends Actor with ActorLogging with Stash {
     case Start =>
       val environment = configuration.settings + ("PATH" -> System.getenv("PATH"))
       val p = Process(configuration.command, configuration.workingDirectory, environment.toSeq :_*).run(ProcessLogger(m => log.debug("process: {}", m)))
-      context.become(started(configuration, p))
+      process = Some(p)
+      context.become(started(configuration))
       Future(p.exitValue()) onComplete  {
         case Success(code) => self ! ProcessStopped(code)
         case Failure(e) => self ! e
@@ -28,37 +35,41 @@ class ProcessWrapper extends Actor with ActorLogging with Stash {
     case newConfiguration: ConfigurationUpdated => context.become(stopped(newConfiguration))
   }
 
-  def started(configuration: ConfigurationUpdated, process: Process): Receive = {
+  def started(configuration: ConfigurationUpdated): Receive = {
     case Stop =>
-      terminate(process)
+      terminate(process.get)
       context.become(stopping(configuration))
     case Restart =>
-      restart(configuration, process)
+      restart(configuration)
     case newConfiguration: ConfigurationUpdated =>
-      context.become(started(newConfiguration, process))
+      context.become(started(newConfiguration))
     case event: ProcessStopped =>
       log.error("Process {} died unexpectedly with exit code {}", configuration, event.exitCode)
       context.parent ! Crashed(event.exitCode)
       context.parent ! event
       context.become(stopped(configuration))
+      process = None
   }
 
   def stopping(configuration: ConfigurationUpdated): Receive = {
     case event: ProcessStopped =>
       context.parent ! event
       context.become(stopped(configuration))
+      process = None
       unstashAll()
     case Start => stash()
   }
 
   def receive = created
 
-  private def terminate(process: Process) = process.destroy()
-  private def restart(configuration: ConfigurationUpdated, process: Process) {
-    terminate(process)
+  private def restart(configuration: ConfigurationUpdated) {
+    terminate(process.get)
     context.become(stopping(configuration))
     self ! Start
   }
+
+  private def terminate(process: Process) = process.destroy()
+
 }
 
 object ProcessWrapper {

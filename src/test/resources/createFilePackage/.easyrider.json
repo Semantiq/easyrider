@@ -1,0 +1,8 @@
+{
+    "compilation": {
+        "distributionFolder": "."
+    },
+    "running": {
+        "command": "sh run.sh"
+    }
+}

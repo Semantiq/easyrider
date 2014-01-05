@@ -16,7 +16,7 @@ class ConfigurationManagerTest extends TestKit(ActorSystem("ConfigurationManager
   }
 
   it("should send an update if configuration is changed") {
-    val configFile = new DummyConfigFile
+    val configFile = new DummyConfigFile("sendConfigUpdate")
     system.actorOf(ConfigurationManager(testActor, configFile.location, checkInterval = 100.microseconds), "updating-configuration-manager")
 
     receiveOne(200.milliseconds)

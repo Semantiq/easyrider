@@ -4,55 +4,70 @@ import akka.actor._
 import java.io.File
 import scala.concurrent.duration._
 import eu.semantiq.easyrider.supervisor.AppSupervisor
-import AppSupervisor.ConfigurationUpdated
 import eu.semantiq.easyrider.console.HttpDispatcher
+import eu.semantiq.easyrider.builder.AppBuilder
+import org.apache.commons.io.FileUtils
+import akka.event.LoggingReceive
 
-class LeadingActor extends Actor with Stash {
-  import LeadingActor._
+class LeadingActor(configFileLocation: File, workingDirectory: File, configurationPollingInterval: FiniteDuration) extends Actor with Stash with ActorLogging {
+  workingDirectory.mkdir()
 
-  context.actorOf(Props(classOf[ConfigurationManager], self, configFileLocation, 10.seconds), "configuration-manager")
+  context.actorOf(ConfigurationManager(self, configFileLocation, configurationPollingInterval), "configuration-manager")
   private val statusMonitor = context.actorOf(Props[StatusMonitor], "status-monitor")
   private val dispatcher = context.actorOf(HttpDispatcher(statusMonitor), "http-dispatcher")
+  private val repository = context.actorOf(AppRepository(new File(workingDirectory, "repository")), "repository")
 
-  def configured(configuration: Seq[Application]): Receive = {
-    case Start =>
-      configuration foreach createAppSupervisor
-      dispatcher ! HttpDispatcher.NewConfiguration(8080)
-      context.become(running(configuration))
+  private var supervisors = Map[String, ActorRef]()
+  private var builders = Map[String, ActorRef]()
+
+  dispatcher ! HttpDispatcher.NewConfiguration(8080)
+
+  def running(configuration: Seq[Application]): Receive = LoggingReceive {
     case ConfigurationManager.Reconfigured(newConfiguration) =>
-      val newApps = newConfiguration.filterNot(app => configuration.exists(_.name == app.name))
+      val createdApps = newConfiguration.filterNot(app => configuration.exists(_.name == app.name))
       val removedApps = configuration.filterNot(app => newConfiguration.exists(_.name == app.name))
-      val modifiedApps = newConfiguration.filter { app =>
+      val updatedApps = newConfiguration.filter { app =>
         val oldApp = configuration.find(_.name == app.name)
         oldApp.isDefined && oldApp.get != app
       }
-      removedApps.foreach(app => context.stop(context.child(app.name).get))
-      newApps foreach createAppSupervisor
-      modifiedApps foreach (app => context.child(app.name).get ! ConfigurationUpdated(app.settings))
-      context.become(configured(newConfiguration))
+      removedApps foreach removeApp
+      createdApps foreach createApp
+      updatedApps foreach updateApp
+      context.become(running(newConfiguration))
   }
 
-  def running(configuration: Seq[Application]): Receive = {
-    case Stop => context.stop(self)
+  def receive: Receive = running(Seq.empty)
+
+  private def createApp(app: Application) {
+    val builder = context.actorOf(AppBuilder(app.name, repository, builderWorkingDirectory(app)), s"${app.name}-builder")
+    builders += (app.name -> builder)
+    val supervisor = context.actorOf(AppSupervisor(app.name, repository, supervisorWorkingDirectory(app)), s"${app.name}-supervisor")
+    supervisors += (app.name -> supervisor)
+    builder ! AppBuilder.ConfigurationUpdated(app.repository)
+    supervisor ! AppSupervisor.ConfigurationUpdated(app.settings)
   }
 
-  def receive: Receive = {
-    case ConfigurationManager.Reconfigured(configuration) =>
-      unstashAll()
-      context.become(configured(configuration))
-    case _ => stash()
+  private def supervisorWorkingDirectory(app: Application) = new File(workingDirectory, s"${app.name}-supervisor")
+  private def builderWorkingDirectory(app: Application) = new File(workingDirectory, s"${app.name}-builder")
+
+  private def removeApp(app: Application) {
+    log.info(s"Removing ${app.name} as it is no longer in configuration")
+    val builder = builders(app.name)
+    val supervisor = supervisors(app.name)
+    context.stop(builder)
+    context.stop(supervisor)
+    FileUtils.deleteDirectory(builderWorkingDirectory(app))
+    FileUtils.deleteDirectory(supervisorWorkingDirectory(app))
+    builders -= app.name
+    supervisors -= app.name
   }
 
-  private def configFileLocation: File = new File(System.getProperty("configuration", "configuration.json"))
-  private def workingDirectory: File = new File(System.getProperty("working.directory", "working"))
-  private def createAppSupervisor(app: Application) = {
-    val appSupervisor = context.actorOf(AppSupervisor(app.name, ???, new File(workingDirectory, app.name)), app.name)
-    appSupervisor ! ConfigurationUpdated(app.settings)
-    appSupervisor
+  private def updateApp(app: Application) {
+    builders(app.name) ! AppBuilder.ConfigurationUpdated(app.repository)
+    supervisors(app.name) ! AppSupervisor.ConfigurationUpdated(app.settings)
   }
 }
 
 object LeadingActor {
-  object Start
-  object Stop
+  def apply(configFileLocation: File, workingDirectory: File, configurationPollingInterval: FiniteDuration = 30.seconds) = Props(classOf[LeadingActor], configFileLocation, workingDirectory, configurationPollingInterval)
 }
