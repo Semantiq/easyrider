@@ -25,6 +25,7 @@ class ProcessWrapper extends Actor with ActorLogging with Stash {
         case Success(code) => self ! ProcessStopped(code)
         case Failure(e) => self ! e
       }
+    case newConfiguration: ConfigurationUpdated => context.become(stopped(newConfiguration))
   }
 
   def started(configuration: ConfigurationUpdated, process: Process): Receive = {
@@ -37,6 +38,7 @@ class ProcessWrapper extends Actor with ActorLogging with Stash {
       context.become(started(newConfiguration, process))
     case event: ProcessStopped =>
       log.error("Process {} died unexpectedly with exit code {}", configuration, event.exitCode)
+      context.parent ! Crashed(event.exitCode)
       context.parent ! event
       context.become(stopped(configuration))
   }
@@ -65,6 +67,7 @@ object ProcessWrapper {
   object Start
   object Stop
   object Restart
+  case class Crashed(exitCode: Int)
   case class ConfigurationUpdated(command: String, workingDirectory: File, settings: Map[String, String])
   case class ProcessStopped(exitCode: Int)
 }

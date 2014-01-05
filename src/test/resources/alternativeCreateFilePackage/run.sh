@@ -1,4 +1,6 @@
 #!/bin/sh
 
 echo "Ok!" > alternative_$FILE
-sleep 1
+while [ "1" == "1" ]; do
+    sleep 10
+done
