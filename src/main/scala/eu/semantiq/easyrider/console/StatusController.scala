@@ -1,4 +1,4 @@
-package eu.semantiq.easyrider
+package eu.semantiq.easyrider.console
 
 import akka.actor._
 import spray.can.server.websockets.Sockets

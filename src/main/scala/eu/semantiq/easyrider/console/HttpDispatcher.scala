@@ -1,14 +1,13 @@
-package eu.semantiq.easyrider
+package eu.semantiq.easyrider.console
 
 import akka.actor.{Props, ActorRef, Actor}
 import akka.io.{Tcp, IO}
 import spray.can.server.websockets.Sockets
 import spray.can.Http
 import spray.can.Http.Register
-import eu.semantiq.easyrider.HttpDispatcher.NewConfiguration
 
-// TODO: HTTP to separate package
 class HttpDispatcher(statusMonitor: ActorRef) extends Actor {
+  import HttpDispatcher._
   private implicit val system = context.system
 
   def initializing: Receive = {

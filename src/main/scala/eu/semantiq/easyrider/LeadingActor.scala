@@ -5,6 +5,7 @@ import java.io.File
 import scala.concurrent.duration._
 import eu.semantiq.easyrider.supervisor.AppSupervisor
 import AppSupervisor.ConfigurationUpdated
+import eu.semantiq.easyrider.console.HttpDispatcher
 
 class LeadingActor extends Actor with Stash {
   import LeadingActor._
