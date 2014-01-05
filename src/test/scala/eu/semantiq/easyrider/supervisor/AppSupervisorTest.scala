@@ -45,7 +45,17 @@ class AppSupervisorTest extends TestKit(ActorSystem("AppSupervisorTest")) with I
   }
 
   it("should start when crashed") {
-    pending
+    val (supervisor, appName, workingDirectory) = setup("startAfterCrash")
+    givenConfigurationAndPackageVersion(supervisor, appName, crash = true)
+    expectMsg(AppSupervisor.Started(appName, "1"))
+    expectMsg(AppSupervisor.Crashed(appName, 0))
+    new File(workingDirectory, "1/marker").delete()
+
+    supervisor ! Start
+    expectMsg(AppSupervisor.Started(appName, "1"))
+    expectMsg(AppSupervisor.Crashed(appName, 0))
+
+    fileShouldEventuallyExist(workingDirectory, "1/marker")
   }
 
   it("should try to start again on VersionAvailable when crashed") {
