@@ -68,7 +68,7 @@ class GitWorkingCopy(listener: ActorRef, repoDirectory: File, pullFrequency: Fin
     case CommandExitCode("pull", 0, _) => getRevision
     case CommandExitCode("get-revision", 0, Some(newRevision)) => if (newRevision != revision) {
       context.become(active(newRevision))
-      listener ! WorkingCopyUpdated(extractVersion(revision))
+      listener ! WorkingCopyUpdated(extractVersion(newRevision))
       unstashAll()
     } else {
       context.become(active(revision))

@@ -1,16 +1,19 @@
 package eu.semantiq.easyrider.builder
 
-import akka.actor.{Stash, Props, Actor, ActorRef}
-import eu.semantiq.easyrider.{PackageMetadata, AppRepository, GitRepositoryRef}
+import akka.actor._
+import eu.semantiq.easyrider.AppRepository
 import java.io.File
 import scala.concurrent.duration._
 import eu.semantiq.easyrider.AppRepository.PackageRef
 import scala.concurrent.ExecutionContext.Implicits.global
 import org.json4s._
 import org.json4s.jackson.JsonMethods._
+import eu.semantiq.easyrider.PackageMetadata
+import eu.semantiq.easyrider.GitRepositoryRef
+import scala.util.{Failure, Try}
 
 class AppBuilder(app: String, appRepo: ActorRef, workingDirectory: File, gitPollingInterval: FiniteDuration,
-                  compilationTimeout: FiniteDuration) extends Actor with Stash {
+                  compilationTimeout: FiniteDuration) extends Actor with Stash with ActorLogging {
   import AppBuilder._
   private implicit val formats = DefaultFormats
   private val git = context.actorOf(GitWorkingCopy(self, workingCopyLocation, gitPollingInterval), "working-copy")
@@ -21,6 +24,9 @@ class AppBuilder(app: String, appRepo: ActorRef, workingDirectory: File, gitPoll
     workingDirectory.mkdir()
   }
 
+  // TODO: ask for configuration, as there are no startup guarantee that we'll get it after restart
+  override def postRestart(reason: Throwable): Unit = super.postRestart(reason)
+
   def created: Receive = {
     case ConfigurationUpdated(gitConfig) =>
       git ! GitWorkingCopy.ConfigurationUpdated(gitConfig)
@@ -30,16 +36,23 @@ class AppBuilder(app: String, appRepo: ActorRef, workingDirectory: File, gitPoll
 
   def awaitingCommits: Receive = {
     case GitWorkingCopy.WorkingCopyUpdated(version) =>
-      compiler ! Compiler.Compile(compilationSettings.compilation.command)
-      context.become(compiling(version))
+      if (!compilationSettingsLocation.exists()) {
+        log.info("Working copy doesn't have .easyrider.json - waiting for updates")
+      } else if (compilationSettings.isFailure) {
+        log.info("Working copy contains invalid .easyrider.json: {}", compilationSettings.asInstanceOf[Failure[Any]].exception.toString)
+      } else {
+        compiler ! Compiler.Compile(compilationSettings.get.compilation.command)
+        context.become(compiling(version))
+      }
     case ConfigurationUpdated(gitConfig) => git ! GitWorkingCopy.ConfigurationUpdated(gitConfig)
     case Pull => git ! GitWorkingCopy.Pull
   }
 
   def compiling(version: String): Receive = {
     case Compiler.CompilationSuccessful =>
-      val packageRef = PackageRef.fromFolder(new File(workingCopyLocation, compilationSettings.compilation.distributionFolder))
-      appRepo ! AppRepository.DeployVersion(app, version, packageRef, compilationSettings)
+      log.info("Deploying application {} in version {} to package repository", app, version)
+      val packageRef = PackageRef.fromFolder(new File(workingCopyLocation, compilationSettings.get.compilation.distributionFolder))
+      appRepo ! AppRepository.DeployVersion(app, version, packageRef, compilationSettings.get)
       context.become(awaitingCommits)
       unstashAll()
     case Compiler.CompilationFailure =>
@@ -52,7 +65,8 @@ class AppBuilder(app: String, appRepo: ActorRef, workingDirectory: File, gitPoll
   def receive = created
 
   private def workingCopyLocation = new File(workingDirectory, "working-copy")
-  private def compilationSettings = parse(new File(workingCopyLocation, ".easyrider.json")).extract[PackageMetadata]
+  private def compilationSettingsLocation = new File(workingCopyLocation, ".easyrider.json")
+  private def compilationSettings = Try(parse(compilationSettingsLocation).extract[PackageMetadata])
 }
 
 object AppBuilder {

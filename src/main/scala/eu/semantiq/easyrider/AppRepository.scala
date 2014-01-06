@@ -6,6 +6,7 @@ import org.apache.commons.io.FileUtils
 import org.json4s._
 import org.json4s.jackson.JsonMethods._
 import org.json4s.jackson.Serialization._
+import java.nio.file.{StandardCopyOption, CopyOption, Files}
 
 class AppRepository(storageFolder: File) extends Actor {
   import AppRepository._
@@ -70,6 +71,7 @@ object AppRepository {
 
     private case class FilePackageRef(root: File) extends PackageRef {
       def extractTo(folder: File) {
+        // TODO: update commons-io so that file permissions are preserved
         FileUtils.copyDirectory(root, folder)
       }
     }
