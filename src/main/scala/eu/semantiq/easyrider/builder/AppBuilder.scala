@@ -71,7 +71,7 @@ class AppBuilder(app: String, appRepo: ActorRef, workingDirectory: File, gitPoll
 
 object AppBuilder {
   def apply(app: String, appRepo: ActorRef, workingDirectory: File, gitPollingInterval: FiniteDuration = 30.seconds,
-            compilationTimeout: FiniteDuration = 5.minutes) =
+            compilationTimeout: FiniteDuration = 15.minutes) =
     Props(classOf[AppBuilder], app, appRepo, workingDirectory, gitPollingInterval, compilationTimeout)
 
   case class ConfigurationUpdated(git: GitRepositoryRef)

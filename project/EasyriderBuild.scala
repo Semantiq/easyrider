@@ -8,7 +8,7 @@ object EasyriderBuild extends Build {
   private val akkaVersion = "2.2.3"
 
   override val settings = Seq(
-    version := "0.2",
+    version := "0.3",
     organization := "eu.semantiq",
     scalaVersion := "2.10.3",
     libraryDependencies ++= Seq(
@@ -27,8 +27,9 @@ object EasyriderBuild extends Build {
 
   val debianSettings = packageArchetype.java_application ++ Seq(
     maintainer := "SemantiQ",
-    packageDescription := "A simple tool to run application straight from Git easily"
-  )
+    packageDescription := "A simple tool to run application straight from Git easily",
+    mappings in Universal += file("src/main/debian/easyrider.sh") -> "../../../etc/init.d/easyrider"
+  )  
 
   lazy val root = Project(
     id = "easyrider",

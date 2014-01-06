@@ -20,7 +20,7 @@ class LeadingActor(configFileLocation: File, workingDirectory: File, configurati
   private var supervisors = Map[String, ActorRef]()
   private var builders = Map[String, ActorRef]()
 
-  dispatcher ! HttpDispatcher.NewConfiguration(8080)
+  dispatcher ! HttpDispatcher.NewConfiguration(8100)
 
   def running(configuration: Seq[Application]): Receive = LoggingReceive {
     case ConfigurationManager.Reconfigured(newConfiguration) =>
