@@ -7,6 +7,7 @@ import akka.actor._
 import org.json4s._
 import org.json4s.jackson.JsonMethods._
 import java.nio.file.FileSystems
+import scala.util.Try
 
 class ConfigurationManager(listener: ActorRef, source: File, checkInterval: FiniteDuration) extends Actor with ActorLogging {
 	import ConfigurationManager._
@@ -15,8 +16,6 @@ class ConfigurationManager(listener: ActorRef, source: File, checkInterval: Fini
 	private var configuration = getConfiguration()
 
 	private val timerSubscription = context.system.scheduler.schedule(checkInterval, checkInterval, self, CheckForConfigurationChanges)
-  //private val watch = context.actorOf(Props[FileSystemWatchActor], "watch")
-  //watch ! FileSystemWatchActor.Subscribe(source.getAbsoluteFile, self)
 
   listener ! Reconfigured(configuration)
 
@@ -25,11 +24,12 @@ class ConfigurationManager(listener: ActorRef, source: File, checkInterval: Fini
 	}
 
 	def receive: Receive = {
-		//case FileSystemWatchActor.FileModified(file) => {
     case CheckForConfigurationChanges =>
-			val checked = getConfiguration
-      if (configuration != checked) {
-				configuration = checked
+			val checked = Try(getConfiguration)
+      if (checked.isFailure) {
+        // TODO: display info about error, but only once
+      } else if (configuration != checked.get) {
+				configuration = checked.get
         log.info("Found new configuration: {}", configuration)
 				listener ! Reconfigured(configuration)
 			}

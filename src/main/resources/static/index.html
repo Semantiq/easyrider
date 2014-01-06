@@ -53,17 +53,16 @@
 				};
 				me.connect();
 			}
-			
 
 			var app = new angular.module("app", []);
 
 			app.controller("AppsCtrl", function($scope) {
 				var io = new IO($scope);
 				$scope.start = function(app) {
-					io.send({ jsonClass: "eu.semantiq.easyrider.AppSupervisor$Start", app: app });
+					io.send({ jsonClass: "eu.semantiq.easyrider.supervisor.AppSupervisor$Start", app: app });
 				};
 				$scope.stop = function(app) {
-					io.send({ jsonClass: "eu.semantiq.easyrider.AppSupervisor$Stop", app: app });
+					io.send({ jsonClass: "eu.semantiq.easyrider.supervisor.AppSupervisor$Stop", app: app });
 				};
 
 				$scope.$on("newStatus", function(e, status) {

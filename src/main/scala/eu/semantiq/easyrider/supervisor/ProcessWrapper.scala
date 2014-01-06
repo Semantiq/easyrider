@@ -25,7 +25,11 @@ class ProcessWrapper extends Actor with ActorLogging with Stash {
   def stopped(configuration: ConfigurationUpdated): Receive = LoggingReceive {
     case Start =>
       val environment = configuration.settings + ("PATH" -> System.getenv("PATH"))
-      val p = Process(configuration.command, configuration.workingDirectory, environment.toSeq :_*).run(ProcessLogger(m => log.debug("process: {}", m)))
+      val augmentedCommand = configuration.settings.foldLeft(configuration.command) {
+        case (command, (name, value)) => command.replace("$" + name, value)
+      }
+      log.info("Starting process with command line '{}', environment {}", augmentedCommand, environment)
+      val p = Process(augmentedCommand, configuration.workingDirectory, environment.toSeq :_*).run(ProcessLogger(m => log.debug("process: {}", m)))
       process = Some(p)
       context.become(started(configuration))
       Future(p.exitValue()) onComplete  {

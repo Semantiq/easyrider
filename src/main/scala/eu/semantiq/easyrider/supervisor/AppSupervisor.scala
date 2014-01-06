@@ -1,12 +1,19 @@
 package eu.semantiq.easyrider.supervisor
 
 import akka.actor._
-import java.io.File
+import java.io.{IOException, File}
 import akka.event.LoggingReceive
 import eu.semantiq.easyrider.{PackageMetadata, AppRepository}
+import scala.concurrent.duration._
+import akka.actor.SupervisorStrategy
 
 class AppSupervisor(app: String, repositoryRef: ActorRef, workingDirectory: File) extends Actor with ActorLogging with Stash {
   import AppSupervisor._
+
+  override val supervisorStrategy = OneForOneStrategy(maxNrOfRetries = 10, withinTimeRange = 1.minute) {
+    case _: IOException => SupervisorStrategy.Escalate
+    case _ => SupervisorStrategy.Restart
+  }
 
   override def preStart() {
     context.system.eventStream.subscribe(self, classOf[AppRepository.VersionAvailable])
