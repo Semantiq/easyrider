@@ -8,7 +8,7 @@ object EasyriderBuild extends Build {
   private val akkaVersion = "2.2.3"
 
   override val settings = Seq(
-    version := "0.3",
+    version := "0.4",
     organization := "eu.semantiq",
     scalaVersion := "2.10.3",
     libraryDependencies ++= Seq(
