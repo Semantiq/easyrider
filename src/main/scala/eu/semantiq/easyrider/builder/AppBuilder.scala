@@ -25,7 +25,10 @@ class AppBuilder(app: String, appRepo: ActorRef, workingDirectory: File, gitPoll
   }
 
   // TODO: ask for configuration, as there are no startup guarantee that we'll get it after restart
-  override def postRestart(reason: Throwable): Unit = super.postRestart(reason)
+  override def postRestart(reason: Throwable): Unit = {
+    log.error("AppBuilder got restarted, currently it will not be able to recover and restart is required", reason)
+    super.postRestart(reason)
+  }
 
   def created: Receive = {
     case ConfigurationUpdated(gitConfig) =>

@@ -1,6 +1,6 @@
 package eu.semantiq.easyrider
 
-import akka.actor.{Cancellable, ActorLogging, Actor}
+import akka.actor.{Props, Cancellable, ActorLogging, Actor}
 import java.io.File
 import scala.sys.process.{ProcessLogger, Process}
 import scala.concurrent.duration.{FiniteDuration, Duration}
@@ -54,6 +54,8 @@ class CommandRunner extends Actor with ActorLogging with PipeToSupport {
 }
 
 object CommandRunner {
+  def apply() = Props[CommandRunner].withDispatcher("command-execution")
+
   case class Run(id: String, command: String, dir: File, collectOutput: Boolean = false,
                  timeout: Duration = Duration.Undefined)
   object Abort

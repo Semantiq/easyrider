@@ -13,7 +13,7 @@ class Compiler(listener: ActorRef, workingDir: File, timeout: FiniteDuration) ex
 
   def waiting: Receive = LoggingReceive {
     case Compile(Some(command)) =>
-          val runner = context.actorOf(Props[CommandRunner], "compilation")
+          val runner = context.actorOf(CommandRunner(), "compilation")
           runner ! Run("compilation", command, workingDir, collectOutput = false, timeout)
           context.become(compiling(runner))
     case Compile(None) => listener ! CompilationSuccessful

@@ -85,7 +85,7 @@ class GitWorkingCopy(listener: ActorRef, repoDirectory: File, pullFrequency: Fin
   private def checkout = runCommand("checkout", s"git checkout ${repository.branch}", dir = repoDirectory)
   private def getRevision = runCommand("get-revision", s"git log -n 1", dir = repoDirectory, collectOutput = true)
   private def runCommand(id: String, command: String, dir: File, collectOutput: Boolean = false) = {
-    val runner = context.actorOf(Props[CommandRunner], id)
+    val runner = context.actorOf(CommandRunner(), id)
     runner ! Run(id, command, dir, collectOutput = collectOutput)
     runner
   }
