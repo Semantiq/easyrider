@@ -10,6 +10,11 @@
 
 COMMAND="$1"
 
+# To enable JMX monitoring
+if [ -r /etc/easyrider/jmx.conf ]; then
+    PROPS="-Dcom.sun.management.jmxremote.port=8200 -Dcom.sun.management.jmxremote.password.file=/etc/easyrider/jmx.conf -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.access.file=/etc/easyrider/jmx.access"
+fi
+
 start() {
 	echo -ne "Starting EasyRider ...\t"
 	start-stop-daemon --exec /usr/bin/easyrider -c www-data -b -m -p /var/tmp/easyrider.pid -S -- $PROPS -mem 64 -Dconfiguration=/etc/easyrider/configuration.json -Dworking.directory=/opt/easyrider
