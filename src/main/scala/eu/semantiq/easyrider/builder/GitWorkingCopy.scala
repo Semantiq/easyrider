@@ -44,7 +44,7 @@ class GitWorkingCopy(listener: ActorRef, repoDirectory: File, pullFrequency: Fin
     case failure: CommandCompleted => throw new RuntimeException("Command execution failed: " + failure)
   }
 
-  def active(revision: String): Receive = {
+  def active(revision: String): Receive = LoggingReceive {
     case Pull =>
       pullRepo
       context.become(updating(revision))
@@ -63,7 +63,7 @@ class GitWorkingCopy(listener: ActorRef, repoDirectory: File, pullFrequency: Fin
       }
   }
 
-  def updating(revision: String): Receive = {
+  def updating(revision: String): Receive = LoggingReceive {
     case Pull => // ignore, already pulling
     case CommandExitCode("pull", 0, _) => getRevision
     case CommandExitCode("get-revision", 0, Some(newRevision)) => if (newRevision != revision) {

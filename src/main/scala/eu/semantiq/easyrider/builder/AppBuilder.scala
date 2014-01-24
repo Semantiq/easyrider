@@ -11,6 +11,7 @@ import org.json4s.jackson.JsonMethods._
 import eu.semantiq.easyrider.PackageMetadata
 import eu.semantiq.easyrider.GitRepositoryRef
 import scala.util.{Failure, Try}
+import akka.event.LoggingReceive
 
 class AppBuilder(app: String, appRepo: ActorRef, workingDirectory: File, gitPollingInterval: FiniteDuration,
                   compilationTimeout: FiniteDuration) extends Actor with Stash with ActorLogging {
@@ -37,7 +38,7 @@ class AppBuilder(app: String, appRepo: ActorRef, workingDirectory: File, gitPoll
     case Pull => // ignore
   }
 
-  def awaitingCommits: Receive = {
+  def awaitingCommits: Receive = LoggingReceive {
     case GitWorkingCopy.WorkingCopyUpdated(version) =>
       if (!compilationSettingsLocation.exists()) {
         log.info("Working copy doesn't have .easyrider.json - waiting for updates")
@@ -51,7 +52,7 @@ class AppBuilder(app: String, appRepo: ActorRef, workingDirectory: File, gitPoll
     case Pull => git ! GitWorkingCopy.Pull
   }
 
-  def compiling(version: String): Receive = {
+  def compiling(version: String): Receive = LoggingReceive {
     case Compiler.CompilationSuccessful =>
       log.info("Deploying application {} in version {} to package repository", app, version)
       val packageRef = PackageRef.fromFolder(new File(workingCopyLocation, compilationSettings.get.compilation.distributionFolder))
