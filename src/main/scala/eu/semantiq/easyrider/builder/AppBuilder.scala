@@ -20,6 +20,13 @@ class AppBuilder(app: String, appRepo: ActorRef, workingDirectory: File, gitPoll
   private val git = context.actorOf(GitWorkingCopy(self, workingCopyLocation, gitPollingInterval), "working-copy")
   private val compiler = context.actorOf(Compiler(self, workingCopyLocation, compilationTimeout), "compiler")
   context.system.scheduler.schedule(gitPollingInterval, gitPollingInterval, self, Pull)
+  context.system.scheduler.schedule(gitPollingInterval, gitPollingInterval, new Runnable() {
+    val me = self
+    def run() {
+      log.info("Sending scheduled Pull message")
+      me ! Pull
+    }
+  })
 
   override def preStart() {
     workingDirectory.mkdir()
@@ -50,6 +57,7 @@ class AppBuilder(app: String, appRepo: ActorRef, workingDirectory: File, gitPoll
       } else if (compilationSettings.isFailure) {
         log.info("Working copy contains invalid .easyrider.json: {}", compilationSettings.asInstanceOf[Failure[Any]].exception.toString)
       } else {
+        log.info("Compiling new version: {}", version)
         compiler ! Compiler.Compile(compilationSettings.get.compilation.command)
         context.become(compiling(version))
       }
