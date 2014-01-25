@@ -54,7 +54,7 @@ class CommandRunner extends Actor with ActorLogging with PipeToSupport {
 }
 
 object CommandRunner {
-  def apply() = Props[CommandRunner].withDispatcher("command-execution")
+  def apply() = Props[CommandRunner]
 
   case class Run(id: String, command: String, dir: File, collectOutput: Boolean = false,
                  timeout: Duration = Duration.Undefined)
