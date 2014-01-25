@@ -4,15 +4,15 @@ import akka.actor.{Props, Cancellable, ActorLogging, Actor}
 import java.io.File
 import scala.sys.process.{ProcessLogger, Process}
 import scala.concurrent.duration.{FiniteDuration, Duration}
-import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.Future
-import scala.util.{Success, Failure}
+import scala.util.Failure
 import akka.event.LoggingReceive
 import akka.pattern.PipeToSupport
 
 class CommandRunner extends Actor with ActorLogging with PipeToSupport {
   // TODO: implement postStop
   import CommandRunner._
+  implicit val executionContext = context.system.dispatcher
 
   def await: Receive = {
     case Run(id, command, dir, collectOutput, timeout) =>
