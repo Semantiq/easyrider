@@ -5,7 +5,6 @@ import eu.semantiq.easyrider.AppRepository
 import java.io.File
 import scala.concurrent.duration._
 import eu.semantiq.easyrider.AppRepository.PackageRef
-import scala.concurrent.ExecutionContext.Implicits.global
 import org.json4s._
 import org.json4s.jackson.JsonMethods._
 import eu.semantiq.easyrider.PackageMetadata
@@ -19,16 +18,9 @@ class AppBuilder(app: String, appRepo: ActorRef, workingDirectory: File, gitPoll
   private implicit val formats = DefaultFormats
   private val git = context.actorOf(GitWorkingCopy(self, workingCopyLocation, gitPollingInterval), "working-copy")
   private val compiler = context.actorOf(Compiler(self, workingCopyLocation, compilationTimeout), "compiler")
-  context.system.scheduler.schedule(gitPollingInterval, gitPollingInterval, self, Pull)
-  context.system.scheduler.schedule(gitPollingInterval, gitPollingInterval, new Runnable() {
-    val me = self
-    def run() {
-      log.info("Sending scheduled Pull message")
-      me ! Pull
-    }
-  })
 
   override def preStart() {
+    context.system.scheduler.schedule(gitPollingInterval, gitPollingInterval, self, Pull)(context.system.dispatcher, self)
     workingDirectory.mkdir()
   }
 
