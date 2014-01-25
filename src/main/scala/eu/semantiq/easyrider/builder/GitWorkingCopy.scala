@@ -88,7 +88,7 @@ class GitWorkingCopy(listener: ActorRef, repoDirectory: File, pullFrequency: Fin
   private def getRevision = runCommand("get-revision", s"git log -n 1", dir = repoDirectory, collectOutput = true)
   private def runCommand(id: String, command: String, dir: File, collectOutput: Boolean = false) = {
     val runner = context.actorOf(CommandRunner(), id)
-    runner ! Run(id, command, dir, collectOutput = collectOutput)
+    runner ! Run(id, command, dir, collectOutput = collectOutput, timeout = 60.seconds)
     runner
   }
   private def extractVersion(revision: String) = "\\b[0-9a-f]{5,40}\\b".r.findFirstIn(revision).get
