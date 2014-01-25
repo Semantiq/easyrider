@@ -34,13 +34,18 @@ class AppBuilder(app: String, appRepo: ActorRef, workingDirectory: File, gitPoll
   def created: Receive = {
     case ConfigurationUpdated(gitConfig) =>
       git ! GitWorkingCopy.ConfigurationUpdated(gitConfig)
-      context.become(awaitingCommits)
+      context.become(awaitingCommits(None))
+      appRepo ! AppRepository.GetVersionAvailable(app)
     case Pull => // ignore
   }
 
-  def awaitingCommits: Receive = LoggingReceive {
+  def awaitingCommits(currentVersion: Option[String]): Receive = LoggingReceive {
+    case AppRepository.VersionAvailable(newApp, newVersion) =>
+      context.become(awaitingCommits(Some(newVersion)))
     case GitWorkingCopy.WorkingCopyUpdated(version) =>
-      if (!compilationSettingsLocation.exists()) {
+      if (currentVersion.exists(_ == version)) {
+        log.info("Working copy version is already in repository: {}", version)
+      } else if (!compilationSettingsLocation.exists()) {
         log.info("Working copy doesn't have .easyrider.json - waiting for updates")
       } else if (compilationSettings.isFailure) {
         log.info("Working copy contains invalid .easyrider.json: {}", compilationSettings.asInstanceOf[Failure[Any]].exception.toString)
@@ -57,13 +62,14 @@ class AppBuilder(app: String, appRepo: ActorRef, workingDirectory: File, gitPoll
       log.info("Deploying application {} in version {} to package repository", app, version)
       val packageRef = PackageRef.fromFolder(new File(workingCopyLocation, compilationSettings.get.compilation.distributionFolder))
       appRepo ! AppRepository.DeployVersion(app, version, packageRef, compilationSettings.get)
-      context.become(awaitingCommits)
+      context.become(awaitingCommits(Some(version)))
       unstashAll()
     case Compiler.CompilationFailure =>
-      context.become(awaitingCommits)
+      context.become(awaitingCommits(Some(version)))
       unstashAll()
     case Pull => // ignore
-    case _ => stash()
+    case _: ConfigurationUpdated => stash()
+    case _: GitWorkingCopy.WorkingCopyUpdated => stash()
   }
 
   def receive = created

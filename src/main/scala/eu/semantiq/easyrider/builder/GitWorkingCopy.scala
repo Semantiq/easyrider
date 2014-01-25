@@ -77,7 +77,7 @@ class GitWorkingCopy(listener: ActorRef, repoDirectory: File, pullFrequency: Fin
       unstashAll()
     }
     case failure: CommandCompleted => throw new RuntimeException("Command execution failed: " + failure)
-    case _ => stash()
+    case _: ConfigurationUpdated => stash()
   }
 
   def receive = passive
