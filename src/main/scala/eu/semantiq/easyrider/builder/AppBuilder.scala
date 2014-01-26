@@ -11,6 +11,7 @@ import eu.semantiq.easyrider.PackageMetadata
 import eu.semantiq.easyrider.GitRepositoryRef
 import scala.util.{Failure, Try}
 import akka.event.LoggingReceive
+import akka.actor.SupervisorStrategy.Restart
 
 class AppBuilder(app: String, appRepo: ActorRef, workingDirectory: File, gitPollingInterval: FiniteDuration,
                   compilationTimeout: FiniteDuration) extends Actor with Stash with ActorLogging {
@@ -18,10 +19,19 @@ class AppBuilder(app: String, appRepo: ActorRef, workingDirectory: File, gitPoll
   private implicit val formats = DefaultFormats
   private val git = context.actorOf(GitWorkingCopy(self, workingCopyLocation, gitPollingInterval), "working-copy")
   private val compiler = context.actorOf(Compiler(self, workingCopyLocation, compilationTimeout), "compiler")
+  private var configuration: Option[GitRepositoryRef] = None
 
   override def preStart() {
     context.system.scheduler.schedule(gitPollingInterval, gitPollingInterval, self, Pull)(context.system.dispatcher, self)
     workingDirectory.mkdir()
+  }
+
+  override def supervisorStrategy = OneForOneStrategy(maxNrOfRetries = 10, withinTimeRange = 5.minutes, loggingEnabled = true) {
+    case _: RuntimeException =>
+      configuration.foreach {
+        config => sender ! GitWorkingCopy.ConfigurationUpdated(config)
+      }
+      Restart
   }
 
   // TODO: ask for configuration, as there are no startup guarantee that we'll get it after restart
@@ -32,6 +42,7 @@ class AppBuilder(app: String, appRepo: ActorRef, workingDirectory: File, gitPoll
 
   def created: Receive = {
     case ConfigurationUpdated(gitConfig) =>
+      configuration = Some(gitConfig)
       git ! GitWorkingCopy.ConfigurationUpdated(gitConfig)
       context.become(awaitingCommits(None))
       appRepo ! AppRepository.GetVersionAvailable(app)
@@ -44,16 +55,22 @@ class AppBuilder(app: String, appRepo: ActorRef, workingDirectory: File, gitPoll
     case GitWorkingCopy.WorkingCopyUpdated(version) =>
       if (currentVersion.exists(_ == version)) {
         log.info("Working copy version is already in repository: {}", version)
+        context.system.eventStream.publish(BuildSuccessful(app, version))
       } else if (!compilationSettingsLocation.exists()) {
         log.info("Working copy doesn't have .easyrider.json - waiting for updates")
+        context.system.eventStream.publish(BuildFailed(app, version))
       } else if (compilationSettings.isFailure) {
         log.info("Working copy contains invalid .easyrider.json: {}", compilationSettings.asInstanceOf[Failure[Any]].exception.toString)
+        context.system.eventStream.publish(BuildFailed(app, version))
       } else {
         log.info("Compiling new version: {}", version)
         compiler ! Compiler.Compile(compilationSettings.get.compilation.command)
         context.become(compiling(version))
+        context.system.eventStream.publish(BuildInProgress(app, version))
       }
-    case ConfigurationUpdated(gitConfig) => git ! GitWorkingCopy.ConfigurationUpdated(gitConfig)
+    case ConfigurationUpdated(gitConfig) =>
+      git ! GitWorkingCopy.ConfigurationUpdated(gitConfig)
+      configuration = Some(gitConfig)
     case Pull => git ! GitWorkingCopy.Pull
   }
 
@@ -64,8 +81,10 @@ class AppBuilder(app: String, appRepo: ActorRef, workingDirectory: File, gitPoll
       appRepo ! AppRepository.DeployVersion(app, version, packageRef, compilationSettings.get)
       context.become(awaitingCommits(Some(version)))
       unstashAll()
+      context.system.eventStream.publish(BuildSuccessful(app, version))
     case Compiler.CompilationFailure =>
       context.become(awaitingCommits(Some(version)))
+      context.system.eventStream.publish(BuildFailed(app, version))
       unstashAll()
     case Pull => // ignore
     case _: ConfigurationUpdated => stash()
@@ -86,4 +105,11 @@ object AppBuilder {
 
   case class ConfigurationUpdated(git: GitRepositoryRef)
   object Pull
+
+  trait BuildEvent {
+    def app: String
+  }
+  case class BuildInProgress(app: String, version: String) extends BuildEvent
+  case class BuildSuccessful(app: String, version: String) extends BuildEvent
+  case class BuildFailed(app: String, version: String) extends BuildEvent
 }
