@@ -8,7 +8,7 @@
 	<body ng-app="app">
 		<div ng-controller="AppsCtrl" class="container-fluid">
 			<div class="row-fluid">
-				<div class="col-md-12">
+				<div class="col-md-8">
 					<div class="page-header">
 						<h1>EasyRider Apps <small>{{connection}}</small></h1>
 						
@@ -24,6 +24,11 @@
 						<br style="clear:both" />
 					</div>
 				</div>
+                <div class="col-md-4">
+                    <div class="row-fluid">
+                        <div ng-repeat="entry in auditLog">{{entry.date}} {{entry.event.app}} {{entry.event.version.slice(0, 6)}} <span ng-class="['glyphicon', glyph[entry.event.jsonClass]]"></span></div>
+                    </div>
+                </div>
 			</div>
 		</div>
 		<script src="angular.min.js"></script>
@@ -34,7 +39,11 @@
 					me.ws = new WebSocket("ws://" + window.location.host + "/api");
 					me.ws.onmessage = function(e) {
 						var msg = JSON.parse(e.data);
-						$scope.$emit("newStatus", msg);
+						if (msg.apps) {
+						  $scope.$emit("newStatus", msg);
+						} else if (msg.date) {
+						  $scope.$emit("newAuditEntry", msg);
+						}
 					};
 					me.ws.onclose = function() {
 						$scope.$apply(function() {
@@ -68,6 +77,7 @@
                     "eu.semantiq.easyrider.builder.AppBuilder$BuildInProgress": "glyphicon-time",
                     "eu.semantiq.easyrider.builder.AppBuilder$BuildFailed": "glyphicon-fire"
 				};
+				$scope.auditLog = [];
 				$scope.start = function(app) {
 					io.send({ jsonClass: "eu.semantiq.easyrider.supervisor.AppSupervisor$Start", app: app });
 				};
@@ -79,6 +89,12 @@
 					$scope.$apply(function() {
 						$scope.status = status;
 					});
+				});
+				$scope.$on("newAuditEntry", function(e, entry) {
+					$scope.$apply(function() {
+                        $scope.auditLog.unshift(entry);
+                        $scope.auditLog.slice(0, 50);
+                    });
 				});
 			});
 		</script>

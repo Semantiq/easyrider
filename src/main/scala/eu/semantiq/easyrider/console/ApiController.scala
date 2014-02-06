@@ -23,11 +23,13 @@ class ApiController(statusMonitor: ActorRef) extends Actor with ActorLogging {
     case Sockets.Upgraded =>
       context.become(running(sender))
       context.system.eventStream.subscribe(self, classOf[StatusMonitor.Status])
+      context.system.eventStream.subscribe(self, classOf[StatusMonitor.AuditEntry])
       statusMonitor ! StatusMonitor.GetStatus
   }
 
   def running(peer: ActorRef): Receive = {
     case event: StatusMonitor.Status => peer ! Frame(opcode = OpCode.Text, data = ByteString(write(event)))
+    case event: StatusMonitor.AuditEntry => peer ! Frame(opcode = OpCode.Text, data = ByteString(write(event)))
     case Frame(_, _, OpCode.Text, _, data) =>
       val command = parse(data.utf8String).extract[AppSupervisor.AppLifecycleCommand]
       context.system.eventStream.publish(command)
