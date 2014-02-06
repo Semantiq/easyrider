@@ -16,7 +16,9 @@ class StatusController(statusMonitor: ActorRef) extends Actor with ActorLogging 
   private val htmlContentType = ContentType(MediaType.custom("text/html"), HttpCharset.custom("UTF-8"))
   private val cssContentType = ContentType(MediaType.custom("text/css"), HttpCharset.custom("UTF-8"))
   private val jsContentType = ContentType(MediaType.custom("application/javascript"), HttpCharset.custom("UTF-8"))
-  private val contentTypeForExtension = Map("html" -> htmlContentType, "css" -> cssContentType, "js" -> jsContentType)
+  private val woffContentType = ContentType(MediaType.custom("application/x-font-woff"), HttpCharset.custom("UTF-8"))
+  private val contentTypeForExtension = Map("html" -> htmlContentType, "css" -> cssContentType, "js" -> jsContentType,
+    "woff" -> woffContentType)
 
   override def supervisorStrategy = OneForOneStrategy(maxNrOfRetries = 10, withinTimeRange = 1.minute) {
     case _: Exception => Resume

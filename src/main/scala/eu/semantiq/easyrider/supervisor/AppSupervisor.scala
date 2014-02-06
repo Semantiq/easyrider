@@ -100,7 +100,7 @@ object AppSupervisor {
   sealed trait AppLifecycleEvent {
     def app: String
   }
-  case class Started(app: String, rev: String) extends  AppLifecycleEvent
+  case class Started(app: String, version: String) extends  AppLifecycleEvent
   case class Stopped(app: String) extends AppLifecycleEvent
   case class Crashed(app: String, errorCode: Int) extends AppLifecycleEvent
 

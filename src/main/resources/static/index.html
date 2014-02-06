@@ -18,7 +18,9 @@
 							<button class="bnt btn-success btn-lg" ng-click="start(app)">Start</button>
 							<button class="bnt btn-danger btn-lg" ng-click="stop(app)">Stop</button>
 						</div>
-						<h2>{{app}} <small>{{lastEvent.process}}</small> <small>{{lastEvent.build}}</small></h2>
+						<h2>{{app}}
+                        <small><span ng-class="['glyphicon', glyph[lastEvent.process.jsonClass]]"></span> {{lastEvent.process.version}}</small>
+                        <small><span ng-class="['glyphicon', glyph[lastEvent.build.jsonClass]]"></span> {{lastEvent.build.version}}</small></h2>
 						<br style="clear:both" />
 					</div>
 				</div>
@@ -58,6 +60,14 @@
 
 			app.controller("AppsCtrl", function($scope) {
 				var io = new IO($scope);
+				$scope.glyph = {
+			        "eu.semantiq.easyrider.supervisor.AppSupervisor$Started": "glyphicon-play",
+                    "eu.semantiq.easyrider.supervisor.AppSupervisor$Stopped": "glyphicon-stop",
+                    "eu.semantiq.easyrider.supervisor.AppSupervisor$Crashed": "glyphicon-fire",
+                    "eu.semantiq.easyrider.builder.AppBuilder$BuildSuccessful": "glyphicon-ok",
+                    "eu.semantiq.easyrider.builder.AppBuilder$BuildInProgress": "glyphicon-time",
+                    "eu.semantiq.easyrider.builder.AppBuilder$BuildFailed": "glyphicon-fire"
+				};
 				$scope.start = function(app) {
 					io.send({ jsonClass: "eu.semantiq.easyrider.supervisor.AppSupervisor$Start", app: app });
 				};

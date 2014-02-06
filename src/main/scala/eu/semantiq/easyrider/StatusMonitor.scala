@@ -15,11 +15,11 @@ class StatusMonitor extends Actor with ActorLogging {
   def receive: Actor.Receive = {
     case event: AppLifecycleEvent =>
       log.info("lifecycle event: " + event)
-      val newAppStatus = status.getOrElse(event.app, AppStatus()).copy(process = Some(event.toString))
+      val newAppStatus = status.getOrElse(event.app, AppStatus()).copy(process = Some(event))
       updateStatus(event.app, newAppStatus)
     case event: BuildEvent =>
       log.info("build event: " + event)
-      val newAppStatus = status.getOrElse(event.app, AppStatus()).copy(build = Some(event.toString))
+      val newAppStatus = status.getOrElse(event.app, AppStatus()).copy(build = Some(event))
       updateStatus(event.app, newAppStatus)
     case GetStatus => sender ! Status(status)
   }
@@ -32,6 +32,6 @@ class StatusMonitor extends Actor with ActorLogging {
 
 object StatusMonitor {
   object GetStatus
-  case class AppStatus(process: Option[String] = None, build: Option[String] = None)
+  case class AppStatus(process: Option[AppLifecycleEvent] = None, build: Option[BuildEvent] = None)
   case class Status(apps: Map[String, AppStatus])
 }

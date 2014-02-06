@@ -10,10 +10,14 @@ import org.json4s.jackson.Serialization
 import org.json4s.jackson.Serialization.write
 import eu.semantiq.easyrider.StatusMonitor
 import eu.semantiq.easyrider.supervisor.AppSupervisor
+import eu.semantiq.easyrider.builder.AppBuilder
 
 // TODO: separate from WebSocket handling code
 class ApiController(statusMonitor: ActorRef) extends Actor with ActorLogging {
-  implicit val formats = Serialization.formats(FullTypeHints(List(classOf[AppSupervisor.AppLifecycleCommand])))
+  implicit val formats = Serialization.formats(FullTypeHints(List(
+    classOf[AppSupervisor.AppLifecycleCommand],
+    classOf[AppSupervisor.AppLifecycleEvent],
+    classOf[AppBuilder.BuildEvent])))
 
   def initializing: Receive = {
     case Sockets.Upgraded =>
