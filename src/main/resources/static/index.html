@@ -18,9 +18,9 @@
 							<button class="bnt btn-success btn-lg" ng-click="start(app)">Start</button>
 							<button class="bnt btn-danger btn-lg" ng-click="stop(app)">Stop</button>
 						</div>
-						<h2>{{app}}
-                        <small><span ng-class="['glyphicon', glyph[lastEvent.process.jsonClass]]"></span> {{lastEvent.process.version}}</small>
-                        <small><span ng-class="['glyphicon', glyph[lastEvent.build.jsonClass]]"></span> {{lastEvent.build.version}}</small></h2>
+						<h2>{{app}}</h2>
+                        <p><span ng-class="['glyphicon', glyph[lastEvent.process.jsonClass]]"></span> {{lastEvent.process.version}}</p>
+                        <p><span ng-class="['glyphicon', glyph[lastEvent.build.jsonClass]]"></span> {{lastEvent.build.version}}</p>
 						<br style="clear:both" />
 					</div>
 				</div>
