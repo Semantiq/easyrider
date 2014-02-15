@@ -23,7 +23,7 @@ class ApiController(statusMonitor: ActorRef) extends Actor with ActorLogging {
     case Sockets.Upgraded =>
       context.become(running(sender))
       context.system.eventStream.subscribe(self, classOf[StatusMonitor.Status])
-      context.system.eventStream.subscribe(self, classOf[StatusMonitor.AuditEntry])
+      statusMonitor ! StatusMonitor.GetAuditStream
       statusMonitor ! StatusMonitor.GetStatus
   }
 

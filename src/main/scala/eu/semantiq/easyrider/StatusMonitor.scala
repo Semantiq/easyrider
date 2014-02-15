@@ -1,6 +1,6 @@
 package eu.semantiq.easyrider
 
-import akka.actor.{ActorLogging, Actor}
+import akka.actor.{Terminated, ActorRef, ActorLogging, Actor}
 import eu.semantiq.easyrider.supervisor.AppSupervisor
 import AppSupervisor.AppLifecycleEvent
 import eu.semantiq.easyrider.builder.AppBuilder.BuildEvent
@@ -13,6 +13,7 @@ class StatusMonitor extends Actor with ActorLogging {
 
   var status = Map[String, AppStatus]()
   var audit = Seq[AuditEntry]()
+  var subscribers = Set[ActorRef]()
 
   def receive: Actor.Receive = {
     case event: AppLifecycleEvent =>
@@ -28,12 +29,18 @@ class StatusMonitor extends Actor with ActorLogging {
     case GetStatus =>
       sender ! Status(status)
       sender ! Audit(audit)
+    case GetAuditStream =>
+      subscribers += sender
+      audit foreach (sender ! _)
+      context.watch(sender)
+    case Terminated(subscriber) =>
+      subscribers -= subscriber
   }
 
   private def updateAudit(event: AnyRef) {
     val auditEntry = AuditEntry(new Date(), event)
     audit :+= auditEntry
-    context.system.eventStream.publish(auditEntry)
+    subscribers foreach (_ ! auditEntry)
   }
 
   private def updateStatus(app: String, newAppStatus: StatusMonitor.AppStatus) {
@@ -44,6 +51,7 @@ class StatusMonitor extends Actor with ActorLogging {
 
 object StatusMonitor {
   object GetStatus
+  object GetAuditStream
   case class AppStatus(process: Option[AppLifecycleEvent] = None, build: Option[BuildEvent] = None)
   case class Status(apps: Map[String, AppStatus])
   case class AuditEntry(date: Date, event: AnyRef)
