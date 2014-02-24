@@ -1,11 +1,14 @@
 package eu.semantiq.easyrider.supervisor
 
-import akka.actor._
 import java.io.{IOException, File}
-import akka.event.LoggingReceive
-import eu.semantiq.easyrider.{PackageMetadata, AppRepository}
 import scala.concurrent.duration._
+
+import akka.actor._
 import akka.actor.SupervisorStrategy
+import akka.event.LoggingReceive
+import org.apache.commons.io.FileUtils
+
+import eu.semantiq.easyrider.{PackageMetadata, AppRepository}
 
 class AppSupervisor(app: String, repositoryRef: ActorRef, workingDirectory: File) extends Actor with ActorLogging with Stash {
   import AppSupervisor._
@@ -21,6 +24,7 @@ class AppSupervisor(app: String, repositoryRef: ActorRef, workingDirectory: File
     log.debug("Subscribed to AppRepository update")
     workingDirectory.mkdir()
     repositoryRef ! AppRepository.GetVersionAvailable(app)
+    context.setReceiveTimeout(2.minutes)
   }
 
   val process = context.actorOf(ProcessWrapper(), "process-wrapper")
@@ -57,6 +61,13 @@ class AppSupervisor(app: String, repositoryRef: ActorRef, workingDirectory: File
       process ! createConfigurationUpdatedMessage
       process ! ProcessWrapper.Restart
       context.system.eventStream.publish(Started(app, version.get))
+    case ReceiveTimeout => self ! DoMaintenance(app)
+    case DoMaintenance(targetApp) if targetApp == app =>
+      val removableVersions = workingDirectory.list().filter(_ != version.get)
+      for(removableVersion <- removableVersions) {
+        log.info("Garbadge collecting unused version: {}", removableVersion)
+        FileUtils.deleteDirectory(new File(workingDirectory, removableVersion))
+      }
     case AppRepository.VersionAvailable(newApp, newVersion) if newApp == app =>
       version = Some(newVersion)
       repositoryRef ! AppRepository.GetVersion(app, newVersion)
@@ -110,4 +121,5 @@ object AppSupervisor {
   case class Start(app: String) extends AppLifecycleCommand
   case class Stop(app: String) extends AppLifecycleCommand
   case class Restart(app: String) extends AppLifecycleCommand
+  case class DoMaintenance(app: String) extends AppLifecycleCommand
 }
