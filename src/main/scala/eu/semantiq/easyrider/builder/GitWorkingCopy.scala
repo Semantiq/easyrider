@@ -3,12 +3,11 @@ package eu.semantiq.easyrider.builder
 import java.io.File
 import scala.concurrent.Future
 import scala.concurrent.duration._
-import scala.concurrent.ExecutionContext.Implicits._
 import akka.actor._
 import akka.event.LoggingReceive
 import akka.pattern.PipeToSupport
-import eu.semantiq.easyrider.{GitRepositoryRef, CommandRunner}
-import eu.semantiq.easyrider.CommandRunner.{Run, CommandCompleted, CommandExitCode}
+import eu.semantiq.easyrider.CommandRunner
+import eu.semantiq.easyrider.CommandRunner.CommandCompleted
 import org.apache.commons.io.FileUtils
 import eu.semantiq.easyrider.CommandRunner.CommandExitCode
 import eu.semantiq.easyrider.GitRepositoryRef
@@ -18,6 +17,7 @@ import eu.semantiq.easyrider.CommandRunner.Run
 class GitWorkingCopy(listener: ActorRef, repoDirectory: File, pullFrequency: FiniteDuration)
   extends Actor with ActorLogging with PipeToSupport with Stash {
   import GitWorkingCopy._
+  implicit val executionContext = context.system.dispatcher
   // TODO: implement configuration update
 
   var repository: GitRepositoryRef = _
