@@ -23,8 +23,10 @@ class AppSupervisor(app: String, repositoryRef: ActorRef, workingDirectory: File
     context.system.eventStream.subscribe(self, classOf[AppLifecycleCommand])
     log.debug("Subscribed to AppRepository update")
     workingDirectory.mkdir()
+    logsDirectory.mkdir()
     repositoryRef ! AppRepository.GetVersionAvailable(app)
     context.setReceiveTimeout(2.minutes)
+    context.actorOf(LogManager(logsDirectory), "log-manager")
   }
 
   val process = context.actorOf(ProcessWrapper(), "process-wrapper")
@@ -89,7 +91,11 @@ class AppSupervisor(app: String, repositoryRef: ActorRef, workingDirectory: File
 
   def receive: Receive = created
 
-  def createConfigurationUpdatedMessage = ProcessWrapper.ConfigurationUpdated(metadata.get.running.command, new File(workingDirectory, version.get), configuration.get)
+  private val logsDirectory = new File(workingDirectory, "logs")
+
+  private def createConfigurationUpdatedMessage = ProcessWrapper.ConfigurationUpdated(metadata.get.running.command, new File(workingDirectory, version.get), supervisorProvidedConfiguration ++ configuration.get)
+
+  private def supervisorProvidedConfiguration = Map("supervisor.logs" -> logsDirectory.toString)
 
   private def becomeRunningIfConfigured() {
     for {
