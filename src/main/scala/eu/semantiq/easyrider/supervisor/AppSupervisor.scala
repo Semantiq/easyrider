@@ -65,7 +65,7 @@ class AppSupervisor(app: String, repositoryRef: ActorRef, workingDirectory: File
       context.system.eventStream.publish(Started(app, version.get))
     case ReceiveTimeout => self ! DoMaintenance(app)
     case DoMaintenance(targetApp) if targetApp == app =>
-      val removableVersions = workingDirectory.list().filter(_ != version.get)
+      val removableVersions = workingDirectory.list().filter(file => file != version.get && file != "logs")
       for(removableVersion <- removableVersions) {
         log.info("Garbadge collecting unused version: {}", removableVersion)
         FileUtils.deleteDirectory(new File(workingDirectory, removableVersion))
