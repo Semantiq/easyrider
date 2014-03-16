@@ -15,7 +15,11 @@ class LogManager(logsDirectory: File) extends Actor with ActorLogging {
       for (file <- logsDirectory.listFiles) {
         if (file.isFile && now - file.lastModified > timeToLive) {
           log.info("Deleting old log file: {}", file)
-          file.delete()
+          try {
+            file.delete()
+          } catch {
+            case e: Exception => log.error(e, "Couldn't delete old log file: {}", file)
+          }
         }
       }
   }

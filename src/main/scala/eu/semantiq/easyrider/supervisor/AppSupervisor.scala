@@ -68,7 +68,11 @@ class AppSupervisor(app: String, repositoryRef: ActorRef, workingDirectory: File
       val removableVersions = workingDirectory.list().filter(file => file != version.get && file != "logs")
       for(removableVersion <- removableVersions) {
         log.info("Garbadge collecting unused version: {}", removableVersion)
-        FileUtils.deleteDirectory(new File(workingDirectory, removableVersion))
+        try {
+          FileUtils.deleteDirectory(new File(workingDirectory, removableVersion))
+        } catch {
+          case e: Exception => log.error(e, "Couldn't delete unused version: {}", removableVersion)
+        }
       }
     case AppRepository.VersionAvailable(newApp, newVersion) if newApp == app =>
       version = Some(newVersion)
