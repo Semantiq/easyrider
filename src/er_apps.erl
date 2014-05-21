@@ -15,47 +15,30 @@ add_instance(Application, Stage, Instance) -> gen_server:call({global, ?MODULE},
 
 %% gen_server
 
-init(_Args) -> {ok, []}.
+init(_Args) -> {ok, #state{}}.
 
-handle_call(apps, _From, State) -> {reply, {apps, State}, State};
+handle_call(apps, _From, State) ->
+	{reply, {apps, [#app{name = AppName, properties = Properties, stages = find_stages(State, AppName)} ||
+		{AppName, Properties} <- State#state.apps]}, State};
 handle_call({add_app, Application}, _From, State) ->
-	{reply, ok, [#app{name = Application, stages = []} | State]};
+	{reply, ok, State#state{apps = orddict:store(Application, [], State#state.apps)}};
 handle_call({add_stage, AppName, StageName}, _From, State) ->
-	{Result, NewState} = update_app(State, AppName,
-		fun(App) -> {ok, App#app{stages = [#stage{name = StageName} | App#app.stages]}} end),
-	{reply, Result, NewState};
+	{reply, ok, State#state{stages = orddict:store({AppName, StageName}, [], State#state.stages)}};
 handle_call({add_instance, AppName, StageName, Instance}, _From, State) ->
-	{Result, NewState} = update_app(State, AppName, fun(App) ->
-		update_stage(App, StageName, fun(Stage) ->
-			{ok, Stage#stage{instances = [Instance | Stage#stage.instances]}}
-		end)
-	end),
-	{reply, Result, NewState}.
+	{reply, ok, State#state{instances = orddict:store({AppName, StageName, Instance#instance.id}, Instance, State#state.instances)}}.
 
-update_app(State, AppName, Modification) ->
-	case lists:keysearch(AppName, 2, State) of
-		{value, App} ->
-			case Modification(App) of
-				{ok, NewApp} -> 
-					NewState = lists:keyreplace(AppName, 2, State, NewApp),
-					{ok, NewState};
-				{Other, _} ->
-					{Other, State}
-			end;
-		_ -> {unknown_app, State}
-	end.
-update_stage(App, StageName, Modification) ->
-	case lists:keysearch(StageName, 2, App#app.stages) of
-		{value, Stage} ->
-			case Modification(Stage) of
-				{ok, NewStage} ->
-					NewApp = App#app{stages = lists:keyreplace(StageName, 2, App#app.stages, NewStage)},
-					{ok, NewApp};
-				{Other, _} ->
-					{Other, App}
-			end;
-		_ -> {unknown_stage, App}
-	end.	
+find_stages(#state{stages = Stages} = State, AppName) ->
+	AppStages = lists:filter(fun({{CurrentAppName, _}, _}) -> CurrentAppName == AppName end, Stages),
+	[#stage{name = StageName, properties = Properties, instances = find_instances(State, AppName, StageName)} ||
+		{{_, StageName}, Properties} <- AppStages].
+
+find_instances(#state{instances = Instances}, AppName, StageName) ->
+	lists:flatmap(fun({Key, Instance}) ->
+		case Key of
+			{AppName, StageName, _} -> [Instance];
+			_ -> []
+		end
+	end, Instances).
 
 %% Other gen_server callbacks
 
