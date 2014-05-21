@@ -1,0 +1,4 @@
+localhost:*
+*.log
+ebin
+*.dump

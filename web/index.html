@@ -1,0 +1,15 @@
+<html ng-app="easyrider">
+	<head>
+		<link rel="stylesheet" href="main.css" />
+	</head>
+	<body ng-controller="AppsCtrl">
+		Hello, world! {{connectionStatus}}
+		<div ng-show="role == null">
+			<input type="text" ng-model="username" />
+			<input type="password" ng-model="password" />
+			<button ng-click="login()">Login</button>
+		</div>
+		<script src="angular.min.js"></script>
+		<script src="main.js"></script>
+	</body>
+</html>
