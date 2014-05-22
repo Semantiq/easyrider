@@ -1,5 +1,6 @@
 -module(er_webconsole_adapter).
 -behaviour(gen_server).
+-include("er_apps.hrl").
 -export([start_link/1]).
 -export([init/1, handle_call/3, handle_cast/2, terminate/2, code_change/3, handle_info/2]).
 
@@ -19,6 +20,28 @@ handle_cast({welcome, {Username, Role}}, {Client, Server}) ->
 		{"role", atom_to_list(Role)}
 	]},
 	er_webconsole_session:send_json(Client, Json),
+	{noreply, {Client, Server}};
+handle_cast({apps, Apps}, {Client, Server}) ->
+	Json = {struct, [
+		{"event", "apps"},
+		{"apps", [			
+			{struct, [
+				{"name", App#app.name},
+				{"stages", [
+					{struct, [
+						{"name", Stage#stage.name},
+						{"instances", [
+							{struct, [
+								{"id", Instance#instance.id},
+								{"node", atom_to_list(Instance#instance.node)}
+							]} || Instance <- Stage#stage.instances
+						]}
+					]} || Stage <- App#app.stages
+				]}
+			]} || App <- Apps
+		]}
+	]},
+	er_webconsole_session:send_json(Client, Json),
 	{noreply, {Client, Server}}.
 
 parse_message(Fields) ->
@@ -30,8 +53,8 @@ parse_command("login", {struct, Fields}) ->
 	{value, {"username", Username}} = lists:keysearch("username", 1, Fields),
 	{value, {"password", Password}} = lists:keysearch("password", 1, Fields),
 	{login, Username, Password};
-parse_command("getApplications", {struct, []}) ->
-	{getApplications}.
+parse_command("subscribe_apps", {struct, []}) ->
+	{subscribe_apps}.
 
 %% Other gen_server callbacks
 terminate(shutdown, _State) -> ok.

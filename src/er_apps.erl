@@ -1,14 +1,17 @@
 -module(er_apps).
 -behaviour(gen_server).
 -include("er_apps.hrl").
--export([start_link/0, apps/0, add_app/1, add_stage/2, add_instance/3]).
+-export([start_link/0, apps/0, subscribe_apps/1, add_app/1, add_stage/2, add_instance/3]).
 -export([init/1, handle_call/3, handle_cast/2, terminate/2, code_change/3, handle_info/2]).
+
+-record(state, {apps = [], stages = [], instances = [], subscriptions = []}).
 
 %% Interface
 
 start_link() -> gen_server:start_link({global, ?MODULE}, ?MODULE, [], []).
 
 apps() -> gen_server:call({global, ?MODULE}, apps).
+subscribe_apps(Pid) -> gen_server:cast({global, ?MODULE}, {subscribe_apps, Pid}).
 add_app(Application) -> gen_server:call({global, ?MODULE}, {add_app, Application}).
 add_stage(Application, Stage) -> gen_server:call({global, ?MODULE}, {add_stage, Application, Stage}).
 add_instance(Application, Stage, Instance) -> gen_server:call({global, ?MODULE}, {add_instance, Application, Stage, Instance}).
@@ -18,14 +21,30 @@ add_instance(Application, Stage, Instance) -> gen_server:call({global, ?MODULE},
 init(_Args) -> {ok, #state{}}.
 
 handle_call(apps, _From, State) ->
-	{reply, {apps, [#app{name = AppName, properties = Properties, stages = find_stages(State, AppName)} ||
-		{AppName, Properties} <- State#state.apps]}, State};
+	{reply, {apps, get_apps(State)}, State};
 handle_call({add_app, Application}, _From, State) ->
-	{reply, ok, State#state{apps = orddict:store(Application, [], State#state.apps)}};
+	NewState = State#state{apps = orddict:store(Application, [], State#state.apps)},
+	notify_subscribers(NewState),
+	{reply, ok, NewState};
 handle_call({add_stage, AppName, StageName}, _From, State) ->
-	{reply, ok, State#state{stages = orddict:store({AppName, StageName}, [], State#state.stages)}};
+	NewState = State#state{stages = orddict:store({AppName, StageName}, [], State#state.stages)},
+	notify_subscribers(NewState),
+	{reply, ok, NewState};
 handle_call({add_instance, AppName, StageName, Instance}, _From, State) ->
-	{reply, ok, State#state{instances = orddict:store({AppName, StageName, Instance#instance.id}, Instance, State#state.instances)}}.
+	NewState = State#state{instances = orddict:store({AppName, StageName, Instance#instance.id}, Instance, State#state.instances)},
+	notify_subscribers(NewState),
+	{reply, ok, NewState}.
+
+handle_cast({subscribe_apps, Pid}, State) ->
+	erlang:monitor(process, Pid),
+	gen_server:cast(Pid, {apps, get_apps(State)}),
+	{noreply, State#state{subscriptions = [Pid | State#state.subscriptions]}}.
+
+% helpers
+
+get_apps(State) ->
+	[#app{name = AppName, properties = Properties, stages = find_stages(State, AppName)} ||
+	{AppName, Properties} <- State#state.apps].
 
 find_stages(#state{stages = Stages} = State, AppName) ->
 	AppStages = lists:filter(fun({{CurrentAppName, _}, _}) -> CurrentAppName == AppName end, Stages),
@@ -40,10 +59,17 @@ find_instances(#state{instances = Instances}, AppName, StageName) ->
 		end
 	end, Instances).
 
+notify_subscribers(State) ->
+	io:format("Notifying: ~p~n", [State#state.subscriptions]),
+	Apps = get_apps(State),
+	[ gen_server:cast(Pid, {apps, Apps}) || Pid <- State#state.subscriptions ].
+
 %% Other gen_server callbacks
 
 terminate(shutdown, _State) -> ok.
-handle_cast(_Reg, State) -> {noreply, State}.
+handle_info({'DOWN', _, process, Pid, _}, State) ->
+	io:format("Removing ~p from subscriptions~n", [Pid]),
+	{noreply, State#state{subscriptions = lists:delete(Pid, State#state.subscriptions)}};
 handle_info(Info, State) ->
     io:format("Got info: ~p~n", [Info]),
     {noreply, State}.

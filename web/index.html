@@ -9,6 +9,18 @@
 			<input type="password" ng-model="password" />
 			<button ng-click="login()">Login</button>
 		</div>
+		<div ng-hide="role == null">
+			<h2>Apps</h2>
+			<div ng-repeat="app in apps">
+				<h3>App {{app.name}}</h3>
+				<div ng-repeat="stage in app.stages">
+					<h4>{{stage.name}}</h4>
+					<div ng-repeat="instance in stage.instances">
+						{{instance.id}} at {{instance.node}}
+					</div>
+				</div>
+			</div>
+		</div>
 		<script src="angular.min.js"></script>
 		<script src="main.js"></script>
 	</body>
