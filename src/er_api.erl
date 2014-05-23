@@ -27,8 +27,12 @@ handle_cast({apps, Apps}, State) ->
 
 %% Other gen_server callbacks
 
-terminate(shutdown, _State) -> ok.
-handle_call(_Req, _From, State) -> {reply, ok, State}.
+terminate(shutdown, _State) ->
+	io:format("got terminate~n"),
+	ok.
+handle_call(_Req, _From, State) ->
+	io:format("got a call~n"),
+	{reply, ok, State}.
 handle_info(Info, State) ->
     io:format("Got info: ~p~n", [Info]),
     {noreply, State}.

@@ -10,6 +10,7 @@ init(Client) ->
 	{ok, Server} = er_api:start_link(self()),
 	{ok, {Client, Server}}.
 
+handle_cast(stop, State) -> {stop, shutdown, State};
 handle_cast({struct, Fields}, {Client, Server}) ->
 	gen_server:cast(Server, parse_message(Fields)),
 	{noreply, {Client, Server}};
@@ -57,7 +58,7 @@ parse_command("subscribe_apps", {struct, []}) ->
 	{subscribe_apps}.
 
 %% Other gen_server callbacks
-terminate(shutdown, _State) -> ok.
+terminate(_, _State) -> ok.
 handle_call(_Req, _From, State) -> {reply, ok, State}.
 handle_info(Info, State) ->
     io:format("Got info: ~p~n", [Info]),

@@ -3,7 +3,7 @@
 -export([send_json/2]).
 -export([handle_message/2, init/1, terminate/2]).
 
-init([_Request, Args]) ->
+init([_Request, _Args]) ->
 	{ok, Handler} = er_webconsole_adapter:start_link(self()),
 	{ok, Handler}.
 
@@ -18,8 +18,8 @@ handle_message({text,Data}, Handler) ->
 	{ok, Json} = json2:decode_string(binary_to_list(Data)),
 	gen_server:cast(Handler, Json),
     {noreply, Handler};
-handle_message({close, Status, Reason}, _State) ->
-	io:format("Closing web session: ~p because ~p~n", [Status, Reason]),
+handle_message({close, _Status, _Reason}, Handler) ->
+	gen_server:cast(Handler, stop),
 	{close, user_disconnect}.
 
 send_json(Socket, Message) ->
