@@ -19,5 +19,5 @@ init(_Args) ->
 should_start({Child, _, _, _, _, _}) ->
 	case Child of
 		er_apps -> application:get_env(easyrider, run_apps) == {ok, true};
-		_ -> true
+		_ -> false
 	end.
