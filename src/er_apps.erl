@@ -18,7 +18,7 @@ add_instance(Application, Stage, Instance) -> gen_server:call({global, ?MODULE},
 
 %% gen_server
 
-init(_Args) -> {ok, #state{}}.
+init(_Args) -> {ok, load_state()}.
 
 handle_call(apps, _From, State) ->
 	{reply, {apps, get_apps(State)}, State};
@@ -62,7 +62,18 @@ find_instances(#state{instances = Instances}, AppName, StageName) ->
 notify_subscribers(State) ->
 	io:format("Notifying: ~p~n", [State#state.subscriptions]),
 	Apps = get_apps(State),
+	store_state(State),
 	[ gen_server:cast(Pid, {apps, Apps}) || Pid <- State#state.subscriptions ].
+
+store_state(Data) ->
+	% TODO: dedicated async process for storing stuff
+	file:write_file("data/apps.config",io_lib:fwrite("~p.\n",[Data])).
+load_state() ->
+	case file:consult("data/apps.config") of
+		{ok, [State]} ->
+			State#state{subscriptions = []};
+		_ -> #state{}
+	end.
 
 %% Other gen_server callbacks
 

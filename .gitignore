@@ -2,3 +2,4 @@ localhost:*
 *.log
 ebin
 *.dump
+data/*
