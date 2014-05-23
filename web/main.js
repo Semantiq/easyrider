@@ -41,8 +41,26 @@ app.controller("AppsCtrl", ['$scope', function($scope) {
                 $scope.role = message.role;
                 $scope.username = message.username;
                 io.send({command: "subscribe_apps", body: {}});
+                io.send({command: "subscribe_versions", body: { limit: 10 }});
             } else if (message.event == "apps") {
                 $scope.apps = message.apps;
+            } else if (message.event == "versions") {
+                $scope.versions = {};
+                angular.forEach(message.by_app, function(value, i) {
+                    $scope.versions[value.app] = value.versions;
+                });
+            } else if (message.event == "new_version") {
+                if ($scope.versions[message.version.app]) {
+                    $scope.versions[message.version.app].unshift(message.version);
+                } else {
+                    $scope.versions[message.version.app] = [message.version];
+                }
+            } else if (message.event == "version_approved") {
+                angular.forEach($scope.versions[message.version.app], function(version, i) {
+                    if (version.number == message.version.number) {
+                        version.approvals = message.version.approvals;
+                    }
+                });
             } else {
                 // TODO: log something
             }

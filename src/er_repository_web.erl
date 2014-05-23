@@ -10,11 +10,16 @@ start_link() -> gen_server:start_link({local, er_repository_web}, er_repository_
 init(_Args) -> {ok, []}.
 
 out(A) ->
+	% FIXME: chunk the upload
 	Options = [no_temp_file],
 	case yaws_multipart:read_multipart_form(A, Options) of
 		{done, Params} ->
 			io:format("Params: ~p~n", [Params]),
 			{ok, [{"filename", FileName}, {value, FileContent} | _]} = dict:find("data", Params),
+			{ok, Application} = dict:find("application", Params),
+			{ok, Version} = dict:find("version", Params),
+			io:format("~p (~p)~n", [Application, Version]),
+			er_repository:add_version(Application, Version, FileContent),
 			{redirect_local, "/"};
 		{error, Reason} ->
 			io:format("Error reading multipart form: ~p~n", [Reason])

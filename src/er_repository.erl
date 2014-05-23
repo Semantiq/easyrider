@@ -41,7 +41,7 @@ handle_cast({approve_version, AppName, Number, Approval}, State) ->
 
 %% helpers
 
-get_versions(State, Limit) -> lists:flatmap(fun({_, Versions}) -> lists:sublist(Versions, Limit) end, State#state.versions).
+get_versions(State, Limit) -> [ {AppName, lists:sublist(Versions, Limit)} || {AppName, Versions} <- State#state.versions ].
 
 notify_subscribers(State, Event, Version) -> [ gen_server:cast(Pid, {Event, Version}) || Pid <- State#state.subscriptions ].
 

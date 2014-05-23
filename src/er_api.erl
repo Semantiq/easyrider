@@ -21,8 +21,20 @@ handle_cast({login, Username, Password}, #state{client = Client, role = not_auth
 handle_cast({subscribe_apps}, State) ->
 	er_apps:subscribe_apps(self()),
 	{noreply, State};
+handle_cast({subscribe_versions, Limit}, State) ->
+	er_repository:subscribe_versions(self(), Limit),
+	{noreply, State};
 handle_cast({apps, Apps}, State) ->
 	gen_server:cast(State#state.client, {apps, Apps}),
+	{noreply, State};
+handle_cast({versions, Versions}, State) ->
+	gen_server:cast(State#state.client, {versions, Versions}),
+	{noreply, State};
+handle_cast({new_version, Version}, State) ->
+	gen_server:cast(State#state.client, {new_version, Version}),
+	{noreply, State};
+handle_cast({version_approved, Version}, State) ->
+	gen_server:cast(State#state.client, {version_approved, Version}),
 	{noreply, State}.
 
 %% Other gen_server callbacks
