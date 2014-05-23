@@ -1,1 +1,1 @@
--record(version_info, {app, date, number, size}).
+-record(version_info, {app, number, date, size, approvals = []}).
