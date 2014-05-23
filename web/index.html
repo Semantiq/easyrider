@@ -20,6 +20,13 @@
 					</div>
 				</div>
 			</div>
+			<h2>Repo</h2>
+			<form action="/repo/upload" method="POST" enctype="multipart/form-data">
+				<p>Application: <input type="text" name="application"></input></p>
+				<p>Version: <input type="text" name="version"></input></p>
+				<p>File: <input type="file" name="data"></input></p>
+				<input type="submit" />
+			</form>
 		</div>
 		<script src="angular.min.js"></script>
 		<script src="main.js"></script>

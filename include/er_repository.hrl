@@ -1,0 +1,1 @@
+-record(version_info, {app, date, number, size}).

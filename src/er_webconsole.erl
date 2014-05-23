@@ -8,19 +8,7 @@
 start_link() ->
     gen_server:start_link({local, er_webconsole}, er_webconsole, [], []).
 
-init(_Args) ->
-	% Port = case application:get_env(easyrider, webconsole_port) of
-	% 	{ok, FromConfig} -> FromConfig;
-	% 	_ -> 8000
-	% end,
-	% Pid = yaws:start_embedded("web", [
-	% 		{port, Port},
-	% 		{listen, {0, 0, 0, 0}},
-	% 		{appmods, [
-	% 			{"/api", er_webconsole}
-	% 		]}
-	% 	]),
-	{ok, []}.
+init(_Args) -> {ok, []}.
 
 handle_cast({write, Message}, State) ->
 	io:fwrite(Message),

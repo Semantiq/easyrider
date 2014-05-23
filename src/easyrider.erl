@@ -22,10 +22,10 @@ yaws_config() ->
 		{listen, {0, 0, 0, 0}},
 		{docroot, DocRoot},
 		{appmods, [
-			{"/api", er_webconsole}
+			{"/api", er_webconsole},
+			{"/repo", er_repository_web}
 		]}
 	],
 	{ok, SCList, GC, Children} = yaws_api:embedded_start_conf(DocRoot, SConfList, GconfList, Id),
 	[supervisor:start_child(er_supervisor, Child) || Child <- Children],
-	io:format("yaws:~n~p~n~p~n", [GC, SCList]),
 	yaws_api:setconf(GC, SCList).
