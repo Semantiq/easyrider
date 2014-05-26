@@ -12,7 +12,10 @@ init(_Args) ->
 			permanent, 1000, worker, [er_apps]},
 		{er_repository,
 			{er_repository, start_link, []},
-			permanent, 2000, worker, [er_repository]}
+			permanent, 2000, worker, [er_repository]},
+		{er_repository_storage,
+			{er_repository_storage, start_link, []},
+			permanent, 2000, worker, [er_repository_storage, er_repository_download, er_repository_upload]}
 	],
 	{ok, {{one_for_one, 3, 60}, lists:filter(fun should_start/1, Children)}}.
 
@@ -20,5 +23,6 @@ should_start({Child, _, _, _, _, _}) ->
 	case Child of
 		er_apps -> application:get_env(easyrider, run_apps) == {ok, true};
 		er_repository -> application:get_env(easyrider, run_repository) == {ok, true};
+		er_repository_storage -> application:get_env(easyrider, run_repository_storage) == {ok, true};
 		_ -> false
 	end.

@@ -1,1 +1,1 @@
--record(version_info, {app, number, date, size, approvals = []}).
+-record(version_info, {app, number, date, content_ref, approvals = []}).

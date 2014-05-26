@@ -92,7 +92,7 @@ version_info_json(Version) -> {struct, [
 	{"app", Version#version_info.app},
 	{"number", Version#version_info.number},
 	{"date", "date"}, % TODO: Version#version_info.date
-	{"size", Version#version_info.size},
+	{"content_ref", io_lib:format("~p", [Version#version_info.content_ref])},
 	{"approvals", [
 		atom_to_list(Approval) || Approval <- Version#version_info.approvals
 	]}

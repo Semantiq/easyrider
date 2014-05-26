@@ -32,7 +32,8 @@
 			<div ng-repeat="(app, appVersions) in versions">
 				<h3>{{app}}</h3>
 				<div ng-repeat="version in appVersions">
-					{{version.app}} v {{version.number}} ({{version.size / 1024}} kb)
+					{{version.app}} v {{version.number}}
+					<!-- TODO: display content_ref? -->
 					<span class="badge" ng-repeat="approval in version.approvals">{{approval}}</span>
 				</div>
 			</div>
