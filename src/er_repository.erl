@@ -28,8 +28,21 @@ handle_call({versions, Limit}, _From, State) ->
 	{reply, {versions, Versions}, State};
 handle_call({upload_version, AppName, Number}, _From, State) ->
 	% TODO: pick best instance of er_repository_storage
-	{ok, Upload} = er_repository_storage:upload(AppName, Number),
-	{reply, {ok, Upload}, State}.
+	Exists = case orddict:find(AppName, State#state.versions) of
+		{ok, Versions} ->
+			case lists:keysearch(Number, 3, Versions) of
+				{value, _} -> true;
+				_ -> false
+			end;
+		_ -> false
+	end,
+	Ret = case Exists of
+		true -> already_exists;
+		false -> 
+			{ok, Upload} = er_repository_storage:upload(AppName, Number),
+			{ok, Upload}
+	end,
+	{reply, Ret, State}.
 
 handle_cast({subscribe_versions, Pid, Limit}, State) ->
 	erlang:monitor(process, Pid),

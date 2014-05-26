@@ -16,15 +16,23 @@ err() ->
     {ehtml,
      {p, [], "error"}}.
 
+err(Message) ->
+    {ehtml,
+     {p, [], atom_to_list(Message)}}.
+
 multipart(A, State) ->
     Parse = yaws_api:parse_multipart_post(A),
     case Parse of
         {cont, Cont, Res} ->
-        	{ok, NewState} = parse_content(Res, State),
-			{get_more, Cont, NewState};
+        	case parse_content(Res, State) of
+        		{ok, NewState} -> {get_more, Cont, NewState};
+        		Other -> err(Other)
+			end;
         {result, Res} ->
-        	{ok, _} = parse_content(Res, State),
-        	{ehtml, {p,[], "File upload done"}};
+        	case parse_content(Res, State) of
+        		{ok, _} -> {ehtml, {p,[], "File upload done"}};
+        		Other -> err(Other)
+        	end;
         {error, _Reason} ->
             err()
     end.
@@ -32,8 +40,10 @@ multipart(A, State) ->
 parse_content(Data, State) when State#upload.fd == undefined,
 								State#upload.application /= undefined,
 								State#upload.version /= undefined ->
-	{ok, Fd} = er_repository:upload_version(State#upload.application, State#upload.version),
-	parse_content(Data, State#upload{fd = Fd});
+	case er_repository:upload_version(State#upload.application, State#upload.version) of
+		{ok, Fd} -> parse_content(Data, State#upload{fd = Fd});
+		Other -> Other
+	end;
 parse_content([], State) -> {ok, State};
 parse_content([{head, {Name, _}}, {body, Body} | Rest], State) ->
 	NewState = case Name of
