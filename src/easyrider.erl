@@ -3,9 +3,9 @@
 -export([start/2, stop/1]).
 
 start(_Mode, _Args) ->
-	Sup = er_supervisor:start_link(),
+	{ok, Sup} = er_supervisor:start_link(),
 	yaws_config(),
-	Sup.
+	{ok, Sup}.
 
 stop(_State) -> ok.
 

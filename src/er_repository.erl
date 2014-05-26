@@ -1,7 +1,7 @@
 -module(er_repository).
 -behaviour(gen_server).
 -include("er_repository.hrl").
--export([start_link/0, versions/1, subscribe_versions/2, upload_version/2, add_version/3, approve_version/3]).
+-export([start_link/0, versions/1, subscribe_versions/2, upload_version/2, download_version_file/2, add_version/3, approve_version/3]).
 -export([init/1, handle_call/3, handle_cast/2, terminate/2, code_change/3, handle_info/2]).
 
 -record(state, {versions = [], subscriptions = []}).
@@ -12,6 +12,10 @@ start_link() -> gen_server:start_link({global, ?MODULE}, ?MODULE, [], []).
 versions(Limit) -> gen_server:call({global, ?MODULE}, {versions, Limit}).
 subscribe_versions(Pid, Limit) -> gen_server:cast({global, ?MODULE}, {subscribe_versions, Pid, Limit}).
 upload_version(AppName, Number) -> gen_server:call({global, ?MODULE}, {upload_version, AppName, Number}).
+download_version_file({Repo, Package}, FileName) ->
+	{ok, Fd} = file:open(FileName, [write]),
+	{ok, Download} = gen_server:call(Repo, {download, Package}),
+	stream(Download, Fd).
 add_version(AppName, Number, ContentRef) -> gen_server:cast({global, ?MODULE}, {add_version, AppName, Number, ContentRef}).
 approve_version(AppName, Number, Approval) -> gen_server:cast({global, ?MODULE}, {approve_version, AppName, Number, Approval}).
 
@@ -61,6 +65,15 @@ load_state() ->
 		{ok, [State]} ->
 			State#state{subscriptions = []};
 		_ -> #state{}
+	end.
+
+stream(From, To) ->
+	case er_repository_download:get_chunk(From, 1024) of
+		{ok, Data} ->
+			file:write(To, Data),
+			stream(From, To);
+		eof ->
+			file:close(To)
 	end.
 
 %% Other gen_server callbacks

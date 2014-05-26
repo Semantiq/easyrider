@@ -25,7 +25,7 @@ handle_cast({add_chunk, Content}, State) ->
 	{noreply, State, ?TIMEOUT};
 handle_cast({done}, State) ->
 	file:close(State#upload.fd),
-	er_repository:add_version(State#upload.application, State#upload.version, {{node(), er_repository_storage}, State#upload.package}),
+	er_repository:add_version(State#upload.application, State#upload.version, {{er_repository_storage, node()}, State#upload.package}),
 	io:format("upload completed~n", []),
 	{stop, normal, State}.
 
