@@ -28,15 +28,7 @@ handle_call({versions, Limit}, _From, State) ->
 	{reply, {versions, Versions}, State};
 handle_call({upload_version, AppName, Number}, _From, State) ->
 	% TODO: pick best instance of er_repository_storage
-	Exists = case orddict:find(AppName, State#state.versions) of
-		{ok, Versions} ->
-			case lists:keysearch(Number, 3, Versions) of
-				{value, _} -> true;
-				_ -> false
-			end;
-		_ -> false
-	end,
-	Ret = case Exists of
+	Ret = case version_exists(AppName, Number, State) of
 		true -> already_exists;
 		false -> 
 			{ok, Upload} = er_repository_storage:upload(AppName, Number),
@@ -49,12 +41,18 @@ handle_cast({subscribe_versions, Pid, Limit}, State) ->
 	gen_server:cast(Pid, {versions, get_versions(State, Limit)}),
 	{noreply, State#state{subscriptions = [Pid | State#state.subscriptions]}};
 handle_cast({add_version, AppName, Number, ContentRef}, State) ->
-	Version = #version_info{app = AppName, date = now(), number = Number, content_ref = ContentRef},
-	notify_subscribers(State, new_version, Version),
-	Versions = orddict:update(AppName, fun(V) -> [Version | V] end, [Version], State#state.versions),
-	NewState = State#state{versions = Versions},
-	store_state(NewState),
-	{noreply, NewState};
+	case version_exists(AppName, Number, State) of
+		true ->
+			io:format("Ignoring upload of existing version: ~p v ~p~n", [AppName, Number]),
+			{noreply, State};
+		false ->
+			Version = #version_info{app = AppName, date = now(), number = Number, content_ref = ContentRef},
+			notify_subscribers(State, new_version, Version),
+			Versions = orddict:update(AppName, fun(V) -> [Version | V] end, [Version], State#state.versions),
+			NewState = State#state{versions = Versions},
+			store_state(NewState),
+			{noreply, NewState}
+	end;
 handle_cast({approve_version, AppName, Number, Approval}, State) ->
 	Versions = orddict:fetch(AppName, State#state.versions),
 	{value, Version} = lists:keysearch(Number, 3, Versions),
@@ -78,6 +76,16 @@ load_state() ->
 		{ok, [State]} ->
 			State#state{subscriptions = []};
 		_ -> #state{}
+	end.
+
+version_exists(AppName, Number, State) ->
+	case orddict:find(AppName, State#state.versions) of
+		{ok, Versions} ->
+			case lists:keysearch(Number, 3, Versions) of
+				{value, _} -> true;
+				_ -> false
+			end;
+		_ -> false
 	end.
 
 stream(From, To) ->
