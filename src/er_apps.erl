@@ -62,7 +62,7 @@ find_instances(#state{instances = Instances}, AppName, StageName) ->
 notify_subscribers(State) ->
 	io:format("Notifying: ~p~n", [State#state.subscriptions]),
 	Apps = get_apps(State),
-	store_state(State),
+	store_state(State#state{subscriptions = []}),
 	[ gen_server:cast(Pid, {apps, Apps}) || Pid <- State#state.subscriptions ].
 
 store_state(Data) ->
