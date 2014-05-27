@@ -1,0 +1,7 @@
+%% encoding: UTF-8
+{application,easyrider}.
+{packages,[]}.
+{modules,[easyrider,er_api,er_apps,er_release_manager,er_repository,
+          er_repository_download,er_repository_storage,er_repository_upload,
+          er_repository_web,er_supervisor,er_webconsole,er_webconsole_adapter,
+          er_webconsole_session]}.

@@ -2,28 +2,42 @@
 -behaviour(gen_server).
 -include("er_apps.hrl").
 -include("er_repository.hrl").
--export([start_link/0, subscribe/1, get/0]).
+-export([start_link/0, subscribe_recommended_versions/1, get_recommended_versions/0]).
 -export([init/1, handle_call/3, handle_cast/2, terminate/2, code_change/3, handle_info/2]).
 
 -record(state, {recommended_versions = undefined, versions = undefined, apps = undefined, subscriptions = []}).
 
 %% Interface
 
+% @private
 start_link() -> gen_server:start_link({global, ?MODULE}, ?MODULE, [], []).
-subscribe(Pid) -> gen_server:cast({global, ?MODULE}, {subscribe, Pid}).
-get() -> gen_server:call({global, ?MODULE}, {get}).
+
+% @doc Subscribe to version recommendations.
+% Recommendations mean that it's safe to install given version of the AppName in given Stage immediately.
+% The subsciber get the updates in the form of:
+% {recommended_version,{{AppName,Stage},Number,mode()}}}
+-spec subscribe_recommended_versions(Subscriber :: pid()) -> ok.
+subscribe_recommended_versions(Pid) -> gen_server:cast({global, ?MODULE}, {subscribe_recommended_versions, Pid}), ok.
+
+% @doc Get the list of recommended versions for each stage of each app.
+% Please note that recommendations may not always be available (for example when {@link er_repository} is down).
+-spec get_recommended_versions() -> {recommended_versions, [{{AppName, Stage}, Version}]}.
+get_recommended_versions() -> gen_server:call({global, ?MODULE}, {get_recommended_versions}).
 
 %% gen_server
 
+% @private
 init(_Args) ->
 	er_repository:subscribe_versions(self(), 1),
 	er_apps:subscribe_apps(self()),
 	{ok, #state{}}.
 
-handle_call({get}, _From, State) ->
+% @private
+handle_call({get_recommended_versions}, _From, State) ->
 	{reply, {recommended_versions, State#state.recommended_versions}, State}.
 
-handle_cast({subscribe, Pid}, State) ->
+% @private
+handle_cast({subscribe_recommended_versions, Pid}, State) ->
 	erlang:monitor(process, Pid),
 	{noreply, State#state{subscriptions = [Pid | State#state.subscriptions]}};
 handle_cast({new_version, Version}, State) ->
@@ -42,11 +56,13 @@ handle_cast({version_approved, _Version}, State) -> {noreply, State};
 handle_cast({versions, Versions}, State) -> {noreply, make_recommendations(State#state{versions = Versions})};
 handle_cast({apps, Apps}, State) -> {noreply, make_recommendations(State#state{apps = Apps})}.
 
+% @private
 handle_info({'DOWN', _, process, Pid, _}, State) ->
 	{noreply, State#state{subscriptions = lists:delete(Pid, State#state.subscriptions)}}.
 
 %% helpers
 
+% @private
 make_recommendations(State) when State#state.versions /=undefined, State#state.apps /= undefined ->
 	Recommendations = [
 		{{App#app.name, Stage#stage.name}, version_for(App#app.name, Stage#stage.name, State)}
@@ -54,6 +70,7 @@ make_recommendations(State) when State#state.versions /=undefined, State#state.a
 	State#state{recommended_versions = Recommendations};
 make_recommendations(State) -> State.
 
+% @private
 version_for(App, _Stage, State) ->
 	Versions = State#state.versions,
 	case lists:keysearch(App, 1, Versions) of
@@ -61,10 +78,13 @@ version_for(App, _Stage, State) ->
 		_ -> undefined
 	end.
 
+% @private
 notify(Recommendation, State) ->
 	[ gen_server:cast(Subscriber, {recommended_version, Recommendation}) || Subscriber <- State#state.subscriptions ].
 
 %% other gen_server
 
+% @private
 code_change(_, _, _) -> stub.
+% @private
 terminate(_, _) -> stub.
