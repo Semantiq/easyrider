@@ -15,13 +15,13 @@ start_link() -> gen_server:start_link({global, ?MODULE}, ?MODULE, [], []).
 % @doc Subscribe to version recommendations.
 % Recommendations mean that it's safe to install given version of the AppName in given Stage immediately.
 % The subsciber get the updates in the form of:
-% {recommended_version,{{AppName,Stage},Number,mode()}}}
+% {recommended_version,{{AppName,Stage},Version,mode()}}}
 -spec subscribe_recommended_versions(Subscriber :: pid()) -> ok.
 subscribe_recommended_versions(Pid) -> gen_server:cast({global, ?MODULE}, {subscribe_recommended_versions, Pid}), ok.
 
 % @doc Get the list of recommended versions for each stage of each app.
 % Please note that recommendations may not always be available (for example when {@link er_repository} is down).
--spec get_recommended_versions() -> {recommended_versions, [{{AppName, Stage}, Version}]}.
+-spec get_recommended_versions() -> {recommended_versions, [{{AppName::string(), Stage::string()}, Version::string()}]}.
 get_recommended_versions() -> gen_server:call({global, ?MODULE}, {get_recommended_versions}).
 
 %% gen_server
@@ -46,10 +46,10 @@ handle_cast({new_version, Version}, State) ->
 		{value, App} -> [ Stage#stage.name || Stage <- App#app.stages ];
 		error -> []
 	end,	
-	Recommendations = [ {{AppName, Stage}, Version#version_info.number, immediate} || Stage <- Stages ],
+	Recommendations = [ {{AppName, Stage}, Version, immediate} || Stage <- Stages ],
 	[ notify(Recommendation, State) || Recommendation <- Recommendations ],
-	NewRecommendations = lists:foldl(fun({{_, Stage}, Number, _}, NewRecommendations) ->
-		orddict:store({AppName, Stage}, Number, NewRecommendations)
+	NewRecommendations = lists:foldl(fun({{_, Stage}, _, _}, NewRecommendations) ->
+		orddict:store({AppName, Stage}, Version, NewRecommendations)
 	end, State#state.recommended_versions, Recommendations),
 	{noreply, State#state{recommended_versions = NewRecommendations}};
 handle_cast({version_approved, _Version}, State) -> {noreply, State};

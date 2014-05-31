@@ -3,3 +3,5 @@ localhost:*
 ebin
 *.dump
 data/*
+data_a/*
+data_b/*

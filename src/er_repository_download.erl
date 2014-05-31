@@ -13,7 +13,7 @@ get_chunk(Pid, Size) -> gen_server:call(Pid, {get_chunk, Size}).
 %% gen_server
 
 init(Package) ->
-	{ok, Fd} = file:open(["data/repository/", Package], [read]),
+	{ok, Fd} = file:open([er_configuration:repo_directory(), Package], [read]),
 	{ok, Fd, ?TIMEOUT}.
 
 handle_call({get_chunk, Size}, _From, Fd) ->

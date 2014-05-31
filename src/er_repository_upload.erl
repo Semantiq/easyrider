@@ -16,21 +16,20 @@ done(Upload) -> gen_server:cast(Upload, {done}).
 
 init([AppName, Number]) ->
 	PackageName = io_lib:format("~s-~s.zip", [AppName, Number]),
-	{ok, Fd} = file:open(["data/repository/", PackageName], [write]),
+	{ok, Fd} = file:open([er_configuration:repo_directory(), PackageName], [write]),
 	{ok, #upload{application = AppName, version = Number, fd = Fd, package = PackageName}, ?TIMEOUT}.
 
 handle_cast({add_chunk, Content}, State) ->
-	io:format("content: ~p~n", [length(Content)]),
 	file:write(State#upload.fd, Content),
 	{noreply, State, ?TIMEOUT};
 handle_cast({done}, State) ->
 	file:close(State#upload.fd),
 	er_repository:add_version(State#upload.application, State#upload.version, {{er_repository_storage, node()}, State#upload.package}),
-	io:format("upload completed~n", []),
 	{stop, normal, State}.
 
 handle_info(timeout, State) -> {stop, "Upload timed out", State}.
 
+terminate(normal, _) -> ok;
 terminate(Reason, State) -> io:format("TODO: upload shutdown (~p), clean-up ~p~n", [Reason, State]).
 
 %% other gen_server
