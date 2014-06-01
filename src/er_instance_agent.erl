@@ -39,8 +39,8 @@ handle_info({'EXIT', _Port, Reason}, {Id, _, _, _}) ->
 handle_cast(_Message, State) -> {noreply, State}.
 
 terminate(normal, undefined) -> ok;
-terminate(_, {Id, _, Port, _}) ->
-	io:format("~p: Clean-up on shutdown~n", [Id]),
+terminate(_, {Id, _, _, Port}) ->
+	io:format("~p: Clean-up on shutdown (port ~p)~n", [Id, Port]),
 	port_close(Port),
 	ok.
 
