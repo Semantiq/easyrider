@@ -7,6 +7,9 @@ start_link() -> supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 init(_Args) ->
 	Children = [
+		{er_event_bus,
+			{er_event_bus, start_link, []},
+			permanent, 1000, worker, [er_event_bus]},
 		{er_apps,
 			{er_apps, start_link, []},
 			permanent, 1000, worker, [er_apps]},
@@ -30,6 +33,7 @@ init(_Args) ->
 
 should_start({Child, _, _, _, _, _}) ->
 	case Child of
+		er_event_bus -> application:get_env(easyrider, run_event_bus) == {ok, true};
 		er_apps -> application:get_env(easyrider, run_apps) == {ok, true};
 		er_repository -> application:get_env(easyrider, run_repository) == {ok, true};
 		er_repository_storage -> application:get_env(easyrider, run_repository_storage) == {ok, true};
