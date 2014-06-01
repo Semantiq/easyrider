@@ -13,7 +13,7 @@ get_snapshot(EventType) -> gen_server:call({global, ?MODULE}, {get_snapshot, Eve
 
 %% gen_server
 
-init(_) -> {ok, #state{}}.
+init(_) -> {ok, load_state()}.
 
 handle_cast({subscribe, Pid, EventTypes}, State) ->
 	erlang:monitor(process, Pid),
@@ -26,13 +26,13 @@ handle_cast({publish, EventType, Key, remove}, State) ->
 	Snapshot = get_snapshot(EventType, State),
 	UpdatedSnapshot = orddict:erase(Key, Snapshot),
 	UpdatedState = State#state{snapshots = orddict:store(EventType, UpdatedSnapshot, State#state.snapshots)},
-	notify(EventType, Key, remove, State),
+	notify(EventType, Key, remove, UpdatedState),
 	{noreply, UpdatedState};
 handle_cast({publish, EventType, Key, Data}, State) ->
 	Snapshot = get_snapshot(EventType, State),
 	UpdatedSnapshot = orddict:store(Key, Data, Snapshot),
 	UpdatedState = State#state{snapshots = orddict:store(EventType, UpdatedSnapshot, State#state.snapshots)},
-	notify(EventType, Key, Data, State),
+	notify(EventType, Key, Data, UpdatedState),
 	{noreply, UpdatedState}.
 
 handle_call({get_snapshot, EventType}, _From, State) ->
@@ -52,10 +52,22 @@ get_snapshot(EventType, State) ->
 	end.
 
 notify(EventType, Key, Data, State) ->
+	store_state(State),
 	[ gen_server:cast(Subscriber, {EventType, Key, Data}) ||
 			{Subscriber, EventTypes} <- State#state.subscriptions,
 			SubscribedEvent <- EventTypes,
 			SubscribedEvent == EventType ].
+
+store_state(#state{snapshots = Snapshots}) ->
+	% TODO: dedicated async process for storing stuff
+	file:write_file([er_configuration:data_directory(), "/state.config"],io_lib:fwrite("~p.\n",[Snapshots])).
+
+load_state() ->
+	case file:consult(lists:concat([er_configuration:data_directory(), "/state.config"])) of
+		{ok, [Data]} ->
+			#state{snapshots = Data};
+		_ -> #state{}
+	end.
 
 %% other gen_server
 
