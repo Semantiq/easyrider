@@ -12,6 +12,9 @@ start_link() -> gen_server:start_link({global, ?MODULE}, ?MODULE, [], []).
 versions(Limit) -> gen_server:call({global, ?MODULE}, {versions, Limit}).
 subscribe_versions(Pid, Limit) -> gen_server:cast({global, ?MODULE}, {subscribe_versions, Pid, Limit}).
 upload_version(AppName, Number) -> gen_server:call({global, ?MODULE}, {upload_version, AppName, Number}).
+% app = _, number = _, date = _, approvals = _
+download_version_file(#version_info{content_ref = ContentRef}, FileName) ->
+	download_version_file(ContentRef, FileName);
 download_version_file({Repo, Package}, FileName) ->
 	{ok, Fd} = file:open(FileName, [write]),
 	{ok, Download} = gen_server:call(Repo, {download, Package}),

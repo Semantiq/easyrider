@@ -32,12 +32,17 @@ handle_cast(_Message, State) -> {noreply, State}.
 %% helpers
 
 new_instance(Id, Version, Configuration, State) ->
-	Agent = er_instance_agent:start_link(Id, Version, Configuration),
+	{ok, Agent} = er_instance_agent:start_link(Id, Version, Configuration),
+	erlang:monitor(process, Agent),
 	NewInstance = #deployed_instance{id = Id, agent = Agent, version = Version, configuration = Configuration},
 	orddict:store(Id, NewInstance, State).
+
+handle_info({'DOWN', _, process, Pid, _}, State) ->
+	io:format("Node agent down ~p~n", [Pid]),
+	NewState = lists:filter(fun({_Id, #deployed_instance{agent = Agent}}) -> Agent /= Pid end, State),
+	{noreply, NewState}.
 
 %% other gen_server
 
 terminate(_, _) -> stub.
 code_change(_, _, _) -> stub.
-handle_info(_, _) -> stub.
