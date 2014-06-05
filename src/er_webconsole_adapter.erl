@@ -23,25 +23,25 @@ handle_cast({welcome, {Username, Role}}, {Client, Server}) ->
 	]},
 	er_webconsole_session:send_json(Client, Json),
 	{noreply, {Client, Server}};
-handle_cast({apps, Apps}, {Client, Server}) ->
+handle_cast({snapshot, EventType, Data}, {Client, Server}) ->
 	Json = {struct, [
-		{"event", "apps"},
-		{"apps", [			
+		{"event", atom_to_list(EventType)},
+		{"snapshot", true},
+		{"data", [
 			{struct, [
-				{"name", App#app.name},
-				{"stages", [
-					{struct, [
-						{"name", Stage#stage.name},
-						{"instances", [
-							{struct, [
-								{"id", Instance#instance.id},
-								{"node", atom_to_list(Instance#instance.node)}
-							]} || Instance <- Stage#stage.instances
-						]}
-					]} || Stage <- App#app.stages
-				]}
-			]} || App <- Apps
+				{"key", event_key_json(EventType, Key)},
+				{"value", event_value_json(EventType, Value)}
+			]} || {Key, Value} <- Data
 		]}
+	]},
+	er_webconsole_session:send_json(Client, Json),
+	{noreply, {Client, Server}};
+handle_cast({event, EventType, Key, Value}, {Client, Server}) ->
+	Json = {struct, [
+		{"event", atom_to_list(EventType)},
+		{"snapshot", false},
+		{"key", event_key_json(EventType, Key)},
+		{"value", event_value_json(EventType, Value)}
 	]},
 	er_webconsole_session:send_json(Client, Json),
 	{noreply, {Client, Server}};
@@ -83,8 +83,8 @@ parse_command("login", {struct, Fields}) ->
 	{value, {"username", Username}} = lists:keysearch("username", 1, Fields),
 	{value, {"password", Password}} = lists:keysearch("password", 1, Fields),
 	{login, Username, Password};
-parse_command("subscribe_apps", {struct, []}) ->
-	{subscribe_apps};
+parse_command("subscribe", {array, EventTypes}) ->
+	{subscribe, [ list_to_atom(EventType) || EventType <- EventTypes ]};
 parse_command("subscribe_versions", {struct, [{"limit", Limit}]}) ->
 	{subscribe_versions, Limit}.
 
@@ -98,6 +98,33 @@ version_info_json(Version) -> {struct, [
 	]}
 ]}.
 
+event_key_json(apps, AppName) -> AppName;
+event_key_json(stages, {AppName, StageName}) -> AppName ++ "-" ++ StageName;
+event_key_json(instances, {AppName, StageName, Id}) -> AppName ++ "-" ++ StageName ++ "-" ++ Id.
+
+event_value_json(apps, #app{app_name = Name, properties = Properties}) ->
+	{struct, [
+		{"name", Name},
+		{"properties", properties_to_json(Properties)}
+	]};
+event_value_json(stages, #stage{app_name = AppName, stage_name = StageName, properties = Properties}) ->
+	{struct, [
+		{"app_name", AppName},
+		{"stage_name", StageName},
+		{"properties", properties_to_json(Properties)}
+	]};
+event_value_json(instances, #instance{app_name = AppName, stage_name = StageName, id = Id, properties = Properties}) ->
+	{struct, [
+		{"app_name", AppName},
+		{"stage_name", StageName},
+		{"id", Id},
+		{"properties", properties_to_json(Properties)}
+	]}.
+
+properties_to_json(Properties) -> 
+	{array, [
+		{struct, [{"key", Key}, {"value", Value}]} || {Key, Value} <- Properties
+	]}.
 
 %% Other gen_server callbacks
 terminate(_, _State) -> ok.

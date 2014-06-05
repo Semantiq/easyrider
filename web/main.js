@@ -40,7 +40,7 @@ app.controller("AppsCtrl", ['$scope', function($scope) {
             if (message.event == "welcome") {
                 $scope.role = message.role;
                 $scope.username = message.username;
-                io.send({command: "subscribe_apps", body: {}});
+                io.send({command: "subscribe", body: ["apps", "stages", "instances"]});
                 io.send({command: "subscribe_versions", body: { limit: 10 }});
             } else if (message.event == "apps") {
                 $scope.apps = message.apps;

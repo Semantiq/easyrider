@@ -37,7 +37,7 @@ handle_cast({publish, EventType, Key, Data}, State) ->
 
 handle_call({get_snapshot, EventType}, _From, State) ->
 	Snapshot = get_snapshot(EventType, State),
-	{reply, {snaphot, EventType, Snapshot}, State}.
+	{reply, {snapshot, EventType, Snapshot}, State}.
 
 handle_info({'DOWN', _, process, Pid, _}, State) ->
 	io:format("Removing ~p from subscriptions~n", [Pid]),
@@ -53,7 +53,7 @@ get_snapshot(EventType, State) ->
 
 notify(EventType, Key, Data, State) ->
 	store_state(State),
-	[ gen_server:cast(Subscriber, {EventType, Key, Data}) ||
+	[ gen_server:cast(Subscriber, {event, EventType, Key, Data}) ||
 			{Subscriber, EventTypes} <- State#state.subscriptions,
 			SubscribedEvent <- EventTypes,
 			SubscribedEvent == EventType ].

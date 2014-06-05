@@ -1,4 +1,3 @@
--record(app, {name, properties = [], stages = []}).
--record(stage, {name, properties = [], instances = []}).
--record(instance, {id, node, properties = []}).
--record(property, {key, value}).
+-record(app, {app_name, properties = []}).
+-record(stage, {app_name, stage_name, properties = []}).
+-record(instance, {app_name, stage_name, id, node, properties = []}).

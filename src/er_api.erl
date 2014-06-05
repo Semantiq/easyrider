@@ -18,14 +18,17 @@ handle_cast({login, Username, Password}, #state{client = Client, role = not_auth
 			gen_server:cast(Client, {bad_username_or_password, {}}),
 			{noreply, #state{client = Client}}
 	end;
-handle_cast({subscribe_apps}, State) ->
-	er_apps:subscribe_apps(self()),
+handle_cast({subscribe, EventTypes}, State) ->
+	er_event_bus:subscribe(self(), EventTypes),
 	{noreply, State};
 handle_cast({subscribe_versions, Limit}, State) ->
 	er_repository:subscribe_versions(self(), Limit),
 	{noreply, State};
-handle_cast({apps, Apps}, State) ->
-	gen_server:cast(State#state.client, {apps, Apps}),
+handle_cast({snapshot, EventType, Data}, State) ->
+	gen_server:cast(State#state.client, {snapshot, EventType, Data}),
+	{noreply, State};
+handle_cast({event, EventType, AppName, Application}, State) ->
+	gen_server:cast(State#state.client, {event, EventType, AppName, Application}),
 	{noreply, State};
 handle_cast({versions, Versions}, State) ->
 	gen_server:cast(State#state.client, {versions, Versions}),

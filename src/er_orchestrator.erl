@@ -28,15 +28,15 @@ handle_cast({recommended_version, {{AppName, StageName}, Version, immediate}}, S
 
 get_instances(Apps, AppName, StageName) ->
 	case lists:keysearch(AppName, 2, Apps) of
-		{value, App} ->
-			Stages = App#app.stages,
-			case lists:keysearch(StageName, 2, Stages) of
-				{value, Stage} ->
-					Stage#stage.instances;
-				false ->
-					io:format("Stage is not defined~n", []),
-					[]
-			end;
+		% {value, App} ->
+		% 	Stages = App#app.stages,
+		% 	case lists:keysearch(StageName, 2, Stages) of
+		% 		{value, Stage} ->
+		% 			Stage#stage.instances;
+		% 		false ->
+		% 			io:format("Stage is not defined~n", []),
+		% 			[]
+		% 	end;
 		false ->
 			io:format("Application is not defined~n", []),
 			[]
