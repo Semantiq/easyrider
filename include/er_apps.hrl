@@ -1,0 +1,3 @@
+-record(app, {app_name, properties = []}).
+-record(stage, {app_name, stage_name, properties = []}).
+-record(instance, {app_name, stage_name, id, node, properties = []}).

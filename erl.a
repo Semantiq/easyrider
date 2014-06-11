@@ -1,0 +1,2 @@
+erl -config config/a.config -pa /usr/local/lib/yaws/ebin -pa ebin -sname a
+

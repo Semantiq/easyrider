@@ -1,0 +1,1 @@
+-record(version_info, {app, number, date, content_ref, approvals = []}).

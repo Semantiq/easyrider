@@ -1,7 +1,0 @@
-[
-    {
-        "name": "Test App",
-        "repository":{"url":"file://target/testRepo","branch":"master"},
-        "settings":{"port":"9090"}
-    }
-]

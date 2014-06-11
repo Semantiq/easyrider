@@ -1,0 +1,53 @@
+-module(er_apps).
+-behaviour(gen_server).
+-include("er_apps.hrl").
+-export([start_link/0, set_app/1, set_stage/1, set_instance/1]).
+-export([init/1, handle_call/3, handle_cast/2, terminate/2, code_change/3, handle_info/2]).
+
+-record(state, {apps = [], stages = [], instances = []}).
+
+%% Interface
+
+start_link() -> gen_server:start_link({global, ?MODULE}, ?MODULE, [], []).
+
+set_app(Application) -> gen_server:call({global, ?MODULE}, {set_app, Application}).
+set_stage(Stage) -> gen_server:call({global, ?MODULE}, {set_stage, Stage}).
+set_instance(Instance) -> gen_server:call({global, ?MODULE}, {set_instance, Instance}).
+
+%% gen_server
+
+init(_Args) ->
+	{snapshot, apps, Apps} = er_event_bus:get_snapshot(apps),
+	{snapshot, stages, Stages} = er_event_bus:get_snapshot(stages),
+	{snapshot, instances, Instances} = er_event_bus:get_snapshot(instances),
+	{ok, #state{apps = Apps, stages = Stages, instances = Instances}}.
+
+handle_call({set_app, #app{app_name = AppName} = Application}, _From, State) ->
+	NewApps = orddict:store(AppName, Application, State#state.apps),
+	er_event_bus:publish({apps, AppName, Application}),
+	{reply, ok, State#state{apps = NewApps}};
+handle_call({set_stage, #stage{app_name = AppName, stage_name = StageName} = Stage}, _From, State) ->
+	case orddict:is_key(AppName, State#state.apps) of
+		true ->
+			NewStages = orddict:store({AppName, StageName}, Stage, State#state.stages),
+			er_event_bus:publish({stages, {AppName, StageName}, Stage}),
+			{reply, ok, State#state{stages = NewStages}};
+		false ->
+			{reply, no_app, State}
+	end;
+handle_call({set_instance, #instance{app_name = AppName, stage_name = StageName, id = Id} = Instance}, _From, State) ->
+	case orddict:is_key({AppName, StageName}, State#state.stages) of
+		true ->
+			NewInstances = orddict:store({AppName, StageName, Id}, Instance, State#state.instances),
+			er_event_bus:publish({instances, {AppName, StageName, Id}, Instance}),
+			{reply, ok, State#state{instances = NewInstances}};
+		false ->
+			{reply, no_app_stage, State}
+	end.
+
+%% Other gen_server callbacks
+
+handle_cast(_, _) -> stub.
+terminate(Reason, State) -> io:format("~p: Terminating er_apps: ~p~n", [State, Reason]).
+handle_info(_, _) -> stub.
+code_change(_, _, _) -> stub.
