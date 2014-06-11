@@ -16,7 +16,9 @@ done(Upload) -> gen_server:cast(Upload, {done}).
 
 init([AppName, Number]) ->
 	PackageName = io_lib:format("~s-~s.zip", [AppName, Number]),
-	{ok, Fd} = file:open([er_configuration:repo_directory(), PackageName], [write]),
+	RepoDirectory = er_configuration:repo_directory(),
+	filelib:ensure_dir(RepoDirectory),
+	{ok, Fd} = file:open([RepoDirectory, PackageName], [write]),
 	{ok, #upload{application = AppName, version = Number, fd = Fd, package = PackageName}, ?TIMEOUT}.
 
 handle_cast({add_chunk, Content}, State) ->
