@@ -24,20 +24,17 @@
 				</p>
 				<div ng-repeat="(stageName, stage) in stages[appName]">
 					<h4>Stage {{stage.stage_name}}</h4>
+					<h5>Recommended version: {{ recommended_versions[appName][stageName].version_info.number }}</h5>
 					<p ng-repeat="property in stage.properties">
 						<!-- TODO: de-dup with app props -->
 						<span ng-show="property.type == 'property'">{{property.key}}: {{property.value}}</span>
 						<span ng-show="property.type == 'rule'">
-							Outside release window approvals:
+							Required approvals:
 							<span ng-repeat="approval in property.approvals" class="badge">{{approval}}</span>
-						</span>
-						<span ng-show="property.type == 'release_window'">
-							Release window:
-							<span ng-repeat="time in property.times" class="badge">{{time.cron}}</span>
 						</span>
 					</p>
 					<div class="row">
-						<div class="col-md-2 panel panel-default" ng-repeat="instance in stage.instances">
+						<div class="col-md-2 panel panel-default" ng-repeat="instance in instances[appName][stageName]">
 							{{instance.id}} at {{instance.node}}
 						</div>
 					</div>

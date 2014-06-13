@@ -40,7 +40,7 @@ app.controller("AppsCtrl", ['$scope', function($scope) {
             if (message.event == "welcome") {
                 $scope.role = message.role;
                 $scope.username = message.username;
-                io.send({command: "subscribe", body: ["apps", "stages", "instances", "recommended_versions"]});
+                io.send({command: "subscribe", body: ["apps", "stages", "instances", "recommended_versions", "instance_events"]});
                 io.send({command: "subscribe_versions", body: { limit: 10 }});
             } else if (message.event == "apps") {
                 if (message.snapshot) {
@@ -63,8 +63,36 @@ app.controller("AppsCtrl", ['$scope', function($scope) {
                 } else {
                     // TODO: incremental stage updates
                 }
+            } else if (message.event == "instances") {
+                if (message.snapshot) {
+                    $scope.instances = {};
+                    angular.forEach(message.data, function(item, index) {
+                        if (!$scope.instances[item.key.app_name]) {
+                            $scope.instances[item.key.app_name] = {};
+                            if (!$scope.instances[item.key.app_name][item.key.stage_name]) {
+                                $scope.instances[item.key.app_name][item.key.stage_name] = {};
+                            }
+                        }
+                        $scope.instances[item.key.app_name][item.key.stage_name][item.key.id] = item.value;
+                    });                                        
+                } else {
+                    // TODO: handle incremental updates
+                }
             } else if (message.event == "recommended_versions") {
-                // TODO: handle recommendation stream
+                if (message.snapshot) {
+                    $scope.recommended_versions = {};
+                    angular.forEach(message.data, function(item, index) {
+                        if (!$scope.recommended_versions[item.key.app_name]) {
+                            $scope.recommended_versions[item.key.app_name] = {};
+                        }
+                        $scope.recommended_versions[item.key.app_name][item.key.stage_name] = item.value;
+                    });                    
+                } else {
+                    if (!$scope.recommended_versions[message.key.app_name]) {
+                        $scope.recommended_versions[message.key.app_name] = {};
+                    }
+                    $scope.recommended_versions[message.key.app_name][message.key.stage_name] = message.value;
+                }
             } else if (message.event == "versions") {
                 $scope.versions = {};
                 angular.forEach(message.by_app, function(value, i) {

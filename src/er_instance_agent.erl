@@ -12,9 +12,11 @@ destroy(Pid) -> gen_server:call(Pid, {destroy}).
 %% gen_server
 
 init({Id, Version, Configuration}) ->
+	er_event_bus:publish({instance_events, Id, {starting, Version}}),
 	process_flag(trap_exit, true),
 	Folder = lists:concat([er_configuration:instances_directory(), Id, "-", Version#version_info.number]),
 	io:format("Deploying ~p with ~p in ~p~n", [Version#version_info.number, Configuration, Folder]),
+	ok = filelib:ensure_dir(er_configuration:instances_directory()),
 	ok = file:make_dir(Folder),
 	PackageFile = lists:concat([Folder, "/package.zip"]),
 	ok = er_repository:download_version_file(Version, PackageFile),
@@ -24,10 +26,12 @@ init({Id, Version, Configuration}) ->
 	% TODO: find one of the allowed executables, instead of assuming run.sh
 	Port = open_port({spawn, ExecFile}, [stream, {line, 1024}, {cd, Folder}]),
 	io:format("Starting ~p with ~p as ~p in ~p~n", [Version, Configuration, Port, Folder]),
+	er_event_bus:publish({instance_events, Id, {running, Version}}),
 	{ok, {Id, Version, Configuration, Port}}.
 
 handle_call({destroy}, _From, {Id, Version, Configuration, Port}) ->
 	io:format("Stopping and destroying app instance: ~p (~p)~n", [Id, Port]),
+	er_event_bus:publish({instance_events, Id, {stopped}}),
 	{stop, normal, {destroyed}, {Id, Version, Configuration, Port}};
 handle_call({start}, _From, State) -> {reply, {instance_started}, State};
 handle_call({stop}, _From, State) -> {reply, {instance_stopped}, State}.

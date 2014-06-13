@@ -17,7 +17,7 @@ init(_Args) ->
 
 handle_call(_Message, _From, State) -> {reply, ok, State}.
 
-handle_cast({event, recommended_versions, {{AppName, StageName}, {Version, immediate}}}, State) ->
+handle_cast({event, recommended_versions, {AppName, StageName}, {Version, immediate}}, State) ->
 	io:format("Performing recommened deployment: ~p v ~p to ~p~n", [AppName, Version, StageName]),
 	{snapshot, instances, AllInstances} = er_event_bus:get_snapshot(instances),
 	Instances = [ Instance || {{ThisAppName, ThisStageName, _Id}, Instance} <- AllInstances, ThisAppName == AppName, ThisStageName == StageName ],
