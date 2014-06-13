@@ -1,7 +1,7 @@
 -module(er_apps).
 -behaviour(gen_server).
 -include("er_apps.hrl").
--export([start_link/0, set_app/1, set_stage/1, set_instance/1]).
+-export([start_link/0, set_app/1, set_stage/1, set_instance/1, effective_configuration/3]).
 -export([init/1, handle_call/3, handle_cast/2, terminate/2, code_change/3, handle_info/2]).
 
 -record(state, {apps = [], stages = [], instances = []}).
@@ -13,6 +13,7 @@ start_link() -> gen_server:start_link({global, ?MODULE}, ?MODULE, [], []).
 set_app(Application) -> gen_server:call({global, ?MODULE}, {set_app, Application}).
 set_stage(Stage) -> gen_server:call({global, ?MODULE}, {set_stage, Stage}).
 set_instance(Instance) -> gen_server:call({global, ?MODULE}, {set_instance, Instance}).
+effective_configuration(AppName, StageName, Id) -> gen_server:call({global, ?MODULE}, {effective_configuration, AppName, StageName, Id}).
 
 %% gen_server
 
@@ -43,7 +44,18 @@ handle_call({set_instance, #instance{app_name = AppName, stage_name = StageName,
 			{reply, ok, State#state{instances = NewInstances}};
 		false ->
 			{reply, no_app_stage, State}
-	end.
+	end;
+handle_call({effective_configuration, AppName, StageName, Id}, _From, #state{apps = Apps, stages = Stages, instances = Instances} = State) ->
+	{ok, #app{properties = AppProperties}} = orddict:find(AppName, Apps),
+	{ok, #stage{properties = StageProperties}} = orddict:find({AppName, StageName}, Stages),
+	{ok, #instance{properties = InstanceProperties}} = orddict:find({AppName, StageName, Id}, Instances),
+	{reply, flatten_properties(AppProperties ++ StageProperties ++ InstanceProperties), State}.
+
+%% helpers
+
+flatten_properties(Properties) -> flatten_properties([], Properties).
+flatten_properties(Dict, []) -> [ {Type, Name, Value} || {{Type, Name}, Value} <- Dict ];
+flatten_properties(Dict, [{Type, Name, Value} | Properties]) -> flatten_properties(orddict:store({Type, Name}, Value, Dict), Properties).
 
 %% Other gen_server callbacks
 

@@ -24,7 +24,9 @@ init({Id, Version, Configuration}) ->
 	io:format("Files: ~p~n", [Files]),
 	ExecFile = lists:concat(["sh run.sh"]),
 	% TODO: find one of the allowed executables, instead of assuming run.sh
-	Port = open_port({spawn, ExecFile}, [stream, {line, 1024}, {cd, Folder}]),
+	Env = get_env_properties(Id, Version, Configuration),
+	io:format("Using env: ~p~n", [Env]),
+	Port = open_port({spawn, ExecFile}, [stream, {line, 1024}, {cd, Folder}, {env, Env}]),
 	io:format("Starting ~p with ~p as ~p in ~p~n", [Version, Configuration, Port, Folder]),
 	er_event_bus:publish({instance_events, Id, {running, Version}}),
 	{ok, {Id, Version, Configuration, Port}}.
@@ -47,6 +49,15 @@ terminate(_, {Id, _, _, Port}) ->
 	io:format("~p: Clean-up on shutdown (port ~p)~n", [Id, Port]),
 	port_close(Port),
 	ok.
+
+%% helpers
+
+get_env_properties(Id, Version, Configuration) -> [
+		{"VERSION", Version#version_info.number},
+		{"ID", Id}
+	] ++ [
+		{PropKey, PropValue} || {property, PropKey, PropValue} <- Configuration
+	].
 
 %% other gen_server
 
