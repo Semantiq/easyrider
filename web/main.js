@@ -40,10 +40,31 @@ app.controller("AppsCtrl", ['$scope', function($scope) {
             if (message.event == "welcome") {
                 $scope.role = message.role;
                 $scope.username = message.username;
-                io.send({command: "subscribe", body: ["apps", "stages", "instances"]});
+                io.send({command: "subscribe", body: ["apps", "stages", "instances", "recommended_versions"]});
                 io.send({command: "subscribe_versions", body: { limit: 10 }});
             } else if (message.event == "apps") {
-                $scope.apps = message.apps;
+                if (message.snapshot) {
+                    $scope.apps = {};
+                    angular.forEach(message.data, function(item, index) {
+                        $scope.apps[item.key] = item.value;
+                    });
+                } else {
+                    $scope.apps[message.key] = message.value;
+                }
+            } else if (message.event == "stages") {
+                if (message.snapshot) {
+                    $scope.stages = {};
+                    angular.forEach(message.data, function(item, index) {
+                        if (!$scope.stages[item.key.app_name]) {
+                            $scope.stages[item.key.app_name] = {};
+                        }
+                        $scope.stages[item.key.app_name][item.key.stage_name] = item.value;
+                    });
+                } else {
+                    // TODO: incremental stage updates
+                }
+            } else if (message.event == "recommended_versions") {
+                // TODO: handle recommendation stream
             } else if (message.event == "versions") {
                 $scope.versions = {};
                 angular.forEach(message.by_app, function(value, i) {

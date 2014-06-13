@@ -17,10 +17,25 @@
 		</form>
 		<div ng-hide="role == null">
 			<h2>Apps</h2>
-			<div ng-repeat="app in apps">
+			<div ng-repeat="(appName, app) in apps">
 				<h3>App {{app.name}}</h3>
-				<div ng-repeat="stage in app.stages">
-					<h4>{{stage.name}}</h4>
+				<p ng-repeat="property in app.properties">
+					<span ng-show="property.type == 'property'">{{property.key}}: {{property.value}}</span>
+				</p>
+				<div ng-repeat="(stageName, stage) in stages[appName]">
+					<h4>Stage {{stage.stage_name}}</h4>
+					<p ng-repeat="property in stage.properties">
+						<!-- TODO: de-dup with app props -->
+						<span ng-show="property.type == 'property'">{{property.key}}: {{property.value}}</span>
+						<span ng-show="property.type == 'rule'">
+							Outside release window approvals:
+							<span ng-repeat="approval in property.approvals" class="badge">{{approval}}</span>
+						</span>
+						<span ng-show="property.type == 'release_window'">
+							Release window:
+							<span ng-repeat="time in property.times" class="badge">{{time.cron}}</span>
+						</span>
+					</p>
 					<div class="row">
 						<div class="col-md-2 panel panel-default" ng-repeat="instance in stage.instances">
 							{{instance.id}} at {{instance.node}}

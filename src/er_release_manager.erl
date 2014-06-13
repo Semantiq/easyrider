@@ -18,14 +18,14 @@ start_link() -> gen_server:start_link({global, ?MODULE}, ?MODULE, [], []).
 init(_Args) ->
 	er_repository:subscribe_versions(self(), 1),
 	{snapshot, apps, Apps} = er_event_bus:get_snapshot(apps),
-	{snapshot, stages, Stages} = er_event_bus:get_snapshot(stages),
-	{ok, #state{apps = Apps, stages = Stages}}.
+	{ok, #state{apps = Apps, stages = undefined}}.
 
 handle_cast({new_version, Version}, State) ->
 	AppName = Version#version_info.app,
-	{ok, Stages} = [ Stage || {{ThisAppName, _StageName}, Stage} <- State#state.stages, ThisAppName == AppName ],
+	{snapshot, stages, AllStages} = er_event_bus:get_snapshot(stages),
+	Stages = [ Stage || {{ThisAppName, _StageName}, Stage} <- AllStages, ThisAppName == AppName ],
 	Recommendations = [ {recommended_versions, {AppName, StageName}, {Version, immediate}} || #stage{stage_name = StageName} <- Stages ],
-	[ er_er_event_bus:publish(Recommendation) || Recommendation <- Recommendations ],
+	[ er_event_bus:publish(Recommendation) || Recommendation <- Recommendations ],
 	{noreply, State};
 handle_cast({version_approved, _Version}, State) -> {noreply, State};
 handle_cast({versions, Versions}, State) -> {noreply, make_recommendations(State#state{versions = Versions})}.

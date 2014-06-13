@@ -99,8 +99,9 @@ version_info_json(Version) -> {struct, [
 ]}.
 
 event_key_json(apps, AppName) -> AppName;
-event_key_json(stages, {AppName, StageName}) -> AppName ++ "-" ++ StageName;
-event_key_json(instances, {AppName, StageName, Id}) -> AppName ++ "-" ++ StageName ++ "-" ++ Id.
+event_key_json(stages, {AppName, StageName}) -> {struct, [ {"app_name", AppName}, {"stage_name", StageName}]};
+event_key_json(instances, {AppName, StageName, Id}) -> AppName ++ "-" ++ StageName ++ "-" ++ Id;
+event_key_json(recommended_versions, {AppName, StageName}) -> {struct, [ {"app_name", AppName}, {"stage_name", StageName}]}.
 
 event_value_json(apps, #app{app_name = Name, properties = Properties}) ->
 	{struct, [
@@ -119,11 +120,22 @@ event_value_json(instances, #instance{app_name = AppName, stage_name = StageName
 		{"stage_name", StageName},
 		{"id", Id},
 		{"properties", properties_to_json(Properties)}
+	]};
+event_value_json(recommended_versions, {Version, Mode}) ->
+	{struct, [
+		{"version_info", version_info_json(Version)},
+		{"mode", atom_to_list(Mode)}
 	]}.
 
 properties_to_json(Properties) -> 
 	{array, [
-		{struct, [{"key", Key}, {"value", Value}]} || {Key, Value} <- Properties
+		{struct, [{"type", "property"}, {"key", Key}, {"value", Value}]} || {property, Key, Value} <- Properties
+	] ++ [
+		{struct, [{"type", "rule"}, {"approvals", {array, Approvals}}]} || {rule, Approvals} <- Properties
+	] ++ [
+		{struct, [{"type", "release_window"}, {"times", {array, [
+			{struct, [{"cron", CronExpression}]} || {cron, CronExpression} <- Times
+		]}}]} || {release_window, Times} <- Properties
 	]}.
 
 %% Other gen_server callbacks
