@@ -29,9 +29,56 @@ function IO($scope) {
     me.connect();
 }
 
+var event_types = {
+    "apps": function($scope, key, value) {  $scope.apps[key] = value; },
+    "stages": function($scope, key, value) {
+        if (!$scope.stages[key.app_name]) {
+            $scope.stages[key.app_name] = {};
+        }
+        $scope.stages[key.app_name][key.stage_name] = value;
+    },
+    "instances": function($scope, key, value) {
+        if (!$scope.instances[key.app_name]) {
+            $scope.instances[key.app_name] = {};
+            if (!$scope.instances[key.app_name][key.stage_name]) {
+                $scope.instances[key.app_name][key.stage_name] = {};
+            }
+        }
+        $scope.instances[key.app_name][key.stage_name][key.id] = value;
+    },
+    "recommended_versions": function($scope, key, value) {
+        if (!$scope.recommended_versions[key.app_name]) {
+            $scope.recommended_versions[key.app_name] = {};
+        }
+        $scope.recommended_versions[key.app_name][key.stage_name] = value;
+    },
+    "instance_events": function($scope, key, value) {
+        $scope.instance_events[key] = value;
+    }
+};
+function process_event($scope, message) {
+    var handler = event_types[message.event];
+    if (handler) {
+        if (message.snapshot) {
+            angular.forEach(message.data, function(item, index) {
+                handler($scope, item.key, item.value);
+            });
+        } else {
+            handler($scope, message.key, message.value);
+        }   
+    } else {
+        // TODO: log something
+    }
+}
+
 var app = new angular.module("easyrider", []);
 
 app.controller("AppsCtrl", ['$scope', function($scope) {
+    $scope.apps = {};
+    $scope.stages = {};
+    $scope.instances = {};
+    $scope.recommended_versions = {};
+    $scope.instance_events = {};
     var io = new IO($scope);
     $scope.username = "test";
     $scope.password = "test";
@@ -42,57 +89,6 @@ app.controller("AppsCtrl", ['$scope', function($scope) {
                 $scope.username = message.username;
                 io.send({command: "subscribe", body: ["apps", "stages", "instances", "recommended_versions", "instance_events"]});
                 io.send({command: "subscribe_versions", body: { limit: 10 }});
-            } else if (message.event == "apps") {
-                if (message.snapshot) {
-                    $scope.apps = {};
-                    angular.forEach(message.data, function(item, index) {
-                        $scope.apps[item.key] = item.value;
-                    });
-                } else {
-                    $scope.apps[message.key] = message.value;
-                }
-            } else if (message.event == "stages") {
-                if (message.snapshot) {
-                    $scope.stages = {};
-                    angular.forEach(message.data, function(item, index) {
-                        if (!$scope.stages[item.key.app_name]) {
-                            $scope.stages[item.key.app_name] = {};
-                        }
-                        $scope.stages[item.key.app_name][item.key.stage_name] = item.value;
-                    });
-                } else {
-                    // TODO: incremental stage updates
-                }
-            } else if (message.event == "instances") {
-                if (message.snapshot) {
-                    $scope.instances = {};
-                    angular.forEach(message.data, function(item, index) {
-                        if (!$scope.instances[item.key.app_name]) {
-                            $scope.instances[item.key.app_name] = {};
-                            if (!$scope.instances[item.key.app_name][item.key.stage_name]) {
-                                $scope.instances[item.key.app_name][item.key.stage_name] = {};
-                            }
-                        }
-                        $scope.instances[item.key.app_name][item.key.stage_name][item.key.id] = item.value;
-                    });                                        
-                } else {
-                    // TODO: handle incremental updates
-                }
-            } else if (message.event == "recommended_versions") {
-                if (message.snapshot) {
-                    $scope.recommended_versions = {};
-                    angular.forEach(message.data, function(item, index) {
-                        if (!$scope.recommended_versions[item.key.app_name]) {
-                            $scope.recommended_versions[item.key.app_name] = {};
-                        }
-                        $scope.recommended_versions[item.key.app_name][item.key.stage_name] = item.value;
-                    });                    
-                } else {
-                    if (!$scope.recommended_versions[message.key.app_name]) {
-                        $scope.recommended_versions[message.key.app_name] = {};
-                    }
-                    $scope.recommended_versions[message.key.app_name][message.key.stage_name] = message.value;
-                }
             } else if (message.event == "versions") {
                 $scope.versions = {};
                 angular.forEach(message.by_app, function(value, i) {
@@ -111,7 +107,7 @@ app.controller("AppsCtrl", ['$scope', function($scope) {
                     }
                 });
             } else {
-                // TODO: log something
+                process_event($scope, message);
             }
         });
     });

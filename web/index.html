@@ -36,6 +36,7 @@
 					<div class="row">
 						<div class="col-md-2 panel panel-default" ng-repeat="instance in instances[appName][stageName]">
 							{{instance.id}} at {{instance.node}}
+							{{instance_events[instance.id].event}}: {{instance_events[instance.id].version_info.number}}
 						</div>
 					</div>
 				</div>

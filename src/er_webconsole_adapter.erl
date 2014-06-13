@@ -115,11 +115,12 @@ event_value_json(stages, #stage{app_name = AppName, stage_name = StageName, prop
 		{"stage_name", StageName},
 		{"properties", properties_to_json(Properties)}
 	]};
-event_value_json(instances, #instance{app_name = AppName, stage_name = StageName, id = Id, properties = Properties}) ->
+event_value_json(instances, #instance{app_name = AppName, stage_name = StageName, id = Id, node = Node, properties = Properties}) ->
 	{struct, [
 		{"app_name", AppName},
 		{"stage_name", StageName},
 		{"id", Id},
+		{"node", atom_to_list(Node)},
 		{"properties", properties_to_json(Properties)}
 	]};
 event_value_json(recommended_versions, {Version, Mode}) ->

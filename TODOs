@@ -1,2 +1,7 @@
-Handle configuration and configuration changes.
 Application removal.
+Handle properties.
+Handle property overriding.
+Handle different app-instance wrappers (aka - support for tasks).
+Task driven approvals.
+Compilation.
+Handle property templating.
