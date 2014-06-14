@@ -75,9 +75,6 @@ function process_event($scope, toaster, message) {
 var app = new angular.module("easyrider", ["toaster"]);
 
 app.controller("AppsCtrl", function($scope, toaster) {
-    $scope.showAppProperties = {};
-    $scope.showStageProperties = {};
-
     $scope.apps = {};
     $scope.stages = {};
     $scope.instances = {};

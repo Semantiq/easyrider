@@ -40,25 +40,26 @@
 				<div ng-repeat="(appName, app) in apps" class="row-fluid">
 					<div class="col-md-12">
 						<h3>App {{app.name}}</h3>
-						<dl class="dl-horizontal" ng-show="showAppProperties[appName]">
+						<dl class="dl-horizontal" ng-show="showProperties">
 							<dt ng-repeat-start="property in app.properties | filter: {type: 'property'}">{{property.key}}</dt>
 							<dd ng-repeat-end>{{property.value}}<dd>
 						</dl>
-						<span class="btn btn-link" ng-click="showAppProperties[appName] = !showAppProperties[appName]">toggle app properties</span>
+						<a href="#" ng-click="showProperties = !showProperties">more properties</a>
 						<div class="well" ng-repeat="(stageName, stage) in stages[appName]">
 							<h4>Stage {{stage.stage_name}}</h4>
-							<h5>Recommended version: {{ recommended_versions[appName][stageName].version_info.number }}</h5>
-							<dl class="dl-horizontal" ng-repeat="property in stage.properties | filter: {type: 'rule'}">
-								<dt>Required approvals</dt>
-								<dd>
+							<dl class="dl-horizontal">
+								<dt>Recommended version</dt>
+								<dd>{{ recommended_versions[appName][stageName].version_info.number }}</dd>
+								<dt ng-repeat-start="property in stage.properties | filter: {type: 'rule'}">Required approvals</dt>
+								<dd ng-repeat-end>
 									<span ng-repeat="approval in property.approvals" class="badge">{{approval}}</span>
 								</dd>
 							</dl>
-							<dl class="dl-horizontal" ng-show="showStageProperties[appName + '-' + stageName]">
+							<dl class="dl-horizontal" ng-show="showProperties">
 								<dt ng-repeat-start="property in stage.properties | filter: {type: 'property'}">{{property.key}}</dt>
 								<dd ng-repeat-end>{{property.value}}<dd>
 							</dl>
-							<span class="btn btn-link" ng-click="showStageProperties[appName + '-' + stageName] = !showStageProperties[appName + '-' + stageName]">toggle stage properties</span>
+							<a href="#" ng-click="showProperties = !showProperties">more properties</a>
 							<div class="row-fluid">
 								<div class="col-md-2 panel panel-default" ng-repeat="instance in instances[appName][stageName]">
 									{{instance.id}} at {{instance.node}}
