@@ -1,78 +1,109 @@
 <html ng-app="easyrider">
 	<head>
 		<link rel="stylesheet" href="main.css" />
+		<link rel="stylesheet" href="toaster.css" />
 	</head>
-	<body ng-controller="AppsCtrl">
-		Hello, world! {{connectionStatus}}
-		<form class="form-inline" role="form" ng-show="role == null">
-			<div class="form-group">
-				<label for="username">Username</label>
-				<input id="username" class="form-control" type="text" ng-model="username" />
+	<body ng-controller="AppsCtrl" class="container-fluid">
+		<div class="navbar navbar-default">
+			<div class="container-fluid">
+				<span class="navbar-right navbar-text">{{connectionStatus}}</span>
+				<div class="navbar-header">
+					<a class="navbar-brand" href="/">Easyrider</a>
+				</div>
+				<ul class="nav navbar-nav" ng-show="role">
+					<li ng-class="{active: activeTab == 'dashboard'}"><a href="#" ng-click="activeTab = 'dashboard'">Dashboard</a></li>
+					<li ng-class="{active: activeTab == 'apps'}"><a href="#" ng-click="activeTab = 'apps'">Apps</a></li>
+					<li ng-class="{active: activeTab == 'repo'}"><a href="#" ng-click="activeTab = 'repo'">Repo</a></li>
+				</ul>
 			</div>
-			<div class="form-group">
-				<label for="password">Password</label>
-				<input id="password" class="form-control" type="password" ng-model="password" />
+		</div>
+		<div class="row-fluid" ng-hide="role">
+			<div class="col-md-4 col-md-offset-4">
+				<form class="well" role="form">
+					<div class="form-group">
+						<label for="username">Username</label>
+						<input id="username" class="form-control" type="text" ng-model="username" />
+					</div>
+					<div class="form-group">
+						<label for="password">Password</label>
+						<input id="password" class="form-control" type="password" ng-model="password" />
+					</div>
+					<button class="btn btn-default" ng-click="login()">Login</button>
+				</form>
 			</div>
-			<button class="btn btn-default" ng-click="login()">Login</button>
-		</form>
+		</div>
 		<div ng-hide="role == null">
-			<h2>Apps</h2>
-			<div ng-repeat="(appName, app) in apps">
-				<h3>App {{app.name}}</h3>
-				<p ng-repeat="property in app.properties">
-					<span ng-show="property.type == 'property'">{{property.key}}: {{property.value}}</span>
-				</p>
-				<div ng-repeat="(stageName, stage) in stages[appName]">
-					<h4>Stage {{stage.stage_name}}</h4>
-					<h5>Recommended version: {{ recommended_versions[appName][stageName].version_info.number }}</h5>
-					<p ng-repeat="property in stage.properties">
-						<!-- TODO: de-dup with app props -->
-						<span ng-show="property.type == 'property'">{{property.key}}: {{property.value}}</span>
-						<span ng-show="property.type == 'rule'">
-							Required approvals:
-							<span ng-repeat="approval in property.approvals" class="badge">{{approval}}</span>
-						</span>
-					</p>
-					<div class="row">
-						<div class="col-md-2 panel panel-default" ng-repeat="instance in instances[appName][stageName]">
-							{{instance.id}} at {{instance.node}}
-							{{instance_events[instance.id].event}}: {{instance_events[instance.id].version_info.number}}
+			<div ng-show="activeTab == 'dashboard'">
+				
+			</div>
+			<div ng-show="activeTab == 'apps'">
+				<div ng-repeat="(appName, app) in apps" class="row-fluid">
+					<div class="col-md-12">
+						<h3>App {{app.name}}</h3>
+						<dl class="dl-horizontal" ng-show="showAppProperties[appName]">
+							<dt ng-repeat-start="property in app.properties | filter: {type: 'property'}">{{property.key}}</dt>
+							<dd ng-repeat-end>{{property.value}}<dd>
+						</dl>
+						<span class="btn btn-link" ng-click="showAppProperties[appName] = !showAppProperties[appName]">toggle app properties</span>
+						<div class="well" ng-repeat="(stageName, stage) in stages[appName]">
+							<h4>Stage {{stage.stage_name}}</h4>
+							<h5>Recommended version: {{ recommended_versions[appName][stageName].version_info.number }}</h5>
+							<dl class="dl-horizontal" ng-repeat="property in stage.properties | filter: {type: 'rule'}">
+								<dt>Required approvals</dt>
+								<dd>
+									<span ng-repeat="approval in property.approvals" class="badge">{{approval}}</span>
+								</dd>
+							</dl>
+							<dl class="dl-horizontal" ng-show="showStageProperties[appName + '-' + stageName]">
+								<dt ng-repeat-start="property in stage.properties | filter: {type: 'property'}">{{property.key}}</dt>
+								<dd ng-repeat-end>{{property.value}}<dd>
+							</dl>
+							<span class="btn btn-link" ng-click="showStageProperties[appName + '-' + stageName] = !showStageProperties[appName + '-' + stageName]">toggle stage properties</span>
+							<div class="row-fluid">
+								<div class="col-md-2 panel panel-default" ng-repeat="instance in instances[appName][stageName]">
+									{{instance.id}} at {{instance.node}}
+									{{instance_events[instance.id].event}}: {{instance_events[instance.id].version_info.number}}
+								</div>
+								<br style="clear: both" />
+							</div>
 						</div>
 					</div>
 				</div>
 			</div>
-			<h2>Repo</h2>
-			<div ng-repeat="(app, appVersions) in versions">
-				<h3>{{app}}</h3>
-				<div ng-repeat="version in appVersions">
-					{{version.app}} v {{version.number}}
-					<!-- TODO: display content_ref? -->
-					<span class="badge" ng-repeat="approval in version.approvals">{{approval}}</span>
+			<div ng-show="activeTab == 'repo'">
+				<div class="row-fluid">
+					<div class="col-md-12">
+						<h3>Upload new version</h3>
+						<form action="/repo/upload" method="POST" enctype="multipart/form-data" role="form">
+							<div class="form-group">
+								<label for="application">Application</label>
+								<input id="application" class="form-control" type="text" name="application"></input>
+							</div>
+							<div class="form-group">
+								<label for="version">Version</label>
+								<input id="version" class="form-control" type="text" name="version"></input>
+							</div>
+							<div class="form-group">
+								<label for="file">File</label>
+								<input id="file" type="file" name="data"></input></div>
+							<input type="submit" class="btn btn-default" />
+						</form>
+					</div>
+				</div>				
+				<div ng-repeat="(app, appVersions) in versions" class="row-fluid">
+					<h3>{{app}}</h3>
+					<div ng-repeat="version in appVersions">
+						{{version.app}} v {{version.number}}
+						<!-- TODO: display content_ref? -->
+						<span class="badge" ng-repeat="approval in version.approvals">{{approval}}</span>
+					</div>
 				</div>
-			</div>
-			<div class="panel panel-default">
-				<div class="panel-heading">
-					<h3 class="panel-title">Upload new version</h3>
-				</div>
-				<div class="panel-body">
-					<form action="/repo/upload" method="POST" enctype="multipart/form-data" role="form">
-						<div class="form-group">
-							<label for="application">Application</label>
-							<input id="application" class="form-control" type="text" name="application"></input>
-						</div>
-						<div class="form-group">
-							<label for="version">Version</label>
-							<input id="version" class="form-control" type="text" name="version"></input>
-						</div>
-						<div class="form-group">
-							<label for="file">File</label>
-							<input id="file" type="file" name="data"></input></div>
-						<input type="submit" class="btn btn-default" />
-					</form>
-			  </div>
 			</div>
 		</div>
+		<toaster-container toaster-options="{'position-class': 'toast-top-right'}"></toaster-container>
 		<script src="angular.min.js"></script>
+		<script src="angular-animate.min.js"></script>
+		<script src="toaster.js"></script>
 		<script src="main.js"></script>
 	</body>
 </html>

@@ -56,7 +56,7 @@ var event_types = {
         $scope.instance_events[key] = value;
     }
 };
-function process_event($scope, message) {
+function process_event($scope, toaster, message) {
     var handler = event_types[message.event];
     if (handler) {
         if (message.snapshot) {
@@ -65,15 +65,19 @@ function process_event($scope, message) {
             });
         } else {
             handler($scope, message.key, message.value);
+            toaster.pop("info", "Event " + message.event, "Just happened");
         }   
     } else {
         // TODO: log something
     }
 }
 
-var app = new angular.module("easyrider", []);
+var app = new angular.module("easyrider", ["toaster"]);
 
-app.controller("AppsCtrl", ['$scope', function($scope) {
+app.controller("AppsCtrl", function($scope, toaster) {
+    $scope.showAppProperties = {};
+    $scope.showStageProperties = {};
+
     $scope.apps = {};
     $scope.stages = {};
     $scope.instances = {};
@@ -89,6 +93,7 @@ app.controller("AppsCtrl", ['$scope', function($scope) {
                 $scope.username = message.username;
                 io.send({command: "subscribe", body: ["apps", "stages", "instances", "recommended_versions", "instance_events"]});
                 io.send({command: "subscribe_versions", body: { limit: 10 }});
+                $scope.activeTab = 'apps';
             } else if (message.event == "versions") {
                 $scope.versions = {};
                 angular.forEach(message.by_app, function(value, i) {
@@ -107,7 +112,7 @@ app.controller("AppsCtrl", ['$scope', function($scope) {
                     }
                 });
             } else {
-                process_event($scope, message);
+                process_event($scope, toaster, message);
             }
         });
     });
@@ -117,4 +122,4 @@ app.controller("AppsCtrl", ['$scope', function($scope) {
             password: $scope.password
         }});
     };
-}]);
+});

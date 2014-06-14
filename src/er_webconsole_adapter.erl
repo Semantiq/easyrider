@@ -133,14 +133,10 @@ event_value_json(instance_events, {starting, Version}) ->
 		{"event", "starting"},
 		{"version_info", version_info_json(Version)}
 	]};
-event_value_json(instance_events, {running, Version}) ->
+event_value_json(instance_events, {State, Version}) ->
 	{struct, [
-		{"event", "running"},
+		{"event", atom_to_list(State)},
 		{"version_info", version_info_json(Version)}
-	]};
-event_value_json(instance_events, {stopped}) ->
-	{struct, [
-		{"event", "stopped"}
 	]}.
 
 properties_to_json(Properties) -> 
@@ -148,6 +144,8 @@ properties_to_json(Properties) ->
 		{struct, [{"type", "property"}, {"key", Key}, {"value", Value}]} || {property, Key, Value} <- Properties
 	] ++ [
 		{struct, [{"type", "rule"}, {"name", atom_to_list(Name)},  {"approvals", {array, Approvals}}]} || {rule, Name, Approvals} <- Properties
+	] ++ [
+		{struct, [{"type", "adapter"}, {"adapter", atom_to_list(Type)}]} || {wrapper, type, Type} <- Properties
 	]}.
 
 %% Other gen_server callbacks

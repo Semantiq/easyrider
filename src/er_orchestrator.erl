@@ -22,6 +22,7 @@ handle_cast({event, recommended_versions, {AppName, StageName}, {Version, immedi
 	{snapshot, instances, AllInstances} = er_event_bus:get_snapshot(instances),
 	Instances = [ Instance || {{ThisAppName, ThisStageName, _Id}, Instance} <- AllInstances, ThisAppName == AppName, ThisStageName == StageName ],
 	[ er_node_agent:deploy_instance(Node, Id, Version, er_apps:effective_configuration(AppName, StageName, Id)) || #instance{id = Id, node = Node} <- Instances ],
+	er_event_bus:publish({deployed_versions, {AppName, StageName}, Version}),
 	{noreply, State};
 handle_cast({snapshot, recommended_versions, _Data}, State) ->
 	{noreply, State}.
