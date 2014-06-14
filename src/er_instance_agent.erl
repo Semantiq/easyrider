@@ -4,13 +4,13 @@
 -export([start_link/3, destroy/1]).
 -export([init/1, handle_call/3, handle_cast/2, terminate/2, code_change/3, handle_info/2]).
 
-%% TODO: use state record
--record(wrapper, {type = app, trigger_app = undefined, trigger_stage = undefined, trigger_delay = undefined}).
+-record(state, {id, version, configuration, port, deploy_info}).
+-record(wrapper, {type = app, trigger_app, trigger_stage, trigger_delay}).
 
 %% Interface
 
 start_link(Id, Version, Configuration) -> gen_server:start_link(?MODULE, {Id, Version, Configuration}, []).
-destroy(Pid) -> gen_server:call(Pid, {destroy}).
+destroy(Pid) -> gen_server:call(Pid, destroy).
 
 %% gen_server
 
@@ -20,42 +20,50 @@ init({Id, Version, Configuration}) ->
 	DeployInfo = deploy(Id, Version, Configuration),
 	case get_wrapper_configuration(Configuration) of
 		#wrapper{type = task} -> 
+			%% TODO: This should be done in a separate (task-manager) component, to allow for rule processing etc.
 			er_event_bus:subscribe(self(), [deployed_versions]),
 			er_event_bus:publish({instance_events, Id, {ready, Version}}),
-			{ok, {Id, Version, Configuration, undefined, DeployInfo}};
+			{ok, #state{id = Id, version = Version, configuration = Configuration, port = undefined, deploy_info = DeployInfo}};
 		#wrapper{type = app} ->
 			Port = start_package(DeployInfo),
-			io:format("Starting ~p with ~p as ~p in ~p~n", [Version, Configuration, Port, DeployInfo]),
+			io:format("Started ~p with ~p as ~p~n", [Version#version_info.number, Configuration, Port]),
 			er_event_bus:publish({instance_events, Id, {running, Version}}),
-			{ok, {Id, Version, Configuration, Port, DeployInfo}}
+			{ok, #state{id = Id, version = Version, configuration = Configuration, port = Port, deploy_info = DeployInfo}}
 	end.
 
-handle_call({destroy}, _From, {Id, Version, Configuration, Port, DeployInfo}) ->
-	io:format("Stopping and destroying app instance: ~p (~p)~n", [Id, Port]),
-	er_event_bus:publish({instance_events, Id, {stopped, Version}}),
-	{stop, normal, {destroyed}, {Id, Version, Configuration, Port, DeployInfo}};
-handle_call({start}, _From, State) -> {reply, {instance_started}, State};
-handle_call({stop}, _From, State) -> {reply, {instance_stopped}, State}.
+handle_call(destroy, _From, #state{id = Id} = State) ->
+	io:format("Stopping and destroying app instance: ~p (~p)~n", [Id, State#state.port]),
+	er_event_bus:publish({instance_events, Id, {stopped, State#state.version}}),
+	{stop, normal, instance_destroyed, State};
+handle_call(start, _From, #state{id = Id, port = undefined} = State) ->
+	Port = start_package(State#state.deploy_info),
+	er_event_bus:publish({instance_events, Id, {running, State#state.version}}),
+	{reply, instance_started, State#state{port = Port}};
+handle_call(stop, _From, #state{id = Id, port = Port} = State) ->
+	port_close(Port),
+	er_event_bus:publish({instance_events, Id, {stopped, State#state.version}}),
+	{reply, instance_stopped, State#state{port = undefined}}.
 
 handle_info({'EXIT', _Port, Reason}, State) ->
-	{Id, _, _, _, _} = State,
+	#state{id = Id, version = Version} = State,
 	io:format("~p: App terminated: ~p~n", [Id, Reason]),
-	{stop, normal, State}.
-
-handle_cast({event, instance_events, {AppName, StageName}, Version}, {Id, Version, Configuration, undefined, DeployInfo}) ->
-	% #wrapper{trigger_app = ThisAppName, trigger_stage = ThisAppName} = get_wrapper_configuration(C)
-	% if
-	% 	AppName ->
-	% 		body
-	% end
-	% Port = start_package(DeployInfo),
-	% er_event_bus:publish({instance_events, Id, {running, Version}}),
-	{noreply, {Id, Version, Configuration, undefined, DeployInfo}};
-handle_cast({snapshot, instance_events, _, _}, State) -> {noreply, State}.
-
-terminate(normal, {Id, Version, _, _, _}) ->
-	io:format("~p: Task finnished~n", [Id]),
 	er_event_bus:publish({instance_events, Id, {completed, Version}}),
+	{noreply, State#state{port = undefined}}.
+
+handle_cast({event, deployed_versions, {AppName, StageName}, _Version}, State) ->
+	#state{id = Id, port = undefined} = State,
+	io:format("Evaluating trigger: ~p/~p~n", [AppName, StageName]),
+	case get_wrapper_configuration(State#state.configuration) of
+		#wrapper{trigger_app = AppName, trigger_stage = StageName} ->
+			Port = start_package(State#state.deploy_info),
+			er_event_bus:publish({instance_events, Id, {running, State#state.version}}),
+			{noreply, State#state{port = Port}};
+		_ -> {noreply, State}		
+	end;
+handle_cast({snapshot, deployed_versions, _}, State) -> {noreply, State}.
+
+terminate(normal, #state{id = Id}) ->
+	io:format("~p: Task finnished~n", [Id]),
 	ok;
 terminate(_, {Id, _, _, Port, _}) ->
 	io:format("~p: Clean-up on shutdown (port ~p)~n", [Id, Port]),
@@ -74,9 +82,8 @@ get_env_properties(Id, Version, Configuration) -> [
 deploy(Id, Version, Configuration) ->
 	Folder = lists:concat([er_configuration:instances_directory(), Id, "-", Version#version_info.number]),
 	io:format("Deploying ~p with ~p in ~p~n", [Version#version_info.number, Configuration, Folder]),
-	ok = filelib:ensure_dir(er_configuration:instances_directory()),
-	ok = file:make_dir(Folder),
 	PackageFile = lists:concat([Folder, "/package.zip"]),
+	ok = filelib:ensure_dir(PackageFile),
 	ok = er_repository:download_version_file(Version, PackageFile),
 	{ok, Files} = zip:extract(PackageFile, [{cwd, Folder}]),
 	io:format("Files: ~p~n", [Files]),

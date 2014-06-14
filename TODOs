@@ -1,3 +1,4 @@
+Handle start-up (start apps at start-up).
 Real log-on.
 Handle different app-instance wrappers (aka - support for tasks).
 Task driven approvals.
