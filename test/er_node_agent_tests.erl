@@ -2,5 +2,7 @@
 -compile(export_all).
 
 init_test_() -> 
-	{ok, State} = er_node_agent:init(undefined),
-	ok.
+	fun() ->
+		{ok, State} = er_node_agent:init(undefined),
+		ok
+	end.
