@@ -63,6 +63,7 @@ handle_cast({approve_version, AppName, Number, Approval}, State) ->
 	notify_subscribers(State, version_approved, ApprovedVersion),
 	UpdatedVersions = lists:keyreplace(Number, 3, Versions, ApprovedVersion),
 	NewState = State#state{versions = orddict:store(AppName, UpdatedVersions, State#state.versions)},
+	store_state(NewState),
 	{noreply, NewState}.
 
 %% helpers
@@ -71,11 +72,13 @@ get_versions(State, Limit) -> [ {AppName, lists:sublist(Versions, Limit)} || {Ap
 
 notify_subscribers(State, Event, Version) -> [ gen_server:cast(Pid, {Event, Version}) || Pid <- State#state.subscriptions ].
 
+repository_config() -> er_configuration:data_directory() ++ "/repository.config".
+
 store_state(Data) ->
 	% TODO: dedicated async process for storing stuff
-	file:write_file("data/repository.config",io_lib:fwrite("~p.\n",[Data#state{subscriptions = []}])).
+	file:write_file(repository_config(),io_lib:fwrite("~p.\n",[Data#state{subscriptions = []}])).
 load_state() ->
-	case file:consult("data/repository.config") of
+	case file:consult(repository_config()) of
 		{ok, [State]} ->
 			State#state{subscriptions = []};
 		_ -> #state{}
