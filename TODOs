@@ -2,5 +2,6 @@ Handle start-up (start apps at start-up).
 Real log-on.
 Compilation.
 Application removal.
+Proper logging (remove io:format).
+Task triggers & actions on completion - move to release manager.
 Handle property templating.
-Proper logging.

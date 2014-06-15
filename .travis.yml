@@ -6,3 +6,6 @@ notifications:
     recipients:
       - mateuszjurczynski@gmail.com
       - michal.jurczynski@gmail.com
+
+before_install:
+  - sudo apt-get install libpam0g-dev
