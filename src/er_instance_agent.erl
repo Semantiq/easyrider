@@ -5,7 +5,7 @@
 -export([init/1, handle_call/3, handle_cast/2, terminate/2, code_change/3, handle_info/2]).
 
 -record(state, {id, version, configuration, port, deploy_info}).
--record(wrapper, {type = app, trigger_app, trigger_stage, trigger_delay}).
+-record(wrapper, {type = app, trigger_deploy, approve_on_success}).
 
 %% Interface
 
@@ -19,9 +19,12 @@ init({Id, Version, Configuration}) ->
 	process_flag(trap_exit, true),
 	DeployInfo = deploy(Id, Version, Configuration),
 	case get_wrapper_configuration(Configuration) of
-		#wrapper{type = task} -> 
+		#wrapper{type = task, trigger_deploy = TriggerDeploy} -> 
 			%% TODO: This should be done in a separate (task-manager) component, to allow for rule processing etc.
-			er_event_bus:subscribe(self(), [deployed_versions]),
+			if
+				TriggerDeploy /= undefined -> er_event_bus:subscribe(self(), [deployed_versions]);
+				true -> ok
+			end,
 			er_event_bus:publish({instance_events, Id, {ready, Version}}),
 			{ok, #state{id = Id, version = Version, configuration = Configuration, port = undefined, deploy_info = DeployInfo}};
 		#wrapper{type = app} ->
@@ -44,17 +47,28 @@ handle_call(stop, _From, #state{id = Id, port = Port} = State) ->
 	er_event_bus:publish({instance_events, Id, {stopped, State#state.version}}),
 	{reply, instance_stopped, State#state{port = undefined}}.
 
-handle_info({'EXIT', _Port, Reason}, State) ->
-	#state{id = Id, version = Version} = State,
-	io:format("~p: App terminated: ~p~n", [Id, Reason]),
-	er_event_bus:publish({instance_events, Id, {completed, Version}}),
+handle_info({'EXIT', _Port, _Reason}, State) ->
+	{noreply, State#state{port = undefined}};
+handle_info({_Port, {exit_status, ExitCode}}, #state{id = Id, version = Version} = State) ->
+	io:format("~p: Process exit code: ~p~n", [Id, ExitCode]),
+	Outcome = case ExitCode of 0 -> completed; _ -> crashed end,
+	er_event_bus:publish({instance_events, Id, {Outcome, Version}}),
+	case {Outcome, get_wrapper_configuration(State#state.configuration)} of
+		{completed, #wrapper{approve_on_success = {AppName, StageName, Approval}}} ->
+			%% TODO: this does indicate a separate responsibility
+			{_, _, DeployedVersions} = er_event_bus:get_snapshot(deployed_versions),
+			{ok, ApprovedVersion} = orddict:find({AppName, StageName}, DeployedVersions),
+			io:format("~p v ~p acquired approval ~p~n", [AppName, ApprovedVersion#version_info.number, Approval]),
+			er_repository:approve_version(AppName, ApprovedVersion#version_info.number, Approval);
+		_ -> ok
+	end,
 	{noreply, State#state{port = undefined}}.
 
 handle_cast({event, deployed_versions, {AppName, StageName}, _Version}, State) ->
 	#state{id = Id, port = undefined} = State,
 	io:format("Evaluating trigger: ~p/~p~n", [AppName, StageName]),
 	case get_wrapper_configuration(State#state.configuration) of
-		#wrapper{trigger_app = AppName, trigger_stage = StageName} ->
+		#wrapper{trigger_deploy = {AppName, StageName}} ->
 			Port = start_package(State#state.deploy_info),
 			er_event_bus:publish({instance_events, Id, {running, State#state.version}}),
 			{noreply, State#state{port = Port}};
@@ -94,15 +108,15 @@ deploy(Id, Version, Configuration) ->
 	{Folder, ExecFile, Env}.
 
 start_package({Folder, ExecFile, Env}) ->
-	open_port({spawn, ExecFile}, [stream, {line, 1024}, {cd, Folder}, {env, Env}]).
+	open_port({spawn, ExecFile}, [stream, {line, 1024}, {cd, Folder}, {env, Env}, exit_status]).
 
 get_wrapper_configuration(Configuration) -> get_wrapper_configuration(#wrapper{}, Configuration).
 get_wrapper_configuration(Wrapper, []) -> Wrapper;
 get_wrapper_configuration(Wrapper, [ Entry | Configuration]) ->
 	UpdatedWrapper = case Entry of
 		{wrapper, type, Type} -> Wrapper#wrapper{type = Type};
-		{wrapper, trigger_app, AppName} -> Wrapper#wrapper{trigger_app = AppName};
-		{wrapper, trigger_stage, StageName} -> Wrapper#wrapper{trigger_stage = StageName};
+		{wrapper, trigger_deploy, {AppName, StageName}} -> Wrapper#wrapper{trigger_deploy = {AppName, StageName}};
+		{wrapper, approve_on_success, {AppName, StageName, Approval}} -> Wrapper#wrapper{approve_on_success = {AppName, StageName, Approval}};
 		_ -> Wrapper
 	end,
 	get_wrapper_configuration(UpdatedWrapper, Configuration).
