@@ -79,7 +79,7 @@ handle_cast({snapshot, deployed_versions, _}, State) -> {noreply, State}.
 terminate(normal, #state{id = Id}) ->
 	io:format("~p: Task finnished~n", [Id]),
 	ok;
-terminate(_, {Id, _, _, Port, _}) ->
+terminate(_, #state{id = Id, port = Port}) ->
 	io:format("~p: Clean-up on shutdown (port ~p)~n", [Id, Port]),
 	port_close(Port),
 	ok.

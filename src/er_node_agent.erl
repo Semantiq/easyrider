@@ -15,7 +15,7 @@ deploy_instance(Node, Id, Version, Configuration) -> gen_server:call({?MODULE, N
 
 %% gen_server
 
-init(_Args) -> {ok, []}.
+init(_Args) -> {ok, load_state()}.
 
 handle_call({deployed_instances}, _From, State) -> {reply, {deployed_instances, State}, State};
 handle_call({deploy_instance, Id, Version, Configuration}, _From, State) ->
@@ -29,18 +29,35 @@ handle_call({deploy_instance, Id, Version, Configuration}, _From, State) ->
 
 handle_cast(_Message, State) -> {noreply, State}.
 
-%% helpers
-
-new_instance(Id, Version, Configuration, State) ->
-	{ok, Agent} = er_instance_agent:start_link(Id, Version, Configuration),
-	erlang:monitor(process, Agent),
-	NewInstance = #deployed_instance{id = Id, agent = Agent, version = Version, configuration = Configuration},
-	orddict:store(Id, NewInstance, State).
-
 handle_info({'DOWN', _, process, Pid, _}, State) ->
 	io:format("Node agent down ~p~n", [Pid]),
 	NewState = lists:filter(fun({_Id, #deployed_instance{agent = Agent}}) -> Agent /= Pid end, State),
 	{noreply, NewState}.
+
+%% helpers
+
+start_new_instance(Id, Version, Configuration) ->
+	{ok, Agent} = er_instance_agent:start_link(Id, Version, Configuration),
+	erlang:monitor(process, Agent),
+	#deployed_instance{id = Id, agent = Agent, version = Version, configuration = Configuration}.
+
+new_instance(Id, Version, Configuration, State) ->
+	NewInstance = start_new_instance(Id, Version, Configuration),
+	NewState = orddict:store(Id, NewInstance, State),
+	store_state(NewState),
+	NewState.
+
+node_config() -> er_configuration:data_directory() ++ "/node.config".
+store_state(DeployedInstances) ->
+	% TODO: dedicated async process for storing stuff
+	file:write_file(node_config(),io_lib:fwrite("~p.\n", [[{Id, DeployedInstance#deployed_instance{agent = undefined}} || {Id, DeployedInstance} <- DeployedInstances]])).
+load_state() ->
+	case file:consult(node_config()) of
+		{ok, [DeployedInstances]} ->
+			io:format("Read state: ~p~n", [DeployedInstances]),
+			[ {Id, start_new_instance(Id, Version, Configuration)} || {Id, #deployed_instance{version = Version, configuration = Configuration}} <- DeployedInstances];
+		_ -> []
+	end.
 
 %% other gen_server
 
