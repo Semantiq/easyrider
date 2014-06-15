@@ -10,10 +10,10 @@ start_link(Client) -> gen_server:start_link(er_api, Client, []).
 init(Client) -> {ok, #state{client = Client}}.
 
 handle_cast({login, Username, Password}, #state{client = Client, role = not_authenticated} = State) ->
-	case {Username, Password} of
-		{"test", "test"} -> 
-			gen_server:cast(Client, {welcome, {"test", admin}}),
-			{noreply, State#state{username = "test", role = admin}};
+	case er_user_manager:authenticate(Username, Password) of
+		{ok, Role} -> 
+			gen_server:cast(Client, {welcome, {Username, Role}}),
+			{noreply, State#state{username = Username, role = Role}};
 		_ ->
 			gen_server:cast(Client, {bad_username_or_password, {}}),
 			{noreply, #state{client = Client}}
@@ -42,8 +42,8 @@ handle_cast({version_approved, Version}, State) ->
 
 %% Other gen_server callbacks
 
-terminate(shutdown, _State) ->
-	io:format("got terminate~n"),
+terminate(Reason, _State) ->
+	io:format("got terminate: ~p~n", [Reason]),
 	ok.
 handle_call(_Req, _From, State) ->
 	io:format("got a call~n"),

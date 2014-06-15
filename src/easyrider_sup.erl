@@ -31,7 +31,10 @@ init(_Args) ->
 			permanent, 5000, worker, [er_node_agent]},
 		{er_orchestrator,
 			{er_orchestrator, start_link, []},
-			permanent, 2000, worker, [er_orchestrator]}
+			permanent, 2000, worker, [er_orchestrator]},
+		{er_user_manager,
+			{er_user_manager, start_link, []},
+			permanent, 2000, worker, [er_user_manager]}
 	],
 	{ok, {{one_for_one, 3, 60}, lists:filter(fun should_start/1, Children)}}.
 
@@ -44,5 +47,6 @@ should_start({Child, _, _, _, _, _}) ->
 		er_release_manager -> application:get_env(easyrider, run_release_manager) == {ok, true};
 		er_node_agent -> true;
 		er_orchestrator -> application:get_env(easyrider, run_orchestrator) == {ok, true};
+		er_user_manager -> application:get_env(easyrider, run_user_manager) == {ok, true};
 		_ -> false
 	end.
