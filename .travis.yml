@@ -1,15 +1,8 @@
-language: scala
-
-scala:
-  - 2.10.3
-  
-script: sbt compile
-
-jdk:
-  - oraclejdk7
-  - openjdk7
+language: erlang
+otp_release: 17.0
 
 notifications:
   email:
     recipients:
       - mateuszjurczynski@gmail.com
+      - michal.jurczynski@gmail.com

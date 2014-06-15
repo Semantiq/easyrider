@@ -1,3 +1,4 @@
+localhost.*
 localhost:*
 *.log
 ebin
@@ -5,3 +6,6 @@ ebin
 data/*
 data_a/*
 data_b/*
+.rebar
+deps/
+.eunit

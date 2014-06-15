@@ -1,0 +1,11 @@
+{application, easyrider, [
+	{description, "Easyrider - a lightweight continous delivery solution"},
+	{vsn, "1"},
+	{registered, []},
+	{applications, [
+		kernel,
+		stdlib
+	]},
+	{mod, { easyrider_app, []}},
+	{env, []}
+]}.
