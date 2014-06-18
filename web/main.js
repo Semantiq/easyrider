@@ -119,4 +119,14 @@ app.controller("AppsCtrl", function($scope, toaster) {
             password: $scope.password
         }});
     };
+    $scope.startInstance = function(instanceId) {
+        io.send({command: "startInstance", body: {
+            "instanceId": instanceId
+        }});
+    };
+    $scope.stopInstance = function(instanceId) {
+        io.send({command: "stopInstance", body: {
+            "instanceId": instanceId
+        }});
+    };
 });

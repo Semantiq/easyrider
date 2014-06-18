@@ -4,7 +4,7 @@
 -export([start_link/3, destroy/1]).
 -export([init/1, handle_call/3, handle_cast/2, terminate/2, code_change/3, handle_info/2]).
 
--record(state, {id, version, configuration, port, deploy_info}).
+-record(state, {id, version, configuration, port, deploy_info, msg_count = 0}).
 -record(wrapper, {type = app, trigger_deploy, approve_on_success}).
 
 %% Interface
@@ -34,8 +34,11 @@ init({Id, Version, Configuration}) ->
 			{ok, #state{id = Id, version = Version, configuration = Configuration, port = Port, deploy_info = DeployInfo}}
 	end.
 
-handle_call(destroy, _From, #state{id = Id} = State) ->
-	io:format("Stopping and destroying app instance: ~p (~p)~n", [Id, State#state.port]),
+handle_call(destroy, _From, #state{id = Id, port = Port} = State) ->
+	io:format("Stopping and destroying app instance: ~p (~p)~n", [Id, Port]),
+    {os_pid, OsPid} = erlang:port_info(Port, os_pid),
+    os:cmd(io_lib:format("kill -9 ~p", [OsPid])),
+	%% port_close(State#state.port),
 	er_event_bus:publish({instance_events, Id, {stopped, State#state.version}}),
 	{stop, normal, instance_destroyed, State};
 handle_call(start, _From, #state{id = Id, port = undefined} = State) ->
@@ -47,6 +50,17 @@ handle_call(stop, _From, #state{id = Id, port = Port} = State) ->
 	er_event_bus:publish({instance_events, Id, {stopped, State#state.version}}),
 	{reply, instance_stopped, State#state{port = undefined}}.
 
+handle_info({_Port, {data, Line}}, State) ->
+	case State of
+		#state{msg_count = exceeded} ->
+			{noreply, State};
+		#state{msg_count = 20} ->
+			io:format("~p out: exceeded max output~n", [State#state.id]),
+			{noreply, State#state{msg_count = exceeded}};
+		#state{msg_count = Count} ->		
+			io:format("~p out: ~p~n", [State#state.id, Line]),
+			{noreply, State#state{msg_count = Count + 1}}
+	end;
 handle_info({'EXIT', _Port, _Reason}, State) ->
 	{noreply, State#state{port = undefined}};
 handle_info({_Port, {exit_status, ExitCode}}, #state{id = Id, version = Version} = State) ->
@@ -65,10 +79,9 @@ handle_info({_Port, {exit_status, ExitCode}}, #state{id = Id, version = Version}
 	{noreply, State#state{port = undefined}}.
 
 handle_cast({event, deployed_versions, {AppName, StageName}, _Version}, State) ->
-	#state{id = Id, port = undefined} = State,
 	io:format("Evaluating trigger: ~p/~p~n", [AppName, StageName]),
-	case get_wrapper_configuration(State#state.configuration) of
-		#wrapper{trigger_deploy = {AppName, StageName}} ->
+	case {State, get_wrapper_configuration(State#state.configuration)} of
+		{#state{id = Id, port = undefined}, #wrapper{trigger_deploy = {AppName, StageName}}} ->
 			Port = start_package(State#state.deploy_info),
 			er_event_bus:publish({instance_events, Id, {running, State#state.version}}),
 			{noreply, State#state{port = Port}};
@@ -108,7 +121,7 @@ deploy(Id, Version, Configuration) ->
 	{Folder, ExecFile, Env}.
 
 start_package({Folder, ExecFile, Env}) ->
-	open_port({spawn, ExecFile}, [stream, {line, 1024}, {cd, Folder}, {env, Env}, exit_status]).
+	open_port({spawn, ExecFile}, [stream, {line, 1024}, {cd, Folder}, {env, Env}, exit_status, use_stdio, stderr_to_stdout]).
 
 get_wrapper_configuration(Configuration) -> get_wrapper_configuration(#wrapper{}, Configuration).
 get_wrapper_configuration(Wrapper, []) -> Wrapper;

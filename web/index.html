@@ -64,6 +64,13 @@
 								<div class="col-md-2 panel panel-default" ng-repeat="instance in instances[appName][stageName]">
 									{{instance.id}} at {{instance.node}}
 									{{instance_events[instance.id].event}}: {{instance_events[instance.id].version_info.number}}
+									<dl class="dl-horizontal" ng-show="showProperties">
+										<dt ng-repeat-start="property in instance.properties | filter: {type: 'property'}">{{property.key}}</dt>
+										<dd ng-repeat-end>{{property.value}}<dd>
+									</dl>
+									<a href="#" ng-click="showProperties = !showProperties">more properties</a>									
+									<button class="btn btn-default" ng-click="startInstance(instance.id)">start</button>
+									<button class="btn btn-default" ng-click="stopInstance(instance.id)">stop</button>
 								</div>
 								<br style="clear: both" />
 							</div>

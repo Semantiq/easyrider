@@ -7,9 +7,9 @@ if [ "$mode" == "test" ]; then
 	exit $exitCode
 else
 	echo "Started app $VERSION on $ID" >> test_app.log
-	while [ 1 = 1 ]; do
-		date >> test_app.log
-		echo "Hello test_app. My params: $*" >> test_app.log
-		sleep 20
-	done
+	if [ "$port" == "" ]; then
+		echo "No port defined"
+		exit 2
+	fi
+	while true; do { echo -e 'HTTP/1.1 200 OK\r\n'; echo "Hello world $VERSION"; } | nc -l $port; done
 fi

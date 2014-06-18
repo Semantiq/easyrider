@@ -12,6 +12,8 @@ start_link() -> gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 deployed_instances() -> gen_server:call(?MODULE, {deployed_instances}).
 all_deployed_instances() -> gen_server:multi_call(?MODULE, {deployed_instances}).
 deploy_instance(Node, Id, Version, Configuration) -> gen_server:call({?MODULE, Node}, {deploy_instance, Id, Version, Configuration}).
+start_instance(Node, Id) -> todo.
+stop_instance(Node, Id) -> todo.
 
 %% gen_server
 

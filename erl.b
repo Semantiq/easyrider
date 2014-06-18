@@ -1,1 +1,1 @@
-erl -config config/b.config -pa /usr/local/lib/yaws/ebin -pa ebin -sname b
+erl -config config/b.config -pa deps/yaws/ebin -pa ebin -sname b -eval "application:start(easyrider)"
