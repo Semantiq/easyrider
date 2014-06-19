@@ -1,4 +1,4 @@
-Nodes management.
+Safe process adapters (gracefull shutdown, with -9 fallback + clean-up on shutdown).
 Compilation.
 Trigger jobs via webconsole.
 Start/stop apps via webconsole.

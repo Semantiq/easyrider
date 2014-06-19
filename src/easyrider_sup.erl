@@ -26,6 +26,9 @@ init(_Args) ->
 		{er_release_manager,
 			{er_release_manager, start_link, []},
 			permanent, 2000, worker, [er_release_manager]},
+		{er_node_manager,
+			{er_node_manager, start_link, []},
+			permanent, 2000, worker, [er_node_manager]},
 		{er_node_agent,
 			{er_node_agent, start_link, []},
 			permanent, 5000, worker, [er_node_agent]},
@@ -48,5 +51,6 @@ should_start({Child, _, _, _, _, _}) ->
 		er_node_agent -> true;
 		er_orchestrator -> application:get_env(easyrider, run_orchestrator) == {ok, true};
 		er_user_manager -> application:get_env(easyrider, run_user_manager) == {ok, true};
+		er_node_manager -> application:get_env(easyrider, run_node_manager) == {ok, true};
 		_ -> false
 	end.
