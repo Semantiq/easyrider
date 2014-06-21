@@ -120,13 +120,15 @@ app.controller("AppsCtrl", function($scope, toaster) {
         }});
     };
     $scope.startInstance = function(instanceId) {
-        io.send({command: "startInstance", body: {
-            "instanceId": instanceId
+        io.send({command: "tell_instance", body: {
+            "id": instanceId,
+            "message": "start"
         }});
     };
     $scope.stopInstance = function(instanceId) {
-        io.send({command: "stopInstance", body: {
-            "instanceId": instanceId
+        io.send({command: "tell_instance", body: {
+            "id": instanceId,
+            "message": "stop"
         }});
     };
 });

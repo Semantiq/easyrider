@@ -86,7 +86,12 @@ parse_command("login", {struct, Fields}) ->
 parse_command("subscribe", {array, EventTypes}) ->
 	{subscribe, [ list_to_atom(EventType) || EventType <- EventTypes ]};
 parse_command("subscribe_versions", {struct, [{"limit", Limit}]}) ->
-	{subscribe_versions, Limit}.
+	{subscribe_versions, Limit};
+parse_command("tell_instance", {struct, Fields}) ->
+	{value, {"id", Id}} = lists:keysearch("id", 1, Fields),
+	{value, {"message", MessageString}} = lists:keysearch("message", 1, Fields),
+	Message = list_to_atom(MessageString),
+	{tell_instance, Id, Message}.
 
 version_info_json(Version) -> {struct, [
 	{"app", Version#version_info.app},
@@ -120,7 +125,7 @@ event_value_json(instances, #instance{app_name = AppName, stage_name = StageName
 		{"app_name", AppName},
 		{"stage_name", StageName},
 		{"id", Id},
-		{"node", atom_to_list(Node)},
+		{"node", Node},
 		{"properties", properties_to_json(Properties)}
 	]};
 event_value_json(recommended_versions, {Version, Mode}) ->

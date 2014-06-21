@@ -24,6 +24,9 @@ handle_cast({subscribe, EventTypes}, State) ->
 handle_cast({subscribe_versions, Limit}, State) ->
 	er_repository:subscribe_versions(self(), Limit),
 	{noreply, State};
+handle_cast({tell_instance, Id, Message}, State) ->
+	er_node_manager:tell_instance(Id, Message),
+	{noreply, State};
 handle_cast({snapshot, EventType, Data}, State) ->
 	gen_server:cast(State#state.client, {snapshot, EventType, Data}),
 	{noreply, State};

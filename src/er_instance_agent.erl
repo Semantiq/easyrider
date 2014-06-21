@@ -38,15 +38,7 @@ handle_call(destroy, _From, #state{id = Id, port = Port} = State) ->
 	io:format("Stopping and destroying app instance: ~p (~p)~n", [Id, Port]),
 	stop_package(Port),
 	er_event_bus:publish({instance_events, Id, {stopped, State#state.version}}),
-	{stop, normal, instance_destroyed, State};
-handle_call(start, _From, #state{id = Id, port = undefined} = State) ->
-	Port = start_package(State#state.deploy_info),
-	er_event_bus:publish({instance_events, Id, {running, State#state.version}}),
-	{reply, instance_started, State#state{port = Port}};
-handle_call(stop, _From, #state{id = Id, port = Port} = State) ->
-	port_close(Port),
-	er_event_bus:publish({instance_events, Id, {stopped, State#state.version}}),
-	{reply, instance_stopped, State#state{port = undefined}}.
+	{stop, normal, instance_destroyed, State}.
 
 handle_info({_Port, {data, Line}}, State) ->
 	case State of
@@ -76,6 +68,16 @@ handle_info({_Port, {exit_status, ExitCode}}, #state{id = Id, version = Version}
 	end,
 	{noreply, State#state{port = undefined}}.
 
+handle_cast(start, #state{id = Id, port = undefined} = State) ->
+	Port = start_package(State#state.deploy_info),
+	er_event_bus:publish({instance_events, Id, {running, State#state.version}}),
+	{noreply, State#state{port = Port}};
+handle_cast(start, State) -> {noreply, State};
+handle_cast(stop, #state{port = undefined} = State) -> {noreply, State};
+handle_cast(stop, #state{id = Id, port = Port} = State) ->
+	stop_package(Port),
+	er_event_bus:publish({instance_events, Id, {stopped, State#state.version}}),
+	{noreply, State#state{port = undefined}};
 handle_cast({event, deployed_versions, {AppName, StageName}, _Version}, State) ->
 	io:format("Evaluating trigger: ~p/~p~n", [AppName, StageName]),
 	case {State, get_wrapper_configuration(State#state.configuration)} of
