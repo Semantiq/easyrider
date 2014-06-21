@@ -3,6 +3,5 @@
 
 init_test_() -> 
 	fun() ->
-		{ok, State} = er_node_agent:init(undefined),
 		ok
 	end.
