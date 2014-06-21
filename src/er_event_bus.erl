@@ -40,7 +40,7 @@ handle_call({get_snapshot, EventType}, _From, State) ->
 	{reply, {snapshot, EventType, Snapshot}, State}.
 
 handle_info({'DOWN', _, process, Pid, _}, State) ->
-	io:format("Removing ~p from subscriptions~n", [Pid]),
+	error_logger:info_msg("Removing ~p from subscriptions~n", [Pid]),
 	{noreply, State#state{subscriptions = orddict:erase(Pid, State#state.subscriptions)}}.
 
 %% helpers

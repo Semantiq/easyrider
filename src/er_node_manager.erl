@@ -25,13 +25,13 @@ init(_Args) ->
 	{ok, #state{nodes = LiveNodes}}.
 
 handle_info({nodedown, Node}, State) ->
-	io:format("Node leaving: ~p~n", [Node]),
+	error_logger:info_msg("Node leaving: ~p~n", [Node]),
 	{[{NodeId, _}], RemindingNodes} = lists:partition(find_by_node(Node), State#state.nodes),
 	er_event_bus:publish({nodes, NodeId, remove}),
 	{noreply, State#state{nodes = RemindingNodes}}.
 
 handle_cast({node_up, NodeId, Node}, State) ->
-	io:format("Node joining: ~p (as ~p)~n", [Node, NodeId]),
+	error_logger:info_msg("Node joining: ~p (as ~p)~n", [Node, NodeId]),
 	erlang:monitor_node(Node, true),
 	er_event_bus:publish({nodes, NodeId, Node}),
 	er_node_agent:on_join(Node),

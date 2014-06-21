@@ -5,6 +5,7 @@
 %% Application callbacks
 
 start(_Mode, _Args) ->
+	error_logger:logfile({open, "easyrider.log"}),
 	{ok, Sup} = easyrider_sup:start_link(),
 	yaws_config(),
 	{ok, Sup}.

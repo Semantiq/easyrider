@@ -45,13 +45,7 @@ handle_cast({version_approved, Version}, State) ->
 
 %% Other gen_server callbacks
 
-terminate(Reason, _State) ->
-	io:format("got terminate: ~p~n", [Reason]),
-	ok.
-handle_call(_Req, _From, State) ->
-	io:format("got a call~n"),
-	{reply, ok, State}.
-handle_info(Info, State) ->
-    io:format("Got info: ~p~n", [Info]),
-    {noreply, State}.
-code_change(_OldVersion, State, _) -> {ok, State}.
+terminate(Reason, _State) -> ok.
+handle_call(_Req, _From, State) -> stub.
+handle_info(Info, State) -> stub.
+code_change(_OldVersion, State, _) -> stub.

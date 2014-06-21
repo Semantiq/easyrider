@@ -1,8 +1,6 @@
 Safe process adapters (gracefull shutdown, with -9 fallback + clean-up on shutdown).
 Compilation.
 Trigger jobs via webconsole.
-Start/stop apps via webconsole.
 Application removal.
-Proper logging (remove io:format).
 Task triggers & actions on completion - move to release manager.
 Handle property templating.

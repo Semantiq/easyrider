@@ -60,6 +60,6 @@ flatten_properties(Dict, [{Type, Name, Value} | Properties]) -> flatten_properti
 %% Other gen_server callbacks
 
 handle_cast(_, _) -> stub.
-terminate(Reason, State) -> io:format("~p: Terminating er_apps: ~p~n", [State, Reason]).
+terminate(Reason, State) -> ok.
 handle_info(_, _) -> stub.
 code_change(_, _, _) -> stub.
