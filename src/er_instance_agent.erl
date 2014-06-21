@@ -36,9 +36,7 @@ init({Id, Version, Configuration}) ->
 
 handle_call(destroy, _From, #state{id = Id, port = Port} = State) ->
 	io:format("Stopping and destroying app instance: ~p (~p)~n", [Id, Port]),
-    {os_pid, OsPid} = erlang:port_info(Port, os_pid),
-    os:cmd(io_lib:format("kill -9 ~p", [OsPid])),
-	%% port_close(State#state.port),
+	stop_package(Port),
 	er_event_bus:publish({instance_events, Id, {stopped, State#state.version}}),
 	{stop, normal, instance_destroyed, State};
 handle_call(start, _From, #state{id = Id, port = undefined} = State) ->
@@ -92,9 +90,12 @@ handle_cast({snapshot, deployed_versions, _}, State) -> {noreply, State}.
 terminate(normal, #state{id = Id}) ->
 	io:format("~p: Task finnished~n", [Id]),
 	ok;
-terminate(_, #state{id = Id, port = Port}) ->
+terminate(_, #state{id = Id, port = undefined}) ->
+	io:format("~p: Clean-up on shutdown~n", [Id]),
+	ok;
+terminate(_, #state{id = Id, port = Port}) when Port /= undefined ->
 	io:format("~p: Clean-up on shutdown (port ~p)~n", [Id, Port]),
-	port_close(Port),
+	stop_package(Port),
 	ok.
 
 %% helpers
@@ -122,6 +123,10 @@ deploy(Id, Version, Configuration) ->
 
 start_package({Folder, ExecFile, Env}) ->
 	open_port({spawn, ExecFile}, [stream, {line, 1024}, {cd, Folder}, {env, Env}, exit_status, use_stdio, stderr_to_stdout]).
+
+stop_package(Port) when Port /= undefined ->
+    {os_pid, OsPid} = erlang:port_info(Port, os_pid),
+    os:cmd(io_lib:format("kill -9 ~p", [OsPid])).
 
 get_wrapper_configuration(Configuration) -> get_wrapper_configuration(#wrapper{}, Configuration).
 get_wrapper_configuration(Wrapper, []) -> Wrapper;

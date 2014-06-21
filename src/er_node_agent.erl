@@ -69,7 +69,6 @@ store_state(DeployedInstances) ->
 load_state() ->
 	case file:consult(node_config()) of
 		{ok, [DeployedInstances]} ->
-			io:format("Read state: ~p~n", [DeployedInstances]),
 			[ {Id, start_new_instance(Id, Version, Configuration)} || {Id, #deployed_instance{version = Version, configuration = Configuration}} <- DeployedInstances];
 		_ -> []
 	end.
