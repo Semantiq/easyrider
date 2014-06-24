@@ -36,6 +36,7 @@ var event_types = {
             $scope.stages[key.app_name] = {};
         }
         $scope.stages[key.app_name][key.stage_name] = value;
+        return { notify: "info", message: key.app_name + "@" + key.stage_name, details: "Stage definition updated" };
     },
     "instances": function($scope, key, value) {
         if (!$scope.instances[key.app_name]) {
@@ -51,9 +52,11 @@ var event_types = {
             $scope.recommended_versions[key.app_name] = {};
         }
         $scope.recommended_versions[key.app_name][key.stage_name] = value;
+        return { notify: "info", message: "Version recommended for " + key.app_name + "@" + key.stage_name, details: value.version_info.number };
     },
     "instance_events": function($scope, key, value) {
         $scope.instance_events[key] = value;
+        return { notify: "info", message: "Instance " + key, details: value.event + " " + value.version_info.number };
     }
 };
 function process_event($scope, toaster, message) {
@@ -64,8 +67,10 @@ function process_event($scope, toaster, message) {
                 handler($scope, item.key, item.value);
             });
         } else {
-            handler($scope, message.key, message.value);
-            toaster.pop("info", "Event " + message.event, "Just happened");
+            var result = handler($scope, message.key, message.value);
+            if (result && result.notify) {
+                toaster.pop(result.notify, result.message, result.details);
+            }
         }   
     } else {
         // TODO: log something

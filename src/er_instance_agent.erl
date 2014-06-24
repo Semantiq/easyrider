@@ -11,7 +11,7 @@
 %% Interface
 
 start_link(Id, Version, Configuration) -> gen_server:start_link(?MODULE, {Id, Version, Configuration}, []).
-destroy(Pid) -> gen_server:call(Pid, destroy).
+destroy(Pid) -> gen_server:call(Pid, destroy, 10000).
 
 %% gen_server
 
