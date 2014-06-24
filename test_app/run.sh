@@ -1,5 +1,10 @@
 #!/bin/sh
 
+if [ "$trap" == "SIGTERM" ]; then
+	trap "echo Got SIGTERM" SIGTERM
+	echo "Will trap SIGTERM"
+fi
+
 if [ "$mode" == "test" ]; then
 	echo "Starting test $VERSION on $ID" >> test_app.log
 	sleep 10

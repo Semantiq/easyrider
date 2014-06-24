@@ -38,8 +38,7 @@ init({Id, Version, Configuration}) ->
 
 handle_call(destroy, _From, #state{id = Id, port = Port} = State) ->
 	error_logger:info_msg("Stopping and destroying app instance: ~p (~p)~n", [Id, Port]),
-	stop_package(Port),
-	er_event_bus:publish({instance_events, Id, {stopped, State#state.version}}),
+	stop_package(State),
 	{stop, normal, instance_destroyed, State}.
 
 handle_info({_Port, {data, Line}}, State) ->
