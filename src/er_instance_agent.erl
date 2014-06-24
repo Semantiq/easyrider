@@ -70,17 +70,15 @@ handle_info({_Port, {exit_status, ExitCode}}, #state{id = Id, version = Version}
 	end,
 	{noreply, State#state{port = undefined}}.
 
-handle_cast(start, #state{id = Id, port = undefined} = State) ->
+handle_cast(start, #state{port = undefined} = State) ->
 	Port = start_package(State),
 	{noreply, State#state{port = Port}};
 handle_cast(start, State) -> {noreply, State};
 handle_cast(stop, #state{port = undefined} = State) -> {noreply, State};
-handle_cast(stop, #state{id = Id, port = Port} = State) ->
-	stop_package(State),
-	{noreply, State#state{port = undefined}};
+handle_cast(stop, State) -> stop_package(State), {noreply, State#state{port = undefined}};
 handle_cast({event, deployed_versions, {AppName, StageName}, _Version}, State) ->
 	case {State, get_wrapper_configuration(State#state.configuration)} of
-		{#state{id = Id, port = undefined}, #wrapper{trigger_deploy = {AppName, StageName}}} ->
+		{#state{port = undefined}, #wrapper{trigger_deploy = {AppName, StageName}}} ->
 			Port = start_package(State),
 			{noreply, State#state{port = Port}};
 		_ -> {noreply, State}		
@@ -114,10 +112,10 @@ deploy(Id, Version, Configuration) ->
 	ok = filelib:ensure_dir(PackageFile),
 	ok = er_repository:download_version_file(Version, PackageFile),
 	{ok, Files} = zip:extract(PackageFile, [{cwd, Folder}]),
+	io:format("Files: ~p~n", [Files]),
 	ExecFile = lists:concat(["sh run.sh"]),
 	% TODO: find one of the allowed executables, instead of assuming run.sh
 	Env = get_env_properties(Id, Version, Configuration),
-	% io:format("Using env: ~p~n", [Env]),
 	{Folder, ExecFile, Env}.
 
 start_package(#state{id = Id, deploy_info = {Folder, ExecFile, Env}} = State) ->
