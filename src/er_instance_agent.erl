@@ -1,3 +1,4 @@
+%% @docs Takes care of an application instance
 -module(er_instance_agent).
 -behaviour(gen_server).
 -include("er_repository.hrl").
@@ -28,10 +29,11 @@ init({Id, Version, Configuration}) ->
 			er_event_bus:publish({instance_events, Id, {ready, Version}}),
 			{ok, #state{id = Id, version = Version, configuration = Configuration, port = undefined, deploy_info = DeployInfo}};
 		#wrapper{type = app} ->
-			Port = start_package(DeployInfo),
+			State = #state{id = Id, version = Version, configuration = Configuration, port = undefined, deploy_info = DeployInfo},
+			Port = start_package(State),
 			error_logger:info_msg("Started ~p with ~p as ~p~n", [Version#version_info.number, Configuration, Port]),
 			er_event_bus:publish({instance_events, Id, {running, Version}}),
-			{ok, #state{id = Id, version = Version, configuration = Configuration, port = Port, deploy_info = DeployInfo}}
+			{ok, State#state{port = Port}}
 	end.
 
 handle_call(destroy, _From, #state{id = Id, port = Port} = State) ->
@@ -69,20 +71,17 @@ handle_info({_Port, {exit_status, ExitCode}}, #state{id = Id, version = Version}
 	{noreply, State#state{port = undefined}}.
 
 handle_cast(start, #state{id = Id, port = undefined} = State) ->
-	Port = start_package(State#state.deploy_info),
-	er_event_bus:publish({instance_events, Id, {running, State#state.version}}),
+	Port = start_package(State),
 	{noreply, State#state{port = Port}};
 handle_cast(start, State) -> {noreply, State};
 handle_cast(stop, #state{port = undefined} = State) -> {noreply, State};
 handle_cast(stop, #state{id = Id, port = Port} = State) ->
-	stop_package(Port),
-	er_event_bus:publish({instance_events, Id, {stopped, State#state.version}}),
+	stop_package(State),
 	{noreply, State#state{port = undefined}};
 handle_cast({event, deployed_versions, {AppName, StageName}, _Version}, State) ->
 	case {State, get_wrapper_configuration(State#state.configuration)} of
 		{#state{id = Id, port = undefined}, #wrapper{trigger_deploy = {AppName, StageName}}} ->
-			Port = start_package(State#state.deploy_info),
-			er_event_bus:publish({instance_events, Id, {running, State#state.version}}),
+			Port = start_package(State),
 			{noreply, State#state{port = Port}};
 		_ -> {noreply, State}		
 	end;
@@ -94,9 +93,9 @@ terminate(normal, #state{id = Id}) ->
 terminate(_, #state{id = Id, port = undefined}) ->
 	error_logger:info_msg("~p: Clean-up on shutdown~n", [Id]),
 	ok;
-terminate(_, #state{id = Id, port = Port}) when Port /= undefined ->
+terminate(_, #state{id = Id, port = Port} = State) when Port /= undefined ->
 	error_logger:info_msg("~p: Clean-up on shutdown (port ~p)~n", [Id, Port]),
-	stop_package(Port),
+	stop_package(State),
 	ok.
 
 %% helpers
@@ -121,12 +120,27 @@ deploy(Id, Version, Configuration) ->
 	% io:format("Using env: ~p~n", [Env]),
 	{Folder, ExecFile, Env}.
 
-start_package({Folder, ExecFile, Env}) ->
-	open_port({spawn, ExecFile}, [stream, {line, 1024}, {cd, Folder}, {env, Env}, exit_status, use_stdio, stderr_to_stdout]).
+start_package(#state{id = Id, deploy_info = {Folder, ExecFile, Env}} = State) ->
+	Port = open_port({spawn, ExecFile}, [stream, {line, 1024}, {cd, Folder}, {env, Env}, exit_status, use_stdio, stderr_to_stdout]),
+	er_event_bus:publish({instance_events, Id, {running, State#state.version}}),
+	Port.
 
-stop_package(Port) when Port /= undefined ->
+stop_package(#state{id = Id, port = Port} = State) when Port /= undefined ->
     {os_pid, OsPid} = erlang:port_info(Port, os_pid),
-    os:cmd(io_lib:format("kill -9 ~p", [OsPid])).
+    os:cmd(io_lib:format("kill -TERM -~p", [OsPid])),
+    er_event_bus:publish({instance_events, Id, {stopping, State#state.version}}),
+    receive
+		{Port, {exit_status, _}} -> er_event_bus:publish({instance_events, Id, {stopped, State#state.version}})
+	after
+		5000 ->
+			os:cmd(io_lib:format("kill -KILL -~p", [OsPid])),
+			er_event_bus:publish({instance_events, Id, {force_stopping, State#state.version}}),
+			receive
+				{Port, {exit_status, _}} -> er_event_bus:publish({instance_events, Id, {force_stopped, State#state.version}})
+			after
+				10000 -> er_event_bus:publish({instance_events, Id, {force_stop_failed, State#state.version}})
+			end
+	end.
 
 get_wrapper_configuration(Configuration) -> get_wrapper_configuration(#wrapper{}, Configuration).
 get_wrapper_configuration(Wrapper, []) -> Wrapper;
