@@ -1,10 +1,11 @@
 -module(er_repository).
 -behaviour(gen_server).
 -include("er_repository.hrl").
--export([start_link/0, versions/1, subscribe_versions/2, upload_version/2, download_version_file/2, add_version/3, approve_version/3]).
+-export([start_link/0, versions/1, subscribe_versions/2, upload_version/2, upload_version_file/3, download_version_file/2, add_version/3, approve_version/3]).
 -export([init/1, handle_call/3, handle_cast/2, terminate/2, code_change/3, handle_info/2]).
 
 -record(state, {versions = [], subscriptions = []}).
+-define(CHUNK_SIZE, 1024).
 
 % Interface
 
@@ -12,6 +13,10 @@ start_link() -> gen_server:start_link({global, ?MODULE}, ?MODULE, [], []).
 versions(Limit) -> gen_server:call({global, ?MODULE}, {versions, Limit}).
 subscribe_versions(Pid, Limit) -> gen_server:cast({global, ?MODULE}, {subscribe_versions, Pid, Limit}).
 upload_version(AppName, Number) -> gen_server:call({global, ?MODULE}, {upload_version, AppName, Number}).
+upload_version_file(AppName, Number, FileName) ->
+	{ok, Upload} = upload_version(AppName, Number),
+	{ok, Fd} = file:open(FileName, [read]),
+	stream_upload(Fd, Upload).
 % app = _, number = _, date = _, approvals = _
 download_version_file(#version_info{content_ref = ContentRef}, FileName) ->
 	download_version_file(ContentRef, FileName);
@@ -95,12 +100,21 @@ version_exists(AppName, Number, State) ->
 	end.
 
 stream(From, To) ->
-	case er_repository_download:get_chunk(From, 1024) of
+	case er_repository_download:get_chunk(From, ?CHUNK_SIZE) of
 		{ok, Data} ->
 			file:write(To, Data),
 			stream(From, To);
 		eof ->
 			file:close(To)
+	end.
+stream_upload(From, To) ->
+	case file:read(From, ?CHUNK_SIZE) of
+		{ok, Data} ->
+			er_repository_upload:add_chunk(To, Data),
+			stream_upload(From, To);
+		eof ->
+			file:close(From),
+			er_repository_upload:done(To)
 	end.
 
 %% Other gen_server callbacks

@@ -1,24 +1,31 @@
 -module(easyrider_tests).
 -compile(export_all).
 
--define(TIMEOUT, 1000).
+-define(TIMEOUT, 2000).
 
-start_and_stop_test_() -> in_clean_run(fun() -> ok end).
+start_and_stop_test_() -> {"Startup test", in_clean_run(fun() -> ok end)}.
 
-configure_app_test_() -> in_clean_run(
+configure_app_test_() -> {"Upload, deploy and start test app", in_clean_run(
 	fun() ->
-		er_event_bus:subscribe(self(), [apps]),
+		er_event_bus:subscribe(self(), [instance_events]),
 		er_apps:set_app({app, "app", []}),
 		er_apps:set_stage({stage, "app", "dev", []}),
 		er_apps:set_instance({instance, "app", "dev", "app-0", "test0", [
 			{property, "port", "8080"}
 		]}),
-		receive
-			{event, apps, _, _} -> ok
-		after
-			?TIMEOUT -> fail
-		end
-	end).
+		%% TODO: this should not be necessary
+		timer:sleep(1000),
+		er_repository:upload_version_file("app", "1.0", "../test_app/test_app.zip"),
+		{deploying, _} = expect_event(instance_events, "app-0"),
+		{running, _} = expect_event(instance_events, "app-0")
+	end)}.
+
+expect_event(Type, Key) ->
+	receive
+		{_, {event, Type, Key, Value}} -> Value
+	after
+		?TIMEOUT -> fail
+	end.
 
 in_clean_run(Scenario) ->
 	fun() ->
