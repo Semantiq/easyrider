@@ -21,7 +21,7 @@ yaws_config() ->
 	end,
 	Id = "embedded",
 	GconfList = [{id, Id}],
-	DocRoot = "web",
+	DocRoot = er_configuration:webconsole_docroot(),
 	SConfList = [
 		{port, Port},
 		{listen, {0, 0, 0, 0}},
