@@ -1,12 +1,12 @@
 -module(er_repository_storage).
 -behaviour(gen_server).
--export([start_link/0, download/1, upload/2]).
+-export([start_link/0, download/2, upload/2]).
 -export([init/1, handle_call/3, handle_cast/2, terminate/2, code_change/3, handle_info/2]).
 
 %% Interface
 
 start_link() -> gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
-download(Package) -> gen_server:call(?MODULE, {download, Package}).
+download(Repo, Package) -> gen_server:call(Repo, {download, Package}).
 upload(AppName, Package) -> er_repository_upload:start_link(AppName, Package).
 
 %% gen_server

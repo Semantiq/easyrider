@@ -22,7 +22,7 @@ download_version_file(#version_info{content_ref = ContentRef}, FileName) ->
 	download_version_file(ContentRef, FileName);
 download_version_file({Repo, Package}, FileName) ->
 	{ok, Fd} = file:open(FileName, [write]),
-	{ok, Download} = gen_server:call(Repo, {download, Package}),
+	{ok, Download} = er_repository_storage:download(Repo, Package),
 	stream(Download, Fd).
 add_version(AppName, Number, ContentRef) -> gen_server:cast({global, ?MODULE}, {add_version, AppName, Number, ContentRef}).
 approve_version(AppName, Number, Approval) -> gen_server:cast({global, ?MODULE}, {approve_version, AppName, Number, Approval}).
