@@ -1,7 +1,7 @@
 -module(er_apps).
 -behaviour(gen_server).
 -include("er_apps.hrl").
--export([start_link/0, set_app/1, set_stage/1, set_instance/1, effective_configuration/3]).
+-export([start_link/0, set_app/1, set_stage/1, set_instance/1, effective_configuration/3, tell_instance/2]).
 -export([init/1, handle_call/3, handle_cast/2, terminate/2, code_change/3, handle_info/2]).
 
 -record(state, {apps = [], stages = [], instances = []}).
@@ -14,6 +14,7 @@ set_app(Application) -> gen_server:call({global, ?MODULE}, {set_app, Application
 set_stage(Stage) -> gen_server:call({global, ?MODULE}, {set_stage, Stage}).
 set_instance(Instance) -> gen_server:call({global, ?MODULE}, {set_instance, Instance}).
 effective_configuration(AppName, StageName, Id) -> gen_server:call({global, ?MODULE}, {effective_configuration, AppName, StageName, Id}).
+tell_instance(Id, Message) -> gen_server:cast({global, ?MODULE}, {tell_instance, Id, Message}).
 
 %% gen_server
 
@@ -51,6 +52,11 @@ handle_call({effective_configuration, AppName, StageName, Id}, _From, #state{app
 	{ok, #instance{properties = InstanceProperties}} = orddict:find({AppName, StageName, Id}, Instances),
 	{reply, flatten_properties(AppProperties ++ StageProperties ++ InstanceProperties), State}.
 
+handle_cast({tell_instance, Id, Message}, State) ->
+	[{_, #instance{node = NodeId}}] = lists:filter(fun({_, #instance{id = ThisId}}) -> ThisId == Id end, State#state.instances),
+	er_node_manager:tell_node(NodeId, {tell_instance, Id, Message}),
+	{noreply, State}.
+
 %% helpers
 
 flatten_properties(Properties) -> flatten_properties([], Properties).
@@ -59,7 +65,6 @@ flatten_properties(Dict, [{Type, Name, Value} | Properties]) -> flatten_properti
 
 %% Other gen_server callbacks
 
-handle_cast(_, _) -> stub.
-terminate(Reason, State) -> ok.
+terminate(_Reason, _State) -> ok.
 handle_info(_, _) -> stub.
 code_change(_, _, _) -> stub.

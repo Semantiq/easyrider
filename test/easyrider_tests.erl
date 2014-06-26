@@ -13,8 +13,6 @@ configure_app_test_() -> {"Upload, deploy and start test app", in_clean_run(
 		er_apps:set_instance({instance, "app", "dev", "app-0", "test0", [
 			{property, "port", "8080"}
 		]}),
-		%% TODO: this should not be necessary
-		timer:sleep(1000),
 		er_repository:upload_version_file("app", "1.0", "../test_app/test_app.zip"),
 		{deploying, _} = expect_event(instance_events, "app-0"),
 		{running, _} = expect_event(instance_events, "app-0")

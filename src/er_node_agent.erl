@@ -6,6 +6,8 @@
 -record(state, {instances, joined = false}).
 -record(deployed_instance, {id, agent, version, configuration}).
 
+-define(JOIN_ATTEMPTS_INTERVAL, 1000).
+
 %% Interface
 
 % @private
@@ -19,7 +21,9 @@ tell_instance(Node, Id, Message) -> gen_server:cast({?MODULE, Node}, {tell_insta
 %% gen_server
 
 init(_Args) ->
-	{ok, #state{instances = load_state()}, 1000}.
+	er_event_bus:subscribe(self(), [instances]),
+	join_attempt(),
+	{ok, #state{instances = load_state()}, ?JOIN_ATTEMPTS_INTERVAL}.
 
 handle_call({deployed_instances}, _From, State) -> {reply, {deployed_instances, State#state.instances}, State}.
 
@@ -38,21 +42,28 @@ handle_cast({tell_instance, Id, Message}, State) ->
 	%% TODO: handle incorrect id
 	{ok, #deployed_instance{agent = Agent}} = orddict:find(Id, State#state.instances),
 	gen_server:cast(Agent, Message),
+	{noreply, State};
+handle_cast({event, instances, Id, Instance}, State) ->
+	{noreply, State};
+handle_cast({snapshot, instances, Data}, State) ->
 	{noreply, State}.
 
 handle_info(timeout, #state{joined = true} = State) ->
 	{noreply, State};
 handle_info(timeout, #state{joined = false} = State) ->
-	{ok, NodeId} = application:get_env(easyrider, node_id),
-	io:format("Joining as ~p (~p)~n", [node(), NodeId]),
-	er_node_manager:node_up(NodeId, node()),
-	{noreply, State, 2000};
+	join_attempt(),
+	{noreply, State, ?JOIN_ATTEMPTS_INTERVAL};
 handle_info({'DOWN', _, process, Pid, _}, State) ->
 	io:format("Instance agent down ~p~n", [Pid]),
 	NewInstances = lists:filter(fun({_Id, #deployed_instance{agent = Agent}}) -> Agent /= Pid end, State#state.instances),
 	{noreply, State#state{instances = NewInstances}}.
 
 %% helpers
+
+join_attempt() ->
+	{ok, NodeId} = application:get_env(easyrider, node_id),
+	io:format("Joining as ~p (~p)~n", [node(), NodeId]),
+	er_node_manager:node_up(NodeId, node()).
 
 start_new_instance(Id, Version, Configuration) ->
 	{ok, Agent} = er_instance_agent:start_link(Id, Version, Configuration),
