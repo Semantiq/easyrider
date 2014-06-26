@@ -1,7 +1,7 @@
 -module(er_repository).
 -behaviour(gen_server).
 -include("er_repository.hrl").
--export([start_link/0, versions/1, subscribe_versions/2, upload_version/2, upload_version_file/3, download_version_file/2, add_version/3, approve_version/3]).
+-export([start_link/0, versions/1, subscribe_versions/2, upload_version/2, upload_version_file/3, download_version_file/3, add_version/3, approve_version/3]).
 -export([init/1, handle_call/3, handle_cast/2, terminate/2, code_change/3, handle_info/2]).
 
 -record(state, {versions = [], subscriptions = []}).
@@ -17,12 +17,11 @@ upload_version_file(AppName, Number, FileName) ->
 	{ok, Upload} = upload_version(AppName, Number),
 	{ok, Fd} = file:open(FileName, [read]),
 	stream_upload(Fd, Upload).
-% app = _, number = _, date = _, approvals = _
-download_version_file(#version_info{content_ref = ContentRef}, FileName) ->
-	download_version_file(ContentRef, FileName);
-download_version_file({Repo, Package}, FileName) ->
+download_version(AppName, Number) ->
+	gen_server:call({global, ?MODULE}, {download_version, AppName, Number}).
+download_version_file(AppName, Number, FileName) ->
 	{ok, Fd} = file:open(FileName, [write]),
-	{ok, Download} = er_repository_storage:download(Repo, Package),
+	{ok, Download} = download_version(AppName, Number),
 	stream(Download, Fd).
 add_version(AppName, Number, ContentRef) -> gen_server:cast({global, ?MODULE}, {add_version, AppName, Number, ContentRef}).
 approve_version(AppName, Number, Approval) -> gen_server:cast({global, ?MODULE}, {approve_version, AppName, Number, Approval}).
@@ -42,7 +41,11 @@ handle_call({upload_version, AppName, Number}, _From, State) ->
 			{ok, Upload} = er_repository_storage:upload(AppName, Number),
 			{ok, Upload}
 	end,
-	{reply, Ret, State}.
+	{reply, Ret, State};
+handle_call({download_version, AppName, Number}, _From, State) ->
+	Versions = orddict:fetch(AppName, State#state.versions),
+	{value, #version_info{content_ref = {Repo, Package}}} = lists:keysearch(Number, 3, Versions),
+	{reply, er_repository_storage:download(Repo, Package), State}.
 
 handle_cast({subscribe_versions, Pid, Limit}, State) ->
 	erlang:monitor(process, Pid),

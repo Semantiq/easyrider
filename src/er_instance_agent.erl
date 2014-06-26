@@ -109,7 +109,7 @@ deploy(Id, Version, Configuration) ->
 	error_logger:info_msg("Deploying ~p in ~p~n", [Version#version_info.number, Folder]),
 	PackageFile = lists:concat([Folder, "/package.zip"]),
 	ok = filelib:ensure_dir(PackageFile),
-	ok = er_repository:download_version_file(Version, PackageFile),
+	ok = er_repository:download_version_file(Version#version_info.app, Version#version_info.number, PackageFile),
 	{ok, Files} = zip:extract(PackageFile, [{cwd, Folder}]),
 	io:format("Files: ~p~n", [Files]),
 	ExecFile = lists:concat(["sh run.sh"]),

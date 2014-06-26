@@ -1,4 +1,5 @@
 -module(er_node_agent).
+-include("er_apps.hrl").
 -behaviour(gen_server).
 -export([start_link/0, all_deployed_instances/0, deployed_instances/0, deploy_instance/4, on_join/1, tell_instance/3]).
 -export([init/1, handle_call/3, handle_cast/2, terminate/2, code_change/3, handle_info/2]).
@@ -36,14 +37,21 @@ handle_cast({deploy_instance, Id, Version, Configuration}, State) ->
 			{noreply, new_instance(Id, Version, Configuration, State)}
 	end;
 handle_cast(on_join, State) ->
-	io:format("Joined cluster~n", []),
+	error_logger:info_msg("Joined cluster~n", []),
 	{noreply, State#state{joined = true}};
 handle_cast({tell_instance, Id, Message}, State) ->
 	%% TODO: handle incorrect id
 	{ok, #deployed_instance{agent = Agent}} = orddict:find(Id, State#state.instances),
 	gen_server:cast(Agent, Message),
 	{noreply, State};
-handle_cast({event, instances, Id, Instance}, State) ->
+handle_cast({event, instances, _, Instance}, State) ->
+	%% TODO: handle instances which are moved or removed
+	NodeId = node_id(),
+	case Instance of
+		#instance{id = Id, node = NodeId} ->
+			error_logger:info_msg("New instance created or config changed: ~p~n", [Id]);
+		_ -> ignore
+	end,
 	{noreply, State};
 handle_cast({snapshot, instances, Data}, State) ->
 	{noreply, State}.
@@ -54,14 +62,16 @@ handle_info(timeout, #state{joined = false} = State) ->
 	join_attempt(),
 	{noreply, State, ?JOIN_ATTEMPTS_INTERVAL};
 handle_info({'DOWN', _, process, Pid, _}, State) ->
-	io:format("Instance agent down ~p~n", [Pid]),
+	error_logger:error_msg("Instance agent down ~p~n", [Pid]),
 	NewInstances = lists:filter(fun({_Id, #deployed_instance{agent = Agent}}) -> Agent /= Pid end, State#state.instances),
 	{noreply, State#state{instances = NewInstances}}.
 
 %% helpers
 
+node_id() -> {ok, NodeId} = application:get_env(easyrider, node_id), NodeId.
+
 join_attempt() ->
-	{ok, NodeId} = application:get_env(easyrider, node_id),
+	NodeId = node_id(),
 	io:format("Joining as ~p (~p)~n", [node(), NodeId]),
 	er_node_manager:node_up(NodeId, node()).
 
