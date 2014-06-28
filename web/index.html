@@ -37,6 +37,14 @@
 				
 			</div>
 			<div ng-show="activeTab == 'apps'">
+				<div class="col-md-3 panel panel-default" ng-show="deployInstanceForm.id != null">
+					<p>Deploy {{deployInstanceForm.app}} v {{deployInstanceForm.version}} to {{deployInstanceForm.id}}</p>
+					<ul>
+						<li ng-repeat="version in versions[deployInstanceForm.app]"><a href="#" ng-click="deployInstanceForm.version = version.number">{{version.number}}</a></li>
+					</ul>
+					<button class="btn btn-default" ng-click="deployInstance(deployInstanceForm.id, deployInstanceForm.version); deployInstanceForm.id = null">Deploy</button>
+					<button class="btn btn-default" ng-click="deployInstanceForm.id = null">Cancel</button>
+				</div>
 				<div ng-repeat="(appName, app) in apps" class="row-fluid">
 					<div class="col-md-12">
 						<h3>App {{app.name}}</h3>
@@ -61,10 +69,16 @@
 							</dl>
 							<a href="#" ng-click="showProperties = !showProperties">more properties</a>
 							<div class="row-fluid">
-								<div class="col-md-2 panel panel-default" ng-repeat="instance in instances[appName][stageName]">
-									{{instance.id}} at {{instance.node}}
-									{{instance_events[instance.id].event}}: {{instance_events[instance.id].version}}
+								<div class="col-md-3 panel panel-default" ng-repeat="instance in instances[appName][stageName]">
 									<dl class="dl-horizontal" ng-show="showProperties">
+										<dt>id</dt>
+										<dd>{{instance.id}}</dd>
+										<dt>node</dt>
+										<dd>{{instance.node}}</dd>
+										<dt>{{instance_events[instance.id].event}}</dt>
+										<dd>
+											<a href="#" ng-click="deployInstanceForm.id = instance.id; deployInstanceForm.app = appName">{{instance_events[instance.id].version}}</a>
+										</dd>
 										<dt ng-repeat-start="property in instance.properties | filter: {type: 'property'}">{{property.key}}</dt>
 										<dd ng-repeat-end>{{property.value}}<dd>
 									</dl>
@@ -93,7 +107,7 @@
 							</div>
 							<div class="form-group">
 								<label for="file">File</label>
-								<input id="file" type="file" name="data"></input></div>
+								<input id="file" type="file" name="content"></input></div>
 							<input type="submit" class="btn btn-default" />
 						</form>
 					</div>

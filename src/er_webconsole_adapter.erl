@@ -91,7 +91,13 @@ parse_command("tell_instance", {struct, Fields}) ->
 	{value, {"id", Id}} = lists:keysearch("id", 1, Fields),
 	{value, {"message", MessageString}} = lists:keysearch("message", 1, Fields),
 	Message = list_to_atom(MessageString),
-	{tell_instance, Id, Message}.
+	case Message of
+		deploy ->
+			{value, {"version", Version}} = lists:keysearch("version", 1, Fields),
+			{tell_instance, Id, {deploy, Version}};
+		_ ->
+			{tell_instance, Id, Message}
+	end.
 
 version_info_json(Version) -> {struct, [
 	{"app", Version#version_info.app},

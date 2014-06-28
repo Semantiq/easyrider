@@ -80,6 +80,8 @@ function process_event($scope, toaster, message) {
 var app = new angular.module("easyrider", ["toaster"]);
 
 app.controller("AppsCtrl", function($scope, toaster) {
+    $scope.deployInstanceForm = {};
+
     $scope.apps = {};
     $scope.stages = {};
     $scope.instances = {};
@@ -134,6 +136,13 @@ app.controller("AppsCtrl", function($scope, toaster) {
         io.send({command: "tell_instance", body: {
             "id": instanceId,
             "message": "stop"
+        }});
+    };
+    $scope.deployInstance = function(instanceId, version) {
+        io.send({command: "tell_instance", body: {
+            "id": instanceId,
+            "message": "deploy",
+            "version": version
         }});
     };
 });

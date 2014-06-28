@@ -49,7 +49,7 @@ parse_content([{head, {Name, _}}, {body, Body} | Rest], State) ->
 	NewState = case Name of
 		"application" -> State#upload{application = Body};
 		"version" -> State#upload{version = Body};
-		"upload" ->
+		"content" ->
 			er_repository_upload:add_chunk(State#upload.fd, Body),
 			er_repository_upload:done(State#upload.fd),
 			State
