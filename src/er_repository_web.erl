@@ -7,8 +7,16 @@
 start_link() -> gen_server:start_link({local, er_repository_web}, er_repository_web, [], []).
 
 out(A) when A#arg.state == undefined ->
-    State = #upload{},
-    multipart(A, State);
+	case A#arg.headers#headers.authorization of
+		{Username, Password, _} ->
+			case er_user_manager:authenticate(Username, Password) of
+				{ok, _} ->
+				    State = #upload{},
+		    		multipart(A, State);
+		    	_ -> err()
+		    end;
+		_ -> err()
+	end;
 out(A) ->
     multipart(A, A#arg.state).
 
