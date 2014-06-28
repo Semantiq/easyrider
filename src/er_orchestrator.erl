@@ -1,6 +1,7 @@
 -module(er_orchestrator).
 -behaviour(gen_server).
 -include("er_apps.hrl").
+-include("er_repository.hrl").
 -export([start_link/0]).
 -export([init/1, handle_call/3, handle_cast/2, terminate/2, code_change/3, handle_info/2]).
 
@@ -17,12 +18,13 @@ init(_Args) ->
 
 handle_call(_Message, _From, State) -> {reply, ok, State}.
 
-handle_cast({event, recommended_versions, {AppName, StageName}, {Version, immediate}}, State) ->
-	io:format("Performing recommened deployment: ~p v ~p to ~p~n", [AppName, Version, StageName]),
+handle_cast({event, recommended_versions, {AppName, StageName}, {VersionNumber, immediate}}, State) ->
+	io:format("Performing recommened deployment: ~p v ~p to ~p~n", [AppName, VersionNumber, StageName]),
 	{snapshot, instances, AllInstances} = er_event_bus:get_snapshot(instances),
 	Instances = [ Instance || {{ThisAppName, ThisStageName, _Id}, Instance} <- AllInstances, ThisAppName == AppName, ThisStageName == StageName ],
-	[ er_node_agent:deploy_instance(NodeId, Id, Version, er_apps:effective_configuration(AppName, StageName, Id)) || #instance{id = Id, node = NodeId} <- Instances ],
-	er_event_bus:publish({deployed_versions, {AppName, StageName}, Version}),
+	[ er_apps:tell_instance(Id, {deploy, VersionNumber}) || #instance{id = Id} <- Instances ],
+	%% TODO: wait for all instances to confirm
+	er_event_bus:publish({deployed_versions, {AppName, StageName}, VersionNumber}),
 	{noreply, State};
 handle_cast({snapshot, recommended_versions, _Data}, State) ->
 	{noreply, State}.

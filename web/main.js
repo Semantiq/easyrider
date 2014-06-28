@@ -52,11 +52,11 @@ var event_types = {
             $scope.recommended_versions[key.app_name] = {};
         }
         $scope.recommended_versions[key.app_name][key.stage_name] = value;
-        return { notify: "info", message: "Version recommended for " + key.app_name + "@" + key.stage_name, details: value.version_info.number };
+        return { notify: "info", message: "Version recommended for " + key.app_name + "@" + key.stage_name, details: value.version };
     },
     "instance_events": function($scope, key, value) {
         $scope.instance_events[key] = value;
-        return { notify: "info", message: "Instance " + key, details: value.event + " " + value.version_info.number };
+        return { notify: "info", message: "Instance " + key, details: value.event + " " + value.version };
     }
 };
 function process_event($scope, toaster, message) {

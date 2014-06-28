@@ -14,9 +14,34 @@ configure_app_test_() -> {"Upload, deploy and start test app", in_clean_run(
 			{property, "port", "8080"}
 		]}),
 		er_repository:upload_version_file("app", "1.0", "../test_app/test_app.zip"),
-		%er_apps:tell_instance("app-0", {deploy, "1.0"}),
-		{deploying, _} = expect_event(instance_events, "app-0"),
-		{running, _} = expect_event(instance_events, "app-0")
+		{_, _} = expect_event(instance_events, "app-0"),
+		{deploying, "1.0"} = expect_event(instance_events, "app-0"),
+		{running, "1.0"} = expect_event(instance_events, "app-0")
+	end)}.
+
+redeployment_test_() -> {"Redeploy to instance", in_clean_run(
+	fun() ->
+		er_event_bus:subscribe(self(), [instance_events]),
+		er_repository:upload_version_file("app", "1.0", "../test_app/test_app.zip"),
+		er_repository:upload_version_file("app", "2.0", "../test_app/test_app.zip"),
+		%% TODO: when upload rules are processed, the app instance may already be configured and get deployed
+		timer:sleep(200),
+		er_apps:set_app({app, "app", []}),
+		er_apps:set_stage({stage, "app", "dev", []}),
+		er_apps:set_instance({instance, "app", "dev", "app-0", "test0", [		
+			{property, "port", "8080"}
+		]}),
+		%% TODO: the instance may not yet be routable in er_node_agent
+		timer:sleep(200),
+		er_apps:tell_instance("app-0", {deploy, "1.0"}),
+		{created, _} = expect_event(instance_events, "app-0"),
+		{deploying, "1.0"} = expect_event(instance_events, "app-0"),
+		{running, "1.0"} = expect_event(instance_events, "app-0"),
+		er_apps:tell_instance("app-0", {deploy, "2.0"}),
+		{stopping, "1.0"} = expect_event(instance_events, "app-0"),
+		{stopped, "1.0"} = expect_event(instance_events, "app-0"),
+		{deploying, "2.0"} = expect_event(instance_events, "app-0"),
+		{running, "2.0"} = expect_event(instance_events, "app-0")
 	end)}.
 
 expect_event(Type, Key) ->

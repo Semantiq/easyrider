@@ -130,18 +130,13 @@ event_value_json(instances, #instance{app_name = AppName, stage_name = StageName
 	]};
 event_value_json(recommended_versions, {Version, Mode}) ->
 	{struct, [
-		{"version_info", version_info_json(Version)},
+		{"version", Version},
 		{"mode", atom_to_list(Mode)}
-	]};
-event_value_json(instance_events, {starting, Version}) ->
-	{struct, [
-		{"event", "starting"},
-		{"version_info", version_info_json(Version)}
 	]};
 event_value_json(instance_events, {State, Version}) ->
 	{struct, [
 		{"event", atom_to_list(State)},
-		{"version_info", version_info_json(Version)}
+		{"version", Version}
 	]}.
 
 properties_to_json(Properties) -> 

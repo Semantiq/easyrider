@@ -49,7 +49,7 @@
 							<h4>Stage {{stage.stage_name}}</h4>
 							<dl class="dl-horizontal">
 								<dt>Recommended version</dt>
-								<dd>{{ recommended_versions[appName][stageName].version_info.number }}</dd>
+								<dd>{{ recommended_versions[appName][stageName].version }}</dd>
 								<dt ng-repeat-start="property in stage.properties | filter: {type: 'rule'}">Required approvals</dt>
 								<dd ng-repeat-end>
 									<span ng-repeat="approval in property.approvals" class="badge">{{approval}}</span>
@@ -63,7 +63,7 @@
 							<div class="row-fluid">
 								<div class="col-md-2 panel panel-default" ng-repeat="instance in instances[appName][stageName]">
 									{{instance.id}} at {{instance.node}}
-									{{instance_events[instance.id].event}}: {{instance_events[instance.id].version_info.number}}
+									{{instance_events[instance.id].event}}: {{instance_events[instance.id].version}}
 									<dl class="dl-horizontal" ng-show="showProperties">
 										<dt ng-repeat-start="property in instance.properties | filter: {type: 'property'}">{{property.key}}</dt>
 										<dd ng-repeat-end>{{property.value}}<dd>

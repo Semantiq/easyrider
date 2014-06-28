@@ -1,11 +1,11 @@
 -module(er_node_agent).
 -include("er_apps.hrl").
 -behaviour(gen_server).
--export([start_link/0, all_deployed_instances/0, deployed_instances/0, deploy_instance/4, on_join/1, tell_instance/3]).
+-export([start_link/0, all_deployed_instances/0, deployed_instances/0, on_join/1, tell_instance/3]).
 -export([init/1, handle_call/3, handle_cast/2, terminate/2, code_change/3, handle_info/2]).
 
 -record(state, {instances, joined = false}).
--record(deployed_instance, {id, agent, version, configuration}).
+-record(deployed_instance, {id, agent}).
 
 -define(JOIN_ATTEMPTS_INTERVAL, 1000).
 
@@ -15,7 +15,6 @@
 start_link() -> gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 deployed_instances() -> gen_server:call(?MODULE, {deployed_instances}).
 all_deployed_instances() -> gen_server:multi_call(?MODULE, {deployed_instances}).
-deploy_instance(NodeId, Id, Version, Configuration) -> er_node_manager:tell_node(NodeId, {deploy_instance, Id, Version, Configuration}).
 on_join(Node) -> gen_server:cast({?MODULE, Node}, on_join).
 tell_instance(Node, Id, Message) -> gen_server:cast({?MODULE, Node}, {tell_instance, Id, Message}).
 
@@ -28,33 +27,23 @@ init(_Args) ->
 
 handle_call({deployed_instances}, _From, State) -> {reply, {deployed_instances, State#state.instances}, State}.
 
-handle_cast({deploy_instance, Id, Version, Configuration}, State) ->
-	case orddict:find(Id, State#state.instances) of
-		{ok, DeployedInstance} ->
-			er_instance_agent:destroy(DeployedInstance#deployed_instance.agent),
-			{noreply, new_instance(Id, Version, Configuration, State)};
-		error ->
-			{noreply, new_instance(Id, Version, Configuration, State)}
-	end;
 handle_cast(on_join, State) ->
 	error_logger:info_msg("Joined cluster~n", []),
 	{noreply, State#state{joined = true}};
 handle_cast({tell_instance, Id, Message}, State) ->
 	%% TODO: handle incorrect id
-	{ok, #deployed_instance{agent = Agent}} = orddict:find(Id, State#state.instances),
-	gen_server:cast(Agent, Message),
-	{noreply, State};
-handle_cast({event, instances, _, Instance}, State) ->
-	%% TODO: handle instances which are moved or removed
-	NodeId = node_id(),
-	case Instance of
-		#instance{id = Id, node = NodeId} ->
-			error_logger:info_msg("New instance created or config changed: ~p~n", [Id]);
-		_ -> ignore
+	case orddict:find(Id, State#state.instances) of
+		{ok, #deployed_instance{agent = Agent}} -> gen_server:cast(Agent, Message);
+		_ -> error_logger:error_msg("Message to istance ~p dropped: ~p~n", [Id, Message])
 	end,
 	{noreply, State};
+handle_cast({event, instances, _, Instance}, State) ->
+	NewState = process_instance(Instance, State),
+	{noreply, NewState};
 handle_cast({snapshot, instances, Data}, State) ->
-	{noreply, State}.
+	Instances = [ Instance || {_, Instance} <- Data ],
+	NewState = process_instances(Instances, State),
+	{noreply, NewState}.
 
 handle_info(timeout, #state{joined = true} = State) ->
 	{noreply, State};
@@ -68,6 +57,24 @@ handle_info({'DOWN', _, process, Pid, _}, State) ->
 
 %% helpers
 
+process_instances([], State) -> State;
+process_instances([Instance | Rest], State) -> process_instances(Rest, process_instance(Instance, State)).
+
+process_instance(Instance, State) ->
+	NodeId = node_id(),
+	case Instance of
+		#instance{id = Id, node = NodeId} ->
+			case orddict:find(Id, State#state.instances) of
+				{ok, #deployed_instance{agent = _Agent}} ->
+					error_logger:info_msg("TODO: Instance config change: ~p~n", [Instance]),
+					State;
+				_ -> new_instance(Id, State)
+			end;
+		#instance{id = _Id} ->
+			%% TODO: find out if we owned that instance, remove if we did
+			State
+	end.
+
 node_id() -> {ok, NodeId} = application:get_env(easyrider, node_id), NodeId.
 
 join_attempt() ->
@@ -75,14 +82,14 @@ join_attempt() ->
 	io:format("Joining as ~p (~p)~n", [node(), NodeId]),
 	er_node_manager:node_up(NodeId, node()).
 
-start_new_instance(Id, Version, Configuration) ->
-	{ok, Agent} = er_instance_agent:start_link(Id, Version, Configuration),
+start_new_instance(Id) ->
+	{ok, Agent} = er_instance_agent:start_link(Id),
 	erlang:monitor(process, Agent),
-	#deployed_instance{id = Id, agent = Agent, version = Version, configuration = Configuration}.
+	#deployed_instance{id = Id, agent = Agent}.
 
-new_instance(Id, Version, Configuration, State) ->
-	NewInstance = start_new_instance(Id, Version, Configuration),
-	NewInstances = orddict:store(Id, NewInstance, State#state.instances),
+new_instance(Id, State) ->
+	DeployedInstance = start_new_instance(Id),
+	NewInstances = orddict:store(Id, DeployedInstance, State#state.instances),
 	NewState = State#state{instances = NewInstances},
 	store_state(NewInstances),
 	NewState.
@@ -94,7 +101,7 @@ store_state(DeployedInstances) ->
 load_state() ->
 	case file:consult(node_config()) of
 		{ok, [DeployedInstances]} ->
-			[ {Id, start_new_instance(Id, Version, Configuration)} || {Id, #deployed_instance{version = Version, configuration = Configuration}} <- DeployedInstances];
+			[ {Id, start_new_instance(Id)} || {Id, _} <- DeployedInstances];
 		_ -> []
 	end.
 
