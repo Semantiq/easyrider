@@ -64,7 +64,7 @@ parse_content([{head, {Name, _}}, {body, Body} | Rest], State) ->
 		end,
 	parse_content(Rest, NewState);
 parse_content([{head, {Name, _}}, {part_body, PartBody} | Rest], State) ->
-	Name = "upload",
+	Name = "content",
 	er_repository_upload:add_chunk(State#upload.fd, PartBody),
 	parse_content(Rest, State);
 parse_content([{part_body, PartBody} | Rest], State) ->
