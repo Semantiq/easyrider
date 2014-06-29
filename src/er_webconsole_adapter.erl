@@ -143,7 +143,8 @@ event_value_json(instance_events, {State, Version}) ->
 	{struct, [
 		{"event", atom_to_list(State)},
 		{"version", Version}
-	]}.
+	]};
+event_value_json(_, remove) -> "remove".
 
 properties_to_json(Properties) -> 
 	{array, [

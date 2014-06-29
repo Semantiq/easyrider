@@ -2,7 +2,7 @@
 -module(er_instance_agent).
 -behaviour(gen_server).
 -include("er_apps.hrl").
--export([start_link/1, destroy/1]).
+-export([start_link/1]).
 -export([init/1, handle_call/3, handle_cast/2, terminate/2, code_change/3, handle_info/2]).
 
 -record(state, {id, instance, version, configuration, port, deploy_info, msg_count = 0}).
@@ -11,20 +11,16 @@
 %% Interface
 
 start_link(Id) -> gen_server:start_link(?MODULE, Id, []).
-destroy(Pid) -> gen_server:call(Pid, destroy, 10000).
 
 %% gen_server
 
 init(Id) ->
 	er_event_bus:publish({instance_events, Id, {created, "no_version"}}),
 	process_flag(trap_exit, true),
-	{instance, Instance} = er_apps:get_instance(Id),
-	{ok, #state{id = Id, instance = Instance}}.
-
-handle_call(destroy, _From, #state{id = Id, port = Port} = State) ->
-	error_logger:info_msg("Stopping and destroying app instance: ~p (~p)~n", [Id, Port]),
-	stop_package(State),
-	{stop, normal, instance_destroyed, State}.
+	case er_apps:get_instance(Id) of
+		{instance, Instance} -> {ok, #state{id = Id, instance = Instance}};
+		error -> ignore
+	end.
 
 handle_info({_Port, {data, Line}}, State) ->
 	case State of
@@ -67,6 +63,15 @@ handle_cast(start, #state{port = undefined} = State) ->
 handle_cast(start, State) -> {noreply, State};
 handle_cast(stop, #state{port = undefined} = State) -> {noreply, State};
 handle_cast(stop, State) -> stop_package(State), {noreply, State#state{port = undefined}};
+handle_cast(remove, #state{id = Id, port = Port} = State) when Port /= undefined ->
+	error_logger:info_msg("Stopping and removing app instance: ~p (~p)~n", [Id, Port]),
+	stop_package(State),
+	er_event_bus:publish({instance_events, Id, remove}),
+	{stop, normal, State#state{port = undefined}};
+handle_cast(remove, #state{id = Id, port = Port} = State) when Port == undefined ->
+	error_logger:info_msg("Removing app instance: ~p~n", [Id]),
+	er_event_bus:publish({instance_events, Id, remove}),
+	{stop, normal, State};
 handle_cast({event, deployed_versions, {AppName, StageName}, _Version}, State) ->
 	case {State, get_wrapper_configuration(State#state.configuration)} of
 		{#state{port = undefined}, #wrapper{trigger_deploy = {AppName, StageName}}} ->
@@ -165,3 +170,4 @@ get_wrapper_configuration(Wrapper, [ Entry | Configuration]) ->
 %% other gen_server
 
 code_change(_, _, _) -> stub.
+handle_call(_, _, _) -> stub.

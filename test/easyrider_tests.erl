@@ -44,6 +44,41 @@ redeployment_test_() -> {"Redeploy to instance", in_clean_run(
 		{running, "2.0"} = expect_event(instance_events, "app-0")
 	end)}.
 
+app_state_instance_remove_test_() -> {"Remove app, stage, created instance", in_clean_run(
+	fun() ->
+		er_event_bus:subscribe(self(), [instances, instance_events, apps]),
+		er_apps:set_app({app, "app", []}),
+		_ = expect_event(apps, "app"),
+		er_apps:set_stage({stage, "app", "dev", []}),
+		er_apps:set_instance({instance, "app", "dev", "app-0", "test0", []}),
+		{created, _} = expect_event(instance_events, "app-0"),
+		_ = expect_event(instances, {"app", "dev", "app-0"}),
+		er_apps:tell_instance("app-0", remove),
+		remove = expect_event(instance_events, "app-0"),
+		remove = expect_event(instances, {"app", "dev", "app-0"}),
+		er_apps:remove_stage("app", "dev"),
+		er_apps:remove_app("app"),
+		remove = expect_event(apps, "app")
+	end)}.
+
+running_instance_remove_test_() -> {"Remove running instance", in_clean_run(
+	fun() ->
+		er_event_bus:subscribe(self(), [instances, instance_events]),
+		er_apps:set_app({app, "app", []}),
+		er_apps:set_stage({stage, "app", "dev", []}),
+		er_apps:set_instance({instance, "app", "dev", "app-0", "test0", []}),
+		{created, _} = expect_event(instance_events, "app-0"),
+		_ = expect_event(instances, {"app", "dev", "app-0"}),
+		er_repository:upload_version_file("app", "1.0", "../test_app/test_app.zip"),
+		{deploying, _} = expect_event(instance_events, "app-0"),
+		{running, _} = expect_event(instance_events, "app-0"),
+		er_apps:tell_instance("app-0", remove),
+		{stopping, _} = expect_event(instance_events, "app-0"),
+		{stopped, _} = expect_event(instance_events, "app-0"),
+		remove = expect_event(instance_events, "app-0"),
+		remove = expect_event(instances, {"app", "dev", "app-0"})
+	end)}.
+
 expect_event(Type, Key) ->
 	receive
 		{_, {event, Type, Key, Value}} -> Value

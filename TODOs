@@ -1,6 +1,5 @@
-Safe process adapters (gracefull shutdown, with -9 fallback + clean-up on shutdown).
 Compilation.
-Trigger jobs via webconsole.
 Application removal.
 Task triggers & actions on completion - move to release manager.
 Handle property templating.
+Instance move betwen nodes.

@@ -1,7 +1,7 @@
 -module(er_apps).
 -behaviour(gen_server).
 -include("er_apps.hrl").
--export([start_link/0, set_app/1, set_stage/1, set_instance/1, effective_configuration/3, tell_instance/2, get_instance/1]).
+-export([start_link/0, set_app/1, set_stage/1, set_instance/1, effective_configuration/3, tell_instance/2, get_instance/1, remove_stage/2, remove_app/1]).
 -export([init/1, handle_call/3, handle_cast/2, terminate/2, code_change/3, handle_info/2]).
 
 -record(state, {apps = [], stages = [], instances = []}).
@@ -11,7 +11,9 @@
 start_link() -> gen_server:start_link({global, ?MODULE}, ?MODULE, [], []).
 
 set_app(Application) -> gen_server:call({global, ?MODULE}, {set_app, Application}).
+remove_app(AppName) -> gen_server:call({global, ?MODULE}, {remove_app, AppName}).
 set_stage(Stage) -> gen_server:call({global, ?MODULE}, {set_stage, Stage}).
+remove_stage(AppName, StageName) -> gen_server:call({global, ?MODULE}, {remove_stage, AppName, StageName}).
 set_instance(Instance) -> gen_server:call({global, ?MODULE}, {set_instance, Instance}).
 effective_configuration(AppName, StageName, Id) -> gen_server:call({global, ?MODULE}, {effective_configuration, AppName, StageName, Id}).
 tell_instance(Id, Message) -> gen_server:cast({global, ?MODULE}, {tell_instance, Id, Message}).
@@ -23,12 +25,23 @@ init(_Args) ->
 	{snapshot, apps, Apps} = er_event_bus:get_snapshot(apps),
 	{snapshot, stages, Stages} = er_event_bus:get_snapshot(stages),
 	{snapshot, instances, Instances} = er_event_bus:get_snapshot(instances),
+	er_event_bus:subscribe(self(), [instance_events]),
 	{ok, #state{apps = Apps, stages = Stages, instances = Instances}}.
 
 handle_call({set_app, #app{app_name = AppName} = Application}, _From, State) ->
 	NewApps = orddict:store(AppName, Application, State#state.apps),
 	er_event_bus:publish({apps, AppName, Application}),
 	{reply, ok, State#state{apps = NewApps}};
+handle_call({remove_app, AppName}, _From, State) ->
+	StageNames = [ StageName || {{ThisAppName, StageName}, _Stage} <- State#state.stages, ThisAppName == AppName ],
+	case StageNames of
+		[] ->
+			NewApps = orddict:erase(AppName, State#state.apps),
+			er_event_bus:publish({apps, AppName, remove}),
+			{reply, ok, State#state{apps = NewApps}};
+		_ ->
+			{reply, {pending_stages, StageNames}, State}
+	end;
 handle_call({set_stage, #stage{app_name = AppName, stage_name = StageName} = Stage}, _From, State) ->
 	case orddict:is_key(AppName, State#state.apps) of
 		true ->
@@ -37,6 +50,16 @@ handle_call({set_stage, #stage{app_name = AppName, stage_name = StageName} = Sta
 			{reply, ok, State#state{stages = NewStages}};
 		false ->
 			{reply, no_app, State}
+	end;
+handle_call({remove_stage, AppName, StageName}, _From, State) ->
+	InstanceIds = [ Id || {{ThisAppName, ThisStageName, Id}, _Instance} <- State#state.instances, ThisAppName == AppName, ThisStageName == StageName ],
+	case InstanceIds of
+		[] ->
+			NewStages = orddict:erase({AppName, StageName}, State#state.stages),
+			er_event_bus:publish({stages, {AppName, StageName}, remove}),
+			{reply, ok, State#state{stages = NewStages}};
+		_ ->
+			{reply, {pending_instances, InstanceIds}, State}
 	end;
 handle_call({set_instance, #instance{app_name = AppName, stage_name = StageName, id = Id} = Instance}, _From, State) ->
 	case orddict:is_key({AppName, StageName}, State#state.stages) of
@@ -62,7 +85,17 @@ handle_call({get_instance, Id}, _From, State) ->
 handle_cast({tell_instance, Id, Message}, State) ->
 	[{_, #instance{node = NodeId}}] = lists:filter(fun({_, #instance{id = ThisId}}) -> ThisId == Id end, State#state.instances),
 	er_node_manager:tell_node(NodeId, {tell_instance, Id, Message}),
-	{noreply, State}.
+	{noreply, State};
+handle_cast({event, instance_events, Id, remove}, State) ->
+	Partition = lists:partition(fun({_, #instance{id = ThisId}}) -> ThisId == Id end, State#state.instances),
+	case Partition of
+		{[{InstanceKey, _}], NewInstances} ->
+			er_event_bus:publish({instances, InstanceKey, remove}),
+			{noreply, State#state{instances = NewInstances}};
+		_ -> {noreply, State}
+	end;
+handle_cast({event, instance_events, _, _}, State) -> {noreply, State};
+handle_cast({snapshot, instance_events, _Data}, State) -> {noreply, State}.
 
 %% helpers
 

@@ -30,13 +30,23 @@ function IO($scope) {
 }
 
 var event_types = {
-    "apps": function($scope, key, value) {  $scope.apps[key] = value; },
+    "apps": function($scope, key, value) {
+        if (value != "remove") {
+            $scope.apps[key] = value;
+        } else {
+            delete $scope.apps[key];
+        }
+    },
     "stages": function($scope, key, value) {
         if (!$scope.stages[key.app_name]) {
             $scope.stages[key.app_name] = {};
         }
-        $scope.stages[key.app_name][key.stage_name] = value;
-        return { notify: "info", message: key.app_name + "@" + key.stage_name, details: "Stage definition updated" };
+        if (value != "remove") {
+            $scope.stages[key.app_name][key.stage_name] = value;
+            return { notify: "info", message: key.app_name + "@" + key.stage_name, details: "Stage definition updated" };
+        } else {
+            delete $scope.stages[key.app_name][key.stage_name];            
+        }
     },
     "instances": function($scope, key, value) {
         if (!$scope.instances[key.app_name]) {
@@ -45,7 +55,12 @@ var event_types = {
                 $scope.instances[key.app_name][key.stage_name] = {};
             }
         }
-        $scope.instances[key.app_name][key.stage_name][key.id] = value;
+        if (value != "remove") {
+            $scope.instances[key.app_name][key.stage_name][key.id] = value;
+        } else {
+            delete $scope.instances[key.app_name][key.stage_name][key.id];
+            return { notify: "info", message: "Instance " + key.id + " deleted", details: ""}
+        }
     },
     "recommended_versions": function($scope, key, value) {
         if (!$scope.recommended_versions[key.app_name]) {

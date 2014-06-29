@@ -72,7 +72,8 @@ process_instance(Instance, State) ->
 			end;
 		#instance{id = _Id} ->
 			%% TODO: find out if we owned that instance, remove if we did
-			State
+			State;
+		remove -> State %% it's already removed
 	end.
 
 node_id() -> {ok, NodeId} = application:get_env(easyrider, node_id), NodeId.
@@ -83,12 +84,15 @@ join_attempt() ->
 	er_node_manager:node_up(NodeId, node()).
 
 start_new_instance(Id) ->
-	{ok, Agent} = er_instance_agent:start_link(Id),
-	erlang:monitor(process, Agent),
-	#deployed_instance{id = Id, agent = Agent}.
+	case er_instance_agent:start_link(Id) of
+		{ok, Agent} ->
+			erlang:monitor(process, Agent),
+			{ok, #deployed_instance{id = Id, agent = Agent}};
+		ignore -> ignore
+	end.
 
 new_instance(Id, State) ->
-	DeployedInstance = start_new_instance(Id),
+	{ok, DeployedInstance} = start_new_instance(Id),
 	NewInstances = orddict:store(Id, DeployedInstance, State#state.instances),
 	NewState = State#state{instances = NewInstances},
 	store_state(NewInstances),
@@ -101,7 +105,7 @@ store_state(DeployedInstances) ->
 load_state() ->
 	case file:consult(node_config()) of
 		{ok, [DeployedInstances]} ->
-			[ {Id, start_new_instance(Id)} || {Id, _} <- DeployedInstances];
+			[ {Id, Instance} || {Id, _} <- DeployedInstances, {ok, Instance} <- [start_new_instance(Id)] ];
 		_ -> []
 	end.
 
