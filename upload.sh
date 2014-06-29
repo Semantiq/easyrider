@@ -1,7 +1,7 @@
 #!/bin/bash
 
 FILE=test_app/test_app.zip
-VERSION=`date +'%Y%m%d'`-`date +"%T"`
+VERSION=`date +'%Y%m%d-%H%M%S'`
 
 while getopts a:v:f: option; do
 	case "${option}" in

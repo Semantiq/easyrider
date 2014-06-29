@@ -127,12 +127,21 @@ deploy(Id, AppName, VersionNumber, Configuration) ->
 	PackageFile = lists:concat([Folder, "/package.zip"]),
 	ok = filelib:ensure_dir(PackageFile),
 	ok = er_repository:download_version_file(AppName, VersionNumber, PackageFile),
-	{ok, Files} = zip:extract(PackageFile, [{cwd, Folder}]),
-	io:format("Files: ~p~n", [Files]),
-	ExecFile = lists:concat(["sh run.sh"]),
-	% TODO: find one of the allowed executables, instead of assuming run.sh
+	{ok, _Files} = zip:extract(PackageFile, [{cwd, Folder}]),
+	ExecFile = find_exec_file(AppName, Folder),
 	Env = get_env_properties(Id, VersionNumber, Configuration),
 	{Folder, ExecFile, Env}.
+
+find_exec_file(AppName, Folder) ->
+	Candidates = [
+		"./run.sh",
+		"./bin/" ++ AppName,
+		"./*/bin/" ++ AppName
+	],
+	[ExecFile] = lists:flatmap(fun(Candidate) -> filelib:wildcard(Candidate, Folder) end, Candidates),
+	os:cmd(io_lib:format("chmod +x ~s", [Folder ++ "/" ++ ExecFile])),
+	error_logger:info_msg("Detected executable: ~s~n", ExecFile),
+	ExecFile.
 
 start_package(#state{id = Id, deploy_info = {Folder, ExecFile, Env}} = State) ->
 	Port = open_port({spawn, ExecFile}, [stream, {line, 1024}, {cd, Folder}, {env, Env}, exit_status, use_stdio, stderr_to_stdout]),
