@@ -18,13 +18,13 @@ handle_cast({login, Username, Password}, #state{client = Client, role = not_auth
 			gen_server:cast(Client, {bad_username_or_password, {}}),
 			{noreply, #state{client = Client}}
 	end;
-handle_cast({subscribe, EventTypes}, State) ->
+handle_cast({subscribe, EventTypes}, State) when State#state.role /= not_authenticated ->
 	er_event_bus:subscribe(self(), EventTypes),
 	{noreply, State};
-handle_cast({subscribe_versions, Limit}, State) ->
+handle_cast({subscribe_versions, Limit}, State) when State#state.role /= not_authenticated ->
 	er_repository:subscribe_versions(self(), Limit),
 	{noreply, State};
-handle_cast({tell_instance, Id, Message}, State) ->
+handle_cast({tell_instance, Id, Message}, State) when State#state.role /= not_authenticated ->
 	er_apps:tell_instance(Id, Message),
 	{noreply, State};
 handle_cast({snapshot, EventType, Data}, State) ->
@@ -45,7 +45,7 @@ handle_cast({version_approved, Version}, State) ->
 
 %% Other gen_server callbacks
 
-terminate(Reason, _State) -> ok.
-handle_call(_Req, _From, State) -> stub.
-handle_info(Info, State) -> stub.
-code_change(_OldVersion, State, _) -> stub.
+terminate(_, _) -> stub.
+handle_call(_, _, _) -> stub.
+handle_info(_, _) -> stub.
+code_change(_, _, _) -> stub.
