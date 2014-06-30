@@ -37,14 +37,6 @@
 				
 			</div>
 			<div ng-show="activeTab == 'apps'">
-				<div class="col-md-3 panel panel-default" ng-show="deployInstanceForm.id != null">
-					<p>Deploy {{deployInstanceForm.app}} v {{deployInstanceForm.version}} to {{deployInstanceForm.id}}</p>
-					<ul>
-						<li ng-repeat="version in versions[deployInstanceForm.app]"><a href="#" ng-click="deployInstanceForm.version = version.number">{{version.number}}</a></li>
-					</ul>
-					<button class="btn btn-default" ng-click="deployInstance(deployInstanceForm.id, deployInstanceForm.version); deployInstanceForm.id = null">Deploy</button>
-					<button class="btn btn-default" ng-click="deployInstanceForm.id = null">Cancel</button>
-				</div>
 				<div ng-repeat="(appName, app) in apps" class="row-fluid">
 					<div class="col-md-12">
 						<h3>App {{app.name}}</h3>
@@ -77,7 +69,7 @@
 										<dd>{{instance.node}}</dd>
 										<dt>{{instance_events[instance.id].event}}</dt>
 										<dd>
-											<a href="#" ng-click="deployInstanceForm.id = instance.id; deployInstanceForm.app = appName">{{instance_events[instance.id].version}}</a>
+											<a href="#" ng-click="deployInstanceForm.id = instance.id; deployInstanceForm.app = appName" data-toggle="modal" data-target="#deployInstanceForm">{{instance_events[instance.id].version}}</a>
 										</dd>
 										<dt ng-repeat-start="property in instance.properties | filter: {type: 'property'}">{{property.key}}</dt>
 										<dd ng-repeat-end>{{property.value}}<dd>
@@ -122,10 +114,34 @@
 				</div>
 			</div>
 		</div>
+		<!-- Toaster -->
 		<toaster-container toaster-options="{'position-class': 'toast-top-right'}"></toaster-container>
+		<!-- Deploy instance modal -->
+		<div class="modal fade" id="deployInstanceForm" tabindex="-1" role="dialog">
+			<div class="modal-dialog">
+				<div class="modal-content">
+					<div class="modal-header">
+						<button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+						<h4 class="modal-title">Deploy instance</h4>
+					</div>
+					<div class="modal-body">
+						<p>Deploy {{deployInstanceForm.app}} v {{deployInstanceForm.version}} to {{deployInstanceForm.id}}</p>
+						<ul>
+							<li ng-repeat="version in versions[deployInstanceForm.app]"><a href="#" ng-click="deployInstanceForm.version = version.number">{{version.number}}</a></li>
+						</ul>
+					</div>
+					<div class="modal-footer">
+						<button class="btn btn-primary" ng-click="deployInstance(deployInstanceForm.id, deployInstanceForm.version)" data-dismiss="modal">Deploy</button>
+						<button class="btn btn-default" data-dismiss="modal">Cancel</button>
+					</div>
+				</div><!-- /.modal-content -->
+			</div><!-- /.modal-dialog -->
+		</div><!-- /.modal -->
 		<script src="angular.min.js"></script>
 		<script src="angular-animate.min.js"></script>
 		<script src="toaster.js"></script>
+		<script src="jquery-1.11.1.min.js"></script>
+		<script src="bootstrap.min.js"></script>
 		<script src="main.js"></script>
 	</body>
 </html>
