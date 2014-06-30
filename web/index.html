@@ -41,8 +41,11 @@
 					<div class="col-md-12">
 						<h3>App {{app.name}}</h3>
 						<dl class="dl-horizontal" ng-show="showProperties">
+							<!-- TODO: properties should be a component -->
 							<dt ng-repeat-start="property in app.properties | filter: {type: 'property'}">{{property.key}}</dt>
 							<dd ng-repeat-end>{{property.value}}<dd>
+								<dt ng-repeat-start="property in app.properties | filter: {type: 'wrapper'}">Command</dt>
+								<dd ng-repeat-end>{{property.command}}</dd>
 						</dl>
 						<a href="#" ng-click="showProperties = !showProperties">more properties</a>
 						<div class="well" ng-repeat="(stageName, stage) in stages[appName]">

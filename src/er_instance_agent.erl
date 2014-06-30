@@ -128,8 +128,12 @@ deploy(Id, AppName, VersionNumber, Configuration) ->
 	ok = filelib:ensure_dir(PackageFile),
 	ok = er_repository:download_version_file(AppName, VersionNumber, PackageFile),
 	{ok, _Files} = zip:extract(PackageFile, [{cwd, Folder}]),
-	ExecFile = find_exec_file(AppName, Folder),
 	Env = get_env_properties(Id, VersionNumber, Configuration),
+	ExecFile = case get_wrapper_config(Configuration, command) of
+		{ok, Command} -> substitute(Configuration, Command);
+		_ -> find_exec_file(AppName, Folder)
+	end,
+	error_logger:info_msg("Command to run package: ~s~n", ExecFile),
 	{Folder, ExecFile, Env}.
 
 find_exec_file(AppName, Folder) ->
@@ -140,7 +144,6 @@ find_exec_file(AppName, Folder) ->
 	],
 	[ExecFile] = lists:flatmap(fun(Candidate) -> filelib:wildcard(Candidate, Folder) end, Candidates),
 	os:cmd(io_lib:format("chmod +x ~s", [Folder ++ "/" ++ ExecFile])),
-	error_logger:info_msg("Detected executable: ~s~n", ExecFile),
 	ExecFile.
 
 start_package(#state{id = Id, deploy_info = {Folder, ExecFile, Env}} = State) ->
@@ -163,6 +166,21 @@ stop_package(#state{id = Id, port = Port} = State) when Port /= undefined ->
 			after
 				10000 -> er_event_bus:publish({instance_events, Id, {force_stop_failed, State#state.version}})
 			end
+	end.
+
+substitute([], String) -> String;
+substitute([ {wrapper, _, _} | Rest ], String) -> substitute(Rest, String);
+substitute([ {property, Key, Value} | Rest ], String) ->
+	%% TODO: key may be a regular expression, but should not be treated as such
+	NewString = re:replace(String, "\\$" ++ Key, Value, [global, {return, list}]),
+	substitute(Rest, NewString).
+
+get_wrapper_config(Configuration, Key) ->
+	case [ Value || {wrapper, ThisKey, Value} <- Configuration, ThisKey == Key ] of
+		[Value] -> {ok, Value};
+		_ -> case Key of
+			_ -> undefined
+		end
 	end.
 
 get_wrapper_configuration(Configuration) -> get_wrapper_configuration(#wrapper{}, Configuration).
