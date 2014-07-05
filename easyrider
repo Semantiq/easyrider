@@ -1,0 +1,3 @@
+#!/bin/sh
+
+erl -noshell -detached -config config/a.config -pa deps/yaws/ebin -pa ebin -sname a -eval "application:start(easyrider)"
