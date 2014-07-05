@@ -37,7 +37,10 @@ init(_Args) ->
 			permanent, 2000, worker, [er_orchestrator]},
 		{er_user_manager,
 			{er_user_manager, start_link, []},
-			permanent, 2000, worker, [er_user_manager]}
+			permanent, 2000, worker, [er_user_manager]},
+		{er_event_logger,
+			{er_event_logger, start_link, []},
+			permanent, 1000, worker, [er_event_logger]}
 	],
 	{ok, {{one_for_one, 3, 60}, lists:filter(fun should_start/1, Children)}}.
 
@@ -52,5 +55,6 @@ should_start({Child, _, _, _, _, _}) ->
 		er_orchestrator -> application:get_env(easyrider, run_orchestrator) == {ok, true};
 		er_user_manager -> application:get_env(easyrider, run_user_manager) == {ok, true};
 		er_node_manager -> application:get_env(easyrider, run_node_manager) == {ok, true};
+		er_event_logger -> application:get_env(easyrider, run_event_logger) == {ok, true};
 		_ -> false
 	end.

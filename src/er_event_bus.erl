@@ -8,7 +8,7 @@
 start_link() -> gen_server:start_link({global, ?MODULE}, ?MODULE, [], []).
 subscribe(Pid, EventTypes) -> gen_server:cast({global, ?MODULE}, {subscribe, Pid, EventTypes}).
 unsubscribe(Pid) -> gen_server:cast({global, ?MODULE}, {unsubscribe, Pid}).
-publish({EventType, Key, Data}) -> gen_server:cast({global, ?MODULE}, {publish, EventType, Key, Data}).
+publish({EventType, Key, Data}) -> gen_server:cast({global, ?MODULE}, {publish, EventType, Key, Data, now()}).
 get_snapshot(EventType) -> gen_server:call({global, ?MODULE}, {get_snapshot, EventType}).
 
 %% gen_server
@@ -22,17 +22,17 @@ handle_cast({subscribe, Pid, EventTypes}, State) ->
 	{noreply, State#state{subscriptions = orddict:store(Pid, EventTypes, State#state.subscriptions)}};
 handle_cast({unsubscribe, UnsubscribingPid}, State) ->
 	{noreply, State#state{subscriptions = lists:filter(fun({Pid, _}) -> Pid /= UnsubscribingPid end, State#state.subscriptions)}};
-handle_cast({publish, EventType, Key, remove}, State) ->
+handle_cast({publish, EventType, Key, remove, Timestamp}, State) ->
 	Snapshot = get_snapshot(EventType, State),
 	UpdatedSnapshot = orddict:erase(Key, Snapshot),
 	UpdatedState = State#state{snapshots = orddict:store(EventType, UpdatedSnapshot, State#state.snapshots)},
-	notify(EventType, Key, remove, UpdatedState),
+	notify(EventType, Key, remove, Timestamp, UpdatedState),
 	{noreply, UpdatedState};
-handle_cast({publish, EventType, Key, Data}, State) ->
+handle_cast({publish, EventType, Key, Data, Timestamp}, State) ->
 	Snapshot = get_snapshot(EventType, State),
 	UpdatedSnapshot = orddict:store(Key, Data, Snapshot),
 	UpdatedState = State#state{snapshots = orddict:store(EventType, UpdatedSnapshot, State#state.snapshots)},
-	notify(EventType, Key, Data, UpdatedState),
+	notify(EventType, Key, Data, Timestamp, UpdatedState),
 	{noreply, UpdatedState}.
 
 handle_call({get_snapshot, EventType}, _From, State) ->
@@ -51,7 +51,8 @@ get_snapshot(EventType, State) ->
 		_ -> []
 	end.
 
-notify(EventType, Key, Data, State) ->
+notify(EventType, Key, Data, Timestamp, State) ->
+	er_event_logger:log_event({EventType, Key, Data, Timestamp}),
 	store_state(State),
 	[ gen_server:cast(Subscriber, {event, EventType, Key, Data}) ||
 			{Subscriber, EventTypes} <- State#state.subscriptions,
