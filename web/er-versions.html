@@ -1,0 +1,4 @@
+<div ng-repeat="version in versions">
+	<a href="#" ng-click="select(version.number)">{{version.number}}</a>
+	<span class="badge" ng-repeat="approval in version.approvals">{{approval}}</span>
+</div>

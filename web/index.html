@@ -109,11 +109,7 @@
 				</div>				
 				<div ng-repeat="(app, appVersions) in versions" class="row-fluid">
 					<h3>{{app}}</h3>
-					<div ng-repeat="version in appVersions">
-						{{version.app}} v {{version.number}}
-						<!-- TODO: display content_ref? -->
-						<span class="badge" ng-repeat="approval in version.approvals">{{approval}}</span>
-					</div>
+					<er-versions versions="appVersions"></div>
 				</div>
 			</div>
 		</div>
@@ -129,17 +125,15 @@
 					</div>
 					<div class="modal-body">
 						<p>Deploy {{deployInstanceForm.app}} v {{deployInstanceForm.version}} to {{deployInstanceForm.id}}</p>
-						<ul>
-							<li ng-repeat="version in versions[deployInstanceForm.app]"><a href="#" ng-click="deployInstanceForm.version = version.number">{{version.number}}</a></li>
-						</ul>
+						<er-versions versions="versions[deployInstanceForm.app]" selected-version="deployInstanceForm.version" />
 					</div>
 					<div class="modal-footer">
 						<button class="btn btn-primary" ng-click="deployInstance(deployInstanceForm.id, deployInstanceForm.version)" data-dismiss="modal">Deploy</button>
 						<button class="btn btn-default" data-dismiss="modal">Cancel</button>
 					</div>
-				</div><!-- /.modal-content -->
-			</div><!-- /.modal-dialog -->
-		</div><!-- /.modal -->
+				</div>
+			</div>
+		</div>
 		<script src="angular.min.js"></script>
 		<script src="angular-animate.min.js"></script>
 		<script src="toaster.js"></script>

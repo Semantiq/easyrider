@@ -1,3 +1,4 @@
+Keep version metadata with the content, so that the whole package-folder can be moved around easily.
 Compilation.
 Task triggers & actions on completion - move to release manager.
 Handle property templating.

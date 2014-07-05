@@ -94,6 +94,22 @@ function process_event($scope, toaster, message) {
 
 var app = new angular.module("easyrider", ["toaster"]);
 
+app.directive('erVersions', function() {
+    return {
+        restrict: 'E',
+        templateUrl: '/er-versions.html',
+        scope: {
+            versions: "=versions",
+            selectedVersion: "=selectedVersion"
+        },
+        controller: function($scope) {
+            $scope.select = function(version) {
+                $scope.selectedVersion = version;
+            };
+        }
+    };
+});
+
 app.controller("AppsCtrl", function($scope, toaster) {
     $scope.deployInstanceForm = {};
 
