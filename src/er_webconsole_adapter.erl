@@ -154,8 +154,6 @@ properties_to_json(Properties) ->
 		{struct, [{"type", "property"}, {"key", Key}, {"value", Value}]} || {property, Key, Value} <- Properties
 	] ++ [
 		{struct, [{"type", "rule"}, {"name", atom_to_list(Name)},  {"approvals", {array, Approvals}}]} || {rule, Name, Approvals} <- Properties
-	] ++ [
-		{struct, [{"type", "wrapperproperty"}, {Key, Value}]} || {wrapperproperty, Key, Value} <- Properties
 	]}.
 
 %% Other gen_server callbacks

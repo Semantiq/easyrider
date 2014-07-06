@@ -21,15 +21,10 @@ message Instance {
 
 message Configuration {
 	repeated Property properties = 1;
-	repeated WrapperProperty wrapperProperties = 2;	
+	repeated Property wrapperProperties = 2;	
 }
 
 message Property {
-	required string name = 1;
-	required string value = 2;
-}
-
-message WrapperProperty {
 	required string name = 1;
 	required string value = 2;
 }

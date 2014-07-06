@@ -6,7 +6,6 @@
 -export([init/1, handle_call/3, handle_cast/2, terminate/2, code_change/3, handle_info/2]).
 
 -record(state, {id, instance, version, configuration, port, deploy_info, msg_count = 0}).
--record(wrapper, {type = app, trigger_deploy, approve_on_success}).
 
 %% Interface
 
@@ -39,15 +38,15 @@ handle_info({_Port, {exit_status, ExitCode}}, #state{id = Id, version = Version}
 	io:format("~p: Process exit code: ~p~n", [Id, ExitCode]),
 	Outcome = case ExitCode of 0 -> completed; _ -> crashed end,
 	er_event_bus:publish({instance_events, Id, {Outcome, Version}}),
-	case {Outcome, get_wrapper_configuration(State#state.configuration)} of
-		{completed, #wrapper{approve_on_success = {AppName, StageName, Approval}}} ->
-			%% TODO: this does indicate a separate responsibility
-			{_, _, DeployedVersions} = er_event_bus:get_snapshot(deployed_versions),
-			{ok, ApprovedVersionNumber} = orddict:find({AppName, StageName}, DeployedVersions),
-			error_logger:info_msg("~p v ~p acquired approval ~p~n", [AppName, ApprovedVersionNumber, Approval]),
-			er_repository:approve_version(AppName, ApprovedVersionNumber, Approval);
-		_ -> ok
-	end,
+	% case {Outcome, get_wrapper_configuration(State#state.configuration)} of
+	% 	{completed, #wrapper{approve_on_success = {AppName, StageName, Approval}}} ->
+	% 		%% TODO: this does indicate a separate responsibility
+	% 		{_, _, DeployedVersions} = er_event_bus:get_snapshot(deployed_versions),
+	% 		{ok, ApprovedVersionNumber} = orddict:find({AppName, StageName}, DeployedVersions),
+	% 		error_logger:info_msg("~p v ~p acquired approval ~p~n", [AppName, ApprovedVersionNumber, Approval]),
+	% 		er_repository:approve_version(AppName, ApprovedVersionNumber, Approval);
+	% 	_ -> ok
+	% end,
 	{noreply, State#state{port = undefined}}.
 
 handle_cast({deploy, VersionNumber}, #state{port = undefined} = State) ->
@@ -72,13 +71,14 @@ handle_cast(remove, #state{id = Id, port = Port} = State) when Port == undefined
 	error_logger:info_msg("Removing app instance: ~p~n", [Id]),
 	er_event_bus:publish({instance_events, Id, remove}),
 	{stop, normal, State};
-handle_cast({event, deployed_versions, {AppName, StageName}, _Version}, State) ->
-	case {State, get_wrapper_configuration(State#state.configuration)} of
-		{#state{port = undefined}, #wrapper{trigger_deploy = {AppName, StageName}}} ->
-			Port = start_package(State),
-			{noreply, State#state{port = Port}};
-		_ -> {noreply, State}		
-	end;
+handle_cast({event, deployed_versions, {_AppName, _StageName}, _Version}, State) ->
+	{noreply, State};
+	% case {State, get_wrapper_configuration(State#state.configuration)} of
+	% 	{#state{port = undefined}, #wrapper{trigger_deploy = {AppName, StageName}}} ->
+	% 		Port = start_package(State),
+	% 		{noreply, State#state{port = Port}};
+	% 	_ -> 		
+	% end;
 handle_cast({snapshot, deployed_versions, _}, State) -> {noreply, State}.
 
 terminate(normal, #state{id = Id}) ->
@@ -98,8 +98,9 @@ do_deploy(VersionNumber, #state{id = Id, instance = #instance{app = AppName, sta
 	er_event_bus:publish({instance_events, Id, {deploying, VersionNumber}}),
 	{ok, Configuration} = er_apps:effective_configuration(AppName, StageName, Id),
 	DeployInfo = deploy(Id, AppName, VersionNumber, Configuration),
-	case get_wrapper_configuration(Configuration) of
-		#wrapper{type = task, trigger_deploy = TriggerDeploy} -> 
+	case get_wrapper_config(Configuration, "command") of
+		{ok, "task"} ->
+			TriggerDeploy = get_wrapper_config(Configuration, "trigger_deploy"),
 			%% TODO: This should be done in a separate (task-manager) component, to allow for rule processing etc.
 			if
 				TriggerDeploy /= undefined -> er_event_bus:subscribe(self(), [deployed_versions]);
@@ -107,7 +108,7 @@ do_deploy(VersionNumber, #state{id = Id, instance = #instance{app = AppName, sta
 			end,
 			er_event_bus:publish({instance_events, Id, {ready, VersionNumber}}),
 			State#state{id = Id, version = VersionNumber, configuration = Configuration, port = undefined, deploy_info = DeployInfo};
-		#wrapper{type = app} ->
+		_ ->
 			NewState = State#state{id = Id, version = VersionNumber, configuration = Configuration, port = undefined, deploy_info = DeployInfo},
 			Port = start_package(NewState),
 			error_logger:info_msg("Started ~p with ~p as ~p~n", [VersionNumber, Configuration, Port]),
@@ -129,8 +130,8 @@ deploy(Id, AppName, VersionNumber, Configuration) ->
 	ok = er_repository:download_version_file(AppName, VersionNumber, PackageFile),
 	{ok, _Files} = zip:extract(PackageFile, [{cwd, Folder}]),
 	Env = get_env_properties(Id, VersionNumber, Configuration),
-	ExecFile = case get_wrapper_config(Configuration, command) of
-		{ok, Command} -> substitute(Configuration, Command);
+	ExecFile = case get_wrapper_config(Configuration, "command") of
+		{ok, Command} -> substitute(Configuration#configuration.properties, Command);
 		_ -> find_exec_file(AppName, Folder)
 	end,
 	error_logger:info_msg("Command to run package: ~s~n", [ExecFile]),
@@ -146,7 +147,16 @@ find_exec_file(AppName, Folder) ->
 	os:cmd(io_lib:format("chmod +x ~s", [Folder ++ "/" ++ ExecFile])),
 	ExecFile.
 
-start_package(#state{id = Id, deploy_info = {Folder, ExecFile, Env}} = State) ->
+start_package(#state{id = Id, deploy_info = {Folder, _, _}, instance = #instance{app = AppName, stage = StageName}, version = VersionNumber} = State) ->
+	%% get the latest config on each start-up
+	{ok, Configuration} = er_apps:effective_configuration(AppName, StageName, Id),
+	Env = get_env_properties(Id, VersionNumber, Configuration),
+	ExecFile = case get_wrapper_config(Configuration, "command") of
+		{ok, Command} -> substitute(Configuration#configuration.properties, Command);
+		_ -> find_exec_file(AppName, Folder)
+	end,
+	error_logger:info_msg("Command to run package: ~s~n", [ExecFile]),
+
 	Port = open_port({spawn, ExecFile}, [stream, {line, 1024}, {cd, Folder}, {env, Env}, exit_status, use_stdio, stderr_to_stdout]),
 	er_event_bus:publish({instance_events, Id, {running, State#state.version}}),
 	Port.
@@ -169,30 +179,29 @@ stop_package(#state{id = Id, port = Port} = State) when Port /= undefined ->
 	end.
 
 substitute([], String) -> String;
-substitute([ {wrapper, _, _} | Rest ], String) -> substitute(Rest, String);
 substitute([ {property, Key, Value} | Rest ], String) ->
 	%% TODO: key may be a regular expression, but should not be treated as such
 	NewString = re:replace(String, "\\$" ++ Key, Value, [global, {return, list}]),
 	substitute(Rest, NewString).
 
 get_wrapper_config(#configuration{wrapperproperties = Properties}, Key) ->
-	case [ Value || {wrapperproperty, ThisKey, Value} <- Properties, ThisKey == Key ] of
+	case [ Value || {property, ThisKey, Value} <- Properties, ThisKey == Key ] of
 		[Value] -> {ok, Value};
 		_ -> case Key of
 			_ -> undefined
 		end
 	end.
 
-get_wrapper_configuration(Configuration) -> get_wrapper_configuration(#wrapper{}, Configuration).
-get_wrapper_configuration(Wrapper, []) -> Wrapper;
-get_wrapper_configuration(Wrapper, [ Entry | Configuration]) ->
-	UpdatedWrapper = case Entry of
-		{wrapper, type, Type} -> Wrapper#wrapper{type = Type};
-		{wrapper, trigger_deploy, {AppName, StageName}} -> Wrapper#wrapper{trigger_deploy = {AppName, StageName}};
-		{wrapper, approve_on_success, {AppName, StageName, Approval}} -> Wrapper#wrapper{approve_on_success = {AppName, StageName, Approval}};
-		_ -> Wrapper
-	end,
-	get_wrapper_configuration(UpdatedWrapper, Configuration).
+% get_wrapper_configuration(Configuration) -> get_wrapper_configuration(#wrapper{}, Configuration).
+% get_wrapper_configuration(Wrapper, []) -> Wrapper;
+% get_wrapper_configuration(Wrapper, [ Entry | Configuration]) ->
+% 	UpdatedWrapper = case Entry of
+% 		{wrapper, type, Type} -> Wrapper#wrapper{type = Type};
+% 		{wrapper, trigger_deploy, {AppName, StageName}} -> Wrapper#wrapper{trigger_deploy = {AppName, StageName}};
+% 		{wrapper, approve_on_success, {AppName, StageName, Approval}} -> Wrapper#wrapper{approve_on_success = {AppName, StageName, Approval}};
+% 		_ -> Wrapper
+% 	end,
+% 	get_wrapper_configuration(UpdatedWrapper, Configuration).
 
 %% other gen_server
 

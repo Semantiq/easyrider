@@ -1,10 +1,15 @@
+Full JSON API.
 DEB Packaging.
 Use TAR.BZ2 instead of ZIP.
 Keep version metadata with the content, so that the whole package-folder can be moved around easily.
 Use symbolic node names in content references.
+
+Test aborted upload clean-up.
+Test app & stage config changes application to instances.
+
 Handle property templating.
 Full PB API.
-Full JSON API.
+
 Compilation.
 Task triggers & actions on completion - move to release manager.
 Instance move betwen nodes.

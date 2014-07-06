@@ -44,8 +44,8 @@
 							<!-- TODO: properties should be a component -->
 							<dt ng-repeat-start="property in app.properties | filter: {type: 'property'}">{{property.key}}</dt>
 							<dd ng-repeat-end>{{property.value}}<dd>
-								<dt ng-repeat-start="property in app.properties | filter: {type: 'wrapper'}">Command</dt>
-								<dd ng-repeat-end>{{property.command}}</dd>
+							<dt ng-repeat-start="property in app.wrapperProperties | filter: {type: 'property'}">{{property.key}}</dt>
+							<dd ng-repeat-end>{{property.value}}</dd>
 						</dl>
 						<a href="#" ng-click="showProperties = !showProperties">more properties</a>
 						<div class="well" ng-repeat="(stageName, stage) in stages[appName]">
@@ -53,19 +53,21 @@
 							<dl class="dl-horizontal">
 								<dt>Recommended version</dt>
 								<dd>{{ recommended_versions[appName][stageName].version }}</dd>
-								<dt ng-repeat-start="property in stage.properties | filter: {type: 'rule'}">Required approvals</dt>
+								<dt ng-repeat-start="property in stage.wrapperProperties | filter: {type: 'rule'}">Required approvals</dt>
 								<dd ng-repeat-end>
 									<span ng-repeat="approval in property.approvals" class="badge">{{approval}}</span>
 								</dd>
 							</dl>
 							<dl class="dl-horizontal" ng-show="showProperties">
+								<dt ng-repeat-start="property in stage.wrapperProperties | filter: {type: 'property'}">{{property.key}}</dt>
+								<dd ng-repeat-end>{{property.value}}<dd>
 								<dt ng-repeat-start="property in stage.properties | filter: {type: 'property'}">{{property.key}}</dt>
 								<dd ng-repeat-end>{{property.value}}<dd>
 							</dl>
 							<a href="#" ng-click="showProperties = !showProperties">more properties</a>
 							<div class="row-fluid">
 								<div class="col-md-3 panel panel-default" ng-repeat="instance in instances[appName][stageName]">
-									<dl class="dl-horizontal" ng-show="showProperties">
+									<dl class="dl-horizontal">
 										<dt>id</dt>
 										<dd>{{instance.id}}</dd>
 										<dt>node</dt>
@@ -74,6 +76,10 @@
 										<dd>
 											<a href="#" ng-click="deployInstanceForm.id = instance.id; deployInstanceForm.app = appName" data-toggle="modal" data-target="#deployInstanceForm">{{instance_events[instance.id].version}}</a>
 										</dd>
+									</dl>
+									<dl class="dl-horizontal" ng-show="showProperties">
+										<dt ng-repeat-start="property in instance.wrapperProperties | filter: {type: 'property'}">{{property.key}}</dt>
+										<dd ng-repeat-end>{{property.value}}<dd>
 										<dt ng-repeat-start="property in instance.properties | filter: {type: 'property'}">{{property.key}}</dt>
 										<dd ng-repeat-end>{{property.value}}<dd>
 									</dl>
