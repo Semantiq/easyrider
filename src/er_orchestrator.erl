@@ -1,6 +1,6 @@
 -module(er_orchestrator).
 -behaviour(gen_server).
--include("er_apps.hrl").
+-include("easyrider_pb.hrl").
 -include("er_repository.hrl").
 -export([start_link/0]).
 -export([init/1, handle_call/3, handle_cast/2, terminate/2, code_change/3, handle_info/2]).

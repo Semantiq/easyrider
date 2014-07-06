@@ -1,0 +1,35 @@
+// Application, Stage and Instance configuration nouns
+
+message App {
+	required string name = 1;
+	required Configuration configuration = 2;
+}
+
+message Stage {
+	required string app = 1;
+	required string stage = 2;
+	required Configuration configuration = 3;
+}
+
+message Instance {
+	required string app = 1;
+	required string stage = 2;
+	required string id = 3;
+	required string nodeId = 4;
+	required Configuration configuration = 5;
+}
+
+message Configuration {
+	repeated Property properties = 1;
+	repeated WrapperProperty wrapperProperties = 2;	
+}
+
+message Property {
+	required string name = 1;
+	required string value = 2;
+}
+
+message WrapperProperty {
+	required string name = 1;
+	required string value = 2;
+}

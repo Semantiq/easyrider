@@ -1,6 +1,6 @@
 -module(er_webconsole_adapter).
 -behaviour(gen_server).
--include("er_apps.hrl").
+-include("easyrider_pb.hrl").
 -include("er_repository.hrl").
 -export([start_link/1]).
 -export([init/1, handle_call/3, handle_cast/2, terminate/2, code_change/3, handle_info/2]).
@@ -115,24 +115,27 @@ event_key_json(instances, {AppName, StageName, Id}) -> {struct, [{"app_name", Ap
 event_key_json(recommended_versions, {AppName, StageName}) -> {struct, [ {"app_name", AppName}, {"stage_name", StageName}]};
 event_key_json(instance_events, Id) -> Id.
 
-event_value_json(apps, #app{app_name = Name, properties = Properties}) ->
+event_value_json(apps, #app{name = Name, configuration = #configuration{properties = Properties, wrapperproperties = WrapperProperties}}) ->
 	{struct, [
 		{"name", Name},
-		{"properties", properties_to_json(Properties)}
+		{"properties", properties_to_json(Properties)},
+		{"wrapperProperties", properties_to_json(WrapperProperties)}
 	]};
-event_value_json(stages, #stage{app_name = AppName, stage_name = StageName, properties = Properties}) ->
+event_value_json(stages, #stage{app = AppName, stage = StageName, configuration = #configuration{properties = Properties, wrapperproperties = WrapperProperties}}) ->
 	{struct, [
-		{"app_name", AppName},
-		{"stage_name", StageName},
-		{"properties", properties_to_json(Properties)}
+		{"app", AppName},
+		{"stage", StageName},
+		{"properties", properties_to_json(Properties)},
+		{"wrapperProperties", properties_to_json(WrapperProperties)}
 	]};
-event_value_json(instances, #instance{app_name = AppName, stage_name = StageName, id = Id, node = Node, properties = Properties}) ->
+event_value_json(instances, #instance{app = AppName, stage = StageName, id = Id, nodeid = Node, configuration = #configuration{properties = Properties, wrapperproperties = WrapperProperties}}) ->
 	{struct, [
-		{"app_name", AppName},
-		{"stage_name", StageName},
+		{"app", AppName},
+		{"stage", StageName},
 		{"id", Id},
 		{"node", Node},
-		{"properties", properties_to_json(Properties)}
+		{"properties", properties_to_json(Properties)},
+		{"wrapperProperties", properties_to_json(WrapperProperties)}
 	]};
 event_value_json(recommended_versions, {Version, Mode}) ->
 	{struct, [
@@ -152,9 +155,7 @@ properties_to_json(Properties) ->
 	] ++ [
 		{struct, [{"type", "rule"}, {"name", atom_to_list(Name)},  {"approvals", {array, Approvals}}]} || {rule, Name, Approvals} <- Properties
 	] ++ [
-		{struct, [{"type", "adapter"}, {"adapter", atom_to_list(Type)}]} || {wrapper, type, Type} <- Properties
-	] ++ [
-		{struct, [{"type", "wrapper"}, {"command", Command}]} || {wrapper, command, Command} <- Properties
+		{struct, [{"type", "wrapperproperty"}, {Key, Value}]} || {wrapperproperty, Key, Value} <- Properties
 	]}.
 
 %% Other gen_server callbacks

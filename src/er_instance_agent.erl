@@ -1,7 +1,7 @@
 %% @docs Takes care of an application instance
 -module(er_instance_agent).
 -behaviour(gen_server).
--include("er_apps.hrl").
+-include("easyrider_pb.hrl").
 -export([start_link/1]).
 -export([init/1, handle_call/3, handle_cast/2, terminate/2, code_change/3, handle_info/2]).
 
@@ -94,9 +94,9 @@ terminate(_, #state{id = Id, port = Port} = State) when Port /= undefined ->
 
 %% helpers
 
-do_deploy(VersionNumber, #state{id = Id, instance = #instance{app_name = AppName, stage_name = StageName}} = State) ->
+do_deploy(VersionNumber, #state{id = Id, instance = #instance{app = AppName, stage = StageName}} = State) ->
 	er_event_bus:publish({instance_events, Id, {deploying, VersionNumber}}),
-	Configuration = er_apps:effective_configuration(AppName, StageName, Id),
+	{ok, Configuration} = er_apps:effective_configuration(AppName, StageName, Id),
 	DeployInfo = deploy(Id, AppName, VersionNumber, Configuration),
 	case get_wrapper_configuration(Configuration) of
 		#wrapper{type = task, trigger_deploy = TriggerDeploy} -> 
@@ -114,11 +114,11 @@ do_deploy(VersionNumber, #state{id = Id, instance = #instance{app_name = AppName
 			NewState#state{port = Port}
 	end.
 
-get_env_properties(Id, VersionNumber, Configuration) -> [
+get_env_properties(Id, VersionNumber, #configuration{properties = Properties}) -> [
 		{"VERSION", VersionNumber},
 		{"ID", Id}
 	] ++ [
-		{PropKey, PropValue} || {property, PropKey, PropValue} <- Configuration
+		{PropKey, PropValue} || {property, PropKey, PropValue} <- Properties
 	].
 
 deploy(Id, AppName, VersionNumber, Configuration) ->
@@ -133,7 +133,7 @@ deploy(Id, AppName, VersionNumber, Configuration) ->
 		{ok, Command} -> substitute(Configuration, Command);
 		_ -> find_exec_file(AppName, Folder)
 	end,
-	error_logger:info_msg("Command to run package: ~s~n", ExecFile),
+	error_logger:info_msg("Command to run package: ~s~n", [ExecFile]),
 	{Folder, ExecFile, Env}.
 
 find_exec_file(AppName, Folder) ->
@@ -175,8 +175,8 @@ substitute([ {property, Key, Value} | Rest ], String) ->
 	NewString = re:replace(String, "\\$" ++ Key, Value, [global, {return, list}]),
 	substitute(Rest, NewString).
 
-get_wrapper_config(Configuration, Key) ->
-	case [ Value || {wrapper, ThisKey, Value} <- Configuration, ThisKey == Key ] of
+get_wrapper_config(#configuration{wrapperproperties = Properties}, Key) ->
+	case [ Value || {wrapperproperty, ThisKey, Value} <- Properties, ThisKey == Key ] of
 		[Value] -> {ok, Value};
 		_ -> case Key of
 			_ -> undefined

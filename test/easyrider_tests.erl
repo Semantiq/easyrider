@@ -8,11 +8,11 @@ start_and_stop_test_() -> {"Startup test", in_clean_run(fun() -> ok end)}.
 configure_app_test_() -> {"Upload, deploy and start test app", in_clean_run(
 	fun() ->
 		er_event_bus:subscribe(self(), [instance_events]),
-		er_apps:set_app({app, "app", []}),
-		er_apps:set_stage({stage, "app", "dev", []}),
-		er_apps:set_instance({instance, "app", "dev", "app-0", "test0", [
+		er_apps:set_app({app, "app", {configuration, [], []}}),
+		er_apps:set_stage({stage, "app", "dev", {configuration, [], []}}),
+		er_apps:set_instance({instance, "app", "dev", "app-0", "test0", {configuration, [
 			{property, "port", "8080"}
-		]}),
+		], []}}),
 		er_repository:upload_version_file("app", "1.0", "../test_app/test_app.zip"),
 		{_, _} = expect_event(instance_events, "app-0"),
 		{deploying, "1.0"} = expect_event(instance_events, "app-0"),
@@ -26,11 +26,11 @@ redeployment_test_() -> {"Redeploy to instance", in_clean_run(
 		er_repository:upload_version_file("app", "2.0", "../test_app/test_app.zip"),
 		%% TODO: when upload rules are processed, the app instance may already be configured and get deployed
 		timer:sleep(200),
-		er_apps:set_app({app, "app", []}),
-		er_apps:set_stage({stage, "app", "dev", []}),
-		er_apps:set_instance({instance, "app", "dev", "app-0", "test0", [		
+		er_apps:set_app({app, "app", {configuration, [], []}}),
+		er_apps:set_stage({stage, "app", "dev", {configuration, [], []}}),
+		er_apps:set_instance({instance, "app", "dev", "app-0", "test0", {configuration, [
 			{property, "port", "8080"}
-		]}),
+		], []}}),
 		%% TODO: the instance may not yet be routable in er_node_agent
 		timer:sleep(200),
 		er_apps:tell_instance("app-0", {deploy, "1.0"}),
@@ -47,10 +47,10 @@ redeployment_test_() -> {"Redeploy to instance", in_clean_run(
 app_state_instance_remove_test_() -> {"Remove app, stage, created instance", in_clean_run(
 	fun() ->
 		er_event_bus:subscribe(self(), [instances, instance_events, apps]),
-		er_apps:set_app({app, "app", []}),
+		er_apps:set_app({app, "app", {configuration, [], []}}),
 		_ = expect_event(apps, "app"),
-		er_apps:set_stage({stage, "app", "dev", []}),
-		er_apps:set_instance({instance, "app", "dev", "app-0", "test0", []}),
+		er_apps:set_stage({stage, "app", "dev", {configuration, [], []}}),
+		er_apps:set_instance({instance, "app", "dev", "app-0", "test0", {configuration, [], []}}),
 		{created, _} = expect_event(instance_events, "app-0"),
 		_ = expect_event(instances, {"app", "dev", "app-0"}),
 		er_apps:tell_instance("app-0", remove),
@@ -64,9 +64,9 @@ app_state_instance_remove_test_() -> {"Remove app, stage, created instance", in_
 running_instance_remove_test_() -> {"Remove running instance", in_clean_run(
 	fun() ->
 		er_event_bus:subscribe(self(), [instances, instance_events]),
-		er_apps:set_app({app, "app", []}),
-		er_apps:set_stage({stage, "app", "dev", []}),
-		er_apps:set_instance({instance, "app", "dev", "app-0", "test0", []}),
+		er_apps:set_app({app, "app", {configuration, [], []}}),
+		er_apps:set_stage({stage, "app", "dev", {configuration, [], []}}),
+		er_apps:set_instance({instance, "app", "dev", "app-0", "test0", {configuration, [], []}}),
 		{created, _} = expect_event(instance_events, "app-0"),
 		_ = expect_event(instances, {"app", "dev", "app-0"}),
 		er_repository:upload_version_file("app", "1.0", "../test_app/test_app.zip"),

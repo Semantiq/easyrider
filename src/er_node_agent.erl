@@ -1,5 +1,5 @@
 -module(er_node_agent).
--include("er_apps.hrl").
+-include("easyrider_pb.hrl").
 -behaviour(gen_server).
 -export([start_link/0, all_deployed_instances/0, deployed_instances/0, on_join/1, tell_instance/3]).
 -export([init/1, handle_call/3, handle_cast/2, terminate/2, code_change/3, handle_info/2]).
@@ -63,7 +63,7 @@ process_instances([Instance | Rest], State) -> process_instances(Rest, process_i
 process_instance(Instance, State) ->
 	NodeId = node_id(),
 	case Instance of
-		#instance{id = Id, node = NodeId} ->
+		#instance{id = Id, nodeid = NodeId} ->
 			case orddict:find(Id, State#state.instances) of
 				{ok, #deployed_instance{agent = _Agent}} ->
 					error_logger:info_msg("TODO: Instance config change: ~p~n", [Instance]),

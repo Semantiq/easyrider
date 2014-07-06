@@ -1,0 +1,1 @@
+erl -pa deps/yaws/ebin -pa deps/protobuffs/ebin -pa ebin

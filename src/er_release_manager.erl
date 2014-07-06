@@ -1,6 +1,6 @@
 -module(er_release_manager).
 -behaviour(gen_server).
--include("er_apps.hrl").
+-include("easyrider_pb.hrl").
 -include("er_repository.hrl").
 -export([start_link/0]).
 -export([init/1, handle_call/3, handle_cast/2, terminate/2, code_change/3, handle_info/2]).
@@ -24,7 +24,7 @@ handle_cast({new_version, Version}, State) ->
 	AppName = Version#version_info.app,
 	{snapshot, stages, AllStages} = er_event_bus:get_snapshot(stages),
 	Stages = [ Stage || {{ThisAppName, _StageName}, Stage} <- AllStages, ThisAppName == AppName ],
-	Recommendations = [ {recommended_versions, {AppName, StageName}, {Version#version_info.number, immediate}} || #stage{stage_name = StageName} <- Stages ],
+	Recommendations = [ {recommended_versions, {AppName, StageName}, {Version#version_info.number, immediate}} || #stage{stage = StageName} <- Stages ],
 	[ er_event_bus:publish(Recommendation) || Recommendation <- Recommendations ],
 	{noreply, State};
 handle_cast({version_approved, _Version}, State) -> {noreply, State};

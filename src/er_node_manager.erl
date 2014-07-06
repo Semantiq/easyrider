@@ -1,6 +1,5 @@
 %% @doc Maintains the state of nodes. Allows to send messages to nodes and instances by logical name.
 -module(er_node_manager).
--include("er_apps.hrl").
 -behaviour(gen_server).
 -export([start_link/0, node_up/2, tell_node/2]).
 -export([init/1, handle_call/3, handle_cast/2, terminate/2, code_change/3, handle_info/2]).
