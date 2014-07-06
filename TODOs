@@ -1,5 +1,10 @@
+DEB Packaging.
+Use TAR.BZ2 instead of ZIP.
 Keep version metadata with the content, so that the whole package-folder can be moved around easily.
+Use symbolic node names in content references.
+Handle property templating.
+Full PB API.
+Full JSON API.
 Compilation.
 Task triggers & actions on completion - move to release manager.
-Handle property templating.
 Instance move betwen nodes.
