@@ -91,20 +91,21 @@
 				<div class="row-fluid">
 					<div class="col-md-12">
 						<h3>Upload new version</h3>
-						<form action="/repo/upload" method="POST" enctype="multipart/form-data" role="form">
-							<div class="form-group">
-								<label for="application">Application</label>
-								<input id="application" class="form-control" type="text" name="application"></input>
-							</div>
-							<div class="form-group">
-								<label for="version">Version</label>
-								<input id="version" class="form-control" type="text" name="version"></input>
-							</div>
-							<div class="form-group">
-								<label for="file">File</label>
-								<input id="file" type="file" name="content"></input></div>
-							<input type="submit" class="btn btn-default" />
-						</form>
+						<div class="form-group">
+							<label for="application">Application</label>
+							<input id="application" class="form-control" type="text" ng-model="application"></input>
+						</div>
+						<div class="form-group">
+							<label for="version">Version</label>
+							<input id="version" class="form-control" type="text" ng-model="version"></input>
+						</div>
+						<div class="form-group">
+							<label for="file">File</label>
+							<input id="file" type="file" ng-file-select="files = $files"></input></div>
+						<button class="btn btn-default" ng-click="uploadVersion(application, version, files)">Upload</button>
+						<div class="progress">
+							<div class="progress-bar" ng-style="{width: uploadProgress + '%'}"></div>
+						</div>
 					</div>
 				</div>				
 				<div ng-repeat="(app, appVersions) in versions" class="row-fluid">
@@ -134,8 +135,10 @@
 				</div>
 			</div>
 		</div>
+		<script src="angular-file-upload-html5-shim.min.js"></script>
 		<script src="angular.min.js"></script>
 		<script src="angular-animate.min.js"></script>
+		<script src="angular-file-upload.min.js"></script>
 		<script src="toaster.js"></script>
 		<script src="jquery-1.11.1.min.js"></script>
 		<script src="bootstrap.min.js"></script>

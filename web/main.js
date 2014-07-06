@@ -92,7 +92,7 @@ function process_event($scope, toaster, message) {
     }
 }
 
-var app = new angular.module("easyrider", ["toaster"]);
+var app = new angular.module("easyrider", ["toaster", "angularFileUpload"]);
 
 app.directive('erVersions', function() {
     return {
@@ -110,7 +110,7 @@ app.directive('erVersions', function() {
     };
 });
 
-app.controller("AppsCtrl", function($scope, toaster) {
+app.controller("AppsCtrl", function($scope, toaster, $upload) {
     $scope.deployInstanceForm = {};
 
     $scope.apps = {};
@@ -175,5 +175,23 @@ app.controller("AppsCtrl", function($scope, toaster) {
             "message": "deploy",
             "version": version
         }});
+    };
+    $scope.uploadVersion = function(application, version, files) {
+        $scope.uploadProgress = 0;
+        var upload = $upload.upload({
+            url: "/repo/upload",
+            headers: {
+                "Authorization": ("Basic " + btoa($scope.username + ":" + $scope.password))
+            },
+            data: {
+                application: application,
+                version: version
+            },
+            file: files[0],
+            fileFormDataName: "content"
+        });
+        upload.progress(function(event) {
+            $scope.uploadProgress = 100 * event.loaded / event.total;
+        });
     };
 });
