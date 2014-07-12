@@ -16,9 +16,7 @@ init(_Args) ->
 	{ok, orddict:from_list(UserList)}.
 
 handle_call({authenticate, Username, Password}, _From, Users) ->
-	PasswordHash = crypto:hash(md5, Password),
-	% TODO: readme io:format("~p~n", [crypto:hash(sha256, "x")]).
-	% crypto:hash(sha256, "x")
+	PasswordHash = crypto:hash(sha256, Password),
 	case orddict:find(Username, Users) of
 		{ok, {PasswordHash, Role}} -> {reply, {ok, Role}, Users};
 		_ -> {reply, bad_username_or_password, Users}

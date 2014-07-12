@@ -28,3 +28,98 @@ message Property {
 	required string name = 1;
 	required string value = 2;
 }
+
+// Event related nouns
+
+message Event {
+	required fixed64 timestamp = 1;
+	required string eventType = 2;
+	repeated string key = 3;
+}
+
+// Reporitory nouns
+
+// Commands (Imperative verbs)
+
+message Login {
+	required string username = 1;
+	required string password = 2;
+}
+
+message Subscribe {
+	repeated string eventTypes = 1;
+}
+
+message Unsubscribe {
+	repeated string eventTypes = 2;
+}
+
+message SetApp {
+	required App app = 1;
+}
+
+message SetStage {
+	required Stage stage = 1;
+}
+
+message SetInstance {
+	required Instance instance = 1;
+}
+
+message DeployInstance {
+	required string instanceId = 1;
+	required string versionNumber = 2;
+}
+
+message RemoveInstance {
+	required string instanceId = 1;
+}
+
+message RemoveStage {
+	required string app = 1;
+	required string stage = 2;
+}
+
+message RemoveApp {
+	required string app = 1;
+}
+
+// Events (Past tense verbs)
+
+message Rejected {
+	required string message = 1;
+}
+
+message Welcome {
+	required string role = 1;
+}
+
+message AppUpdated {
+	required Event event = 1;
+	optional App app = 2;
+}
+
+message StateUpdated {
+	required Event event = 1;
+	optional Stage stage = 2;
+}
+
+message InstanceUpdated {
+	required Event event = 1;
+	optional Instance instance = 2;
+}
+	
+message InstanceEvent {
+	required Event event = 1;
+	optional string versionNumber = 2;
+}
+
+message NewVersion {
+	required Event event = 1;
+	required string versionNumber = 2;	
+}
+
+message VersionApproved {
+	required Event event = 1;
+	required string approval = 2;
+}
