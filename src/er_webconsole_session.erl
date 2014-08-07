@@ -3,7 +3,8 @@
 -export([send_json/2]).
 -export([handle_message/2, init/1, terminate/2]).
 
-init([_Request, _Args]) ->
+init([Request, _Args]) ->
+	io:format("Request: ~p~n", [Request]),
 	{ok, Handler} = er_webconsole_adapter:start_link(self()),
 	{ok, Handler}.
 

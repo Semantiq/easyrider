@@ -4,9 +4,10 @@
 
 -define(rd(Type), {Type, record_info(fields, Type)}).
 -define(RECORD_TYPES, orddict:from_list([
-	?rd(app), ?rd(event), ?rd(configuration),
-	?rd(login),  ?rd(subscribe), ?rd(setapp), ?rd(setstage), ?rd(deployinstance),
-	?rd(welcome), ?rd(rejected), ?rd(instanceevent)
+	?rd(app), ?rd(stage), ?rd(instance), ?rd(event), ?rd(configuration),
+	?rd(login),  ?rd(subscribe), ?rd(setapp), ?rd(setstage), ?rd(setinstance), ?rd(deployinstance),
+	?rd(welcome), ?rd(rejected), ?rd(instanceevent), ?rd(snapshot), ?rd(snapshotentry),
+	?rd(appupdated)
 ])).
 
 %% interface
@@ -28,7 +29,7 @@ struct_to_record({struct, Props}) ->
 	Type = list_to_atom(TypeName),
 	Definition = case orddict:find(Type, ?RECORD_TYPES) of
 		{ok, Def} -> Def;
-		_ -> throw(unknown_type)
+		_ -> throw({unknown_type, Type})
 	end,
 	List = [Type] ++ lists:map(fun(Key) ->
 		case lists:keysearch(atom_to_list(Key), 1, Props) of
@@ -51,6 +52,7 @@ record_to_struct(Record) when is_tuple(Record) ->
 	]};
 record_to_struct(undefined) -> null;
 record_to_struct([Entry | _] = List) when is_tuple(Entry) -> list_to_array(List);
+record_to_struct(Number) when is_number(Number) -> Number;
 record_to_struct(String) when is_list(String) -> String.
 
 list_to_array(List) -> {array, [ record_to_struct(Entry) || Entry <- List ]}.

@@ -81,8 +81,7 @@ handle_cast({event, instances, {AppName, StageName, Id}, Instance}, State) ->
 	{noreply, State};
 
 handle_cast({snapshot, EventType, Data}, State) ->
-	%% TODO: handle snapshots
-	gen_server:cast(State#state.client, {snapshot, EventType, Data}),
+	tell_client(State, #snapshot{eventtype = atom_to_list(EventType), data = [ #snapshotentry{key = translate_key(EventType, Key), details = Details} || {Key, Details} <- Data]}),
 	{noreply, State};
 handle_cast({versions, Versions}, State) ->
 	%% TODO: handle versions snapshot
@@ -94,12 +93,16 @@ handle_cast({version_approved, Version}, State) ->
 
 %% helpers
 
+%% TODO: events keys should be lists internally as well
+translate_key(instance_events, Id) -> [Id].
+
 tell_client(#state{client = Client, transformation = Transformation}, Message) ->
 	gen_server:cast(Client, Transformation(Message)).
 
 timestamp_now() ->
 	{MegaSecs, Secs, MicroSecs} = now(),
 	MegaSecs * 1000000000 + Secs * 1000 + MicroSecs div 1000.
+
 
 %% Other gen_server callbacks
 
