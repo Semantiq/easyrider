@@ -3,10 +3,8 @@
 -export([send_json/2]).
 -export([handle_message/2, init/1, terminate/2]).
 
-init([Request, _Args]) ->
-	io:format("Request: ~p~n", [Request]),
-	{ok, Handler} = er_webconsole_adapter:start_link(self()),
-	{ok, Handler}.
+init([_Request, _Args]) ->
+	{ok, not_logged_in}.
 
 terminate(Reason, _) ->
 	case Reason of
@@ -15,10 +13,14 @@ terminate(Reason, _) ->
 	end,
     ok.
 
-handle_message({text,Data}, Handler) ->
-	{ok, Json} = json2:decode_string(binary_to_list(Data)),
-	gen_server:cast(Handler, Json),
-    {noreply, Handler};
+handle_message({text,Data}, not_logged_in) ->
+	{ok, Session} = er_api_json:new(binary_to_list(Data), fun(Client, Json) ->
+		yaws_api:websocket_send(Client, {text, list_to_binary(Json)})
+	end),
+    {noreply, {session, Session}};
+handle_message({text,Data}, {session, Session}) ->
+	er_api_json:tell(Session, binary_to_list(Data)),
+	{noreply, {session, Session}};
 handle_message({close, _Status, _Reason}, Handler) ->
 	gen_server:cast(Handler, stop),
 	{close, user_disconnect}.

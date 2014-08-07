@@ -123,11 +123,10 @@ app.controller("AppsCtrl", function($scope, toaster, $upload) {
     $scope.password = "test";
     $scope.$on("newMessage", function(e, message) {
         $scope.$apply(function() {
-            if (message.event == "welcome") {
+            if (message.type == "welcome") {
                 $scope.role = message.role;
-                $scope.username = message.username;
-                io.send({command: "subscribe", body: ["apps", "stages", "instances", "recommended_versions", "instance_events"]});
-                io.send({command: "subscribe_versions", body: { limit: 10 }});
+                io.send({type: "subscribe", eventtypes: ["apps", "stages", "instances", "recommended_versions", "instance_events"]});
+                //io.send({type: "subscribe_versions", body: { limit: 10 }});
                 $scope.activeTab = 'apps';
             } else if (message.event == "versions") {
                 $scope.versions = {};
@@ -152,10 +151,11 @@ app.controller("AppsCtrl", function($scope, toaster, $upload) {
         });
     });
     $scope.login = function() {
-        io.send({command: "login", body: {
+        io.send({
+            type: "login", 
             username: $scope.username,
             password: $scope.password
-        }});
+        });
     };
     $scope.startInstance = function(instanceId) {
         io.send({command: "tell_instance", body: {

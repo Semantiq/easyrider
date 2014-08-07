@@ -1,6 +1,6 @@
 -module(er_api_json).
 -include("easyrider_pb.hrl").
--export([new/1, tell/2]).
+-export([new/1, new/2, tell/2]).
 
 -define(rd(Type), {Type, record_info(fields, Type)}).
 -define(RECORD_TYPES, orddict:from_list([
@@ -12,7 +12,8 @@
 
 %% interface
 
-new(Login) -> er_api:new(json_to_record(Login), fun(Record) -> record_to_json(Record) end).
+new(Login) -> new(Login, fun(Client, Json) -> gen_server:cast(Client, Json) end).
+new(Login, Fun) -> er_api:new(json_to_record(Login), fun(Client, Record) -> Fun(Client, record_to_json(Record)) end).
 tell(Session, Message) -> er_api:tell(Session, json_to_record(Message)).
 
 %% helpers

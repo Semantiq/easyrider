@@ -9,7 +9,7 @@
 
 %% interface
 
-new(Login) -> new(Login, fun(Message) -> Message end).
+new(Login) -> new(Login, fun(Client, Message) -> gen_server:cast(Client, Message) end).
 new(#login{username = Username, password = Password}, Transformation) ->
 	case er_user_manager:authenticate(Username, Password) of
 		{ok, Role} -> 
@@ -97,7 +97,7 @@ handle_cast({version_approved, Version}, State) ->
 translate_key(instance_events, Id) -> [Id].
 
 tell_client(#state{client = Client, transformation = Transformation}, Message) ->
-	gen_server:cast(Client, Transformation(Message)).
+	Transformation(Client, Message).
 
 timestamp_now() ->
 	{MegaSecs, Secs, MicroSecs} = now(),
