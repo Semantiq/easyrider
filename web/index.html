@@ -37,9 +37,13 @@
 				
 			</div>
 			<div ng-show="activeTab == 'apps'">
+				<div>
+					<button class="btn btn-default" data-toggle="modal" data-target="#addAppForm">Add app</button>
+				</div>
 				<div ng-repeat="(appName, app) in apps" class="row-fluid">
 					<div class="col-md-12">
 						<h3>App {{app.name}}</h3>
+						<button data-toggle="modal" data-target="#addStageForm" ng-click="addStageForm.appName=app.name" class="btn btn-default">Add stage</button>
 						<dl class="dl-horizontal" ng-show="showProperties">
 							<!-- TODO: properties should be a component -->
 							<dt ng-repeat-start="property in app.properties | filter: {type: 'property'}">{{property.key}}</dt>
@@ -136,6 +140,51 @@
 					</div>
 					<div class="modal-footer">
 						<button class="btn btn-primary" ng-click="deployInstance(deployInstanceForm.id, deployInstanceForm.version)" data-dismiss="modal">Deploy</button>
+						<button class="btn btn-default" data-dismiss="modal">Cancel</button>
+					</div>
+				</div>
+			</div>
+		</div>
+		<!-- Add app modal -->
+		<div class="modal fade" id="addAppForm" tabindex="-1" role="dialog">
+			<div class="modal-dialog">
+				<div class="modal-content">
+					<div class="modal-header">
+						<button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+						<h4 class="modal-title">Add app</h4>
+					</div>
+					<div class="modal-body">
+						<div class="form-group">
+							<label>Name</label>
+							<input class="form-control" type="text" ng-model="addAppForm.appName" />						
+						</div>
+					</div>
+					<div class="modal-footer">
+						<button class="btn btn-primary" ng-click="addApp(addAppForm.appName)" data-dismiss="modal">Add app</button>
+						<button class="btn btn-default" data-dismiss="modal">Cancel</button>
+					</div>
+				</div>
+			</div>
+		</div>
+		<!-- Add stage modal -->
+		<div class="modal fade" id="addStageForm" tabindex="-1" role="dialog">
+			<div class="modal-dialog">
+				<div class="modal-content">
+					<div class="modal-header">
+						<button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+						<h4 class="modal-title">Add stage to {{addStageForm.appName}}</h4>
+					</div>
+					<div class="modal-body">
+						<div class="form-group">
+							<label>Stage name</label>
+							<input class="form-control" type="text" ng-model="addStageForm.stageName" />
+							<p class="help-text">
+								ex. dev, qa, prod
+							</p>
+						</div>
+					</div>
+					<div class="modal-footer">
+						<button class="btn btn-primary" ng-click="addStage(addStageForm.appName, addStageForm.stageName)" data-dismiss="modal">Add stage</button>
 						<button class="btn btn-default" data-dismiss="modal">Cancel</button>
 					</div>
 				</div>

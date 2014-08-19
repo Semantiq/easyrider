@@ -71,7 +71,7 @@ handle_cast({event, apps, AppName, remove}, State) ->
 	tell_client(State, #appupdated{event = #event{timestamp = timestamp_now(), eventtype = "remove", key = [AppName]}}),
 	{noreply, State};
 handle_cast({event, apps, AppName, App}, State) ->
-	tell_client(State, #appupdated{event = #event{timestamp = timestamp_now(), eventtype = "apps", key = [AppName]}, app = App}),
+	tell_client(State, #appupdated{event = #event{timestamp = timestamp_now(), eventtype = "apps", key = [AppName]}, data = App}),
 	{noreply, State};
 handle_cast({event, instances, {AppName, StageName, Id}, remove}, State) ->
 	tell_client(State, #instanceupdated{event = #event{timestamp = timestamp_now(), eventtype = "remove", key = [AppName, StageName, Id]}}),
@@ -94,7 +94,11 @@ handle_cast({version_approved, Version}, State) ->
 %% helpers
 
 %% TODO: events keys should be lists internally as well
-translate_key(instance_events, Id) -> [Id].
+translate_key(instance_events, Id) -> [Id];
+translate_key(apps, App) -> [App];
+translate_key(stages, {App, Stage}) -> [App, Stage];
+translate_key(instances, {App, Stage, Id}) -> [App, Stage, Id];
+translate_key(recommended_versions, {App, Stage}) -> [App, Stage].
 
 tell_client(#state{client = Client, transformation = Transformation}, Message) ->
 	Transformation(Client, Message).

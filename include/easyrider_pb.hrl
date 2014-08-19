@@ -89,7 +89,7 @@
 
 -record(appupdated, {
     event = erlang:error({required, event}),
-    app
+    data
 }).
 
 -record(stateupdated, {

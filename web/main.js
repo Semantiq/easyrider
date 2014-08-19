@@ -75,14 +75,14 @@ var event_types = {
     }
 };
 function process_event($scope, toaster, message) {
-    var handler = event_types[message.event];
+    var handler = event_types[message.eventtype];
     if (handler) {
-        if (message.snapshot) {
+        if (message.type == "snapshot") {
             angular.forEach(message.data, function(item, index) {
-                handler($scope, item.key, item.value);
+                handler($scope, item.key, item.details);
             });
         } else {
-            var result = handler($scope, message.key, message.value);
+            var result = handler($scope, message.key, message.);
             if (result && result.notify) {
                 toaster.pop(result.notify, result.message, result.details);
             }
@@ -112,6 +112,8 @@ app.directive('erVersions', function() {
 
 app.controller("AppsCtrl", function($scope, toaster, $upload) {
     $scope.deployInstanceForm = {};
+    $scope.addAppForm = {};
+    $scope.addStageForm = {};
 
     $scope.apps = {};
     $scope.stages = {};
@@ -126,7 +128,7 @@ app.controller("AppsCtrl", function($scope, toaster, $upload) {
             if (message.type == "welcome") {
                 $scope.role = message.role;
                 io.send({type: "subscribe", eventtypes: ["apps", "stages", "instances", "recommended_versions", "instance_events"]});
-                //io.send({type: "subscribe_versions", body: { limit: 10 }});
+                io.send({type: "subscribe_versions", body: { limit: 10 }});
                 $scope.activeTab = 'apps';
             } else if (message.event == "versions") {
                 $scope.versions = {};
@@ -175,6 +177,30 @@ app.controller("AppsCtrl", function($scope, toaster, $upload) {
             "message": "deploy",
             "version": version
         }});
+    };
+    $scope.addApp = function(appName) {
+        io.send({
+            type: "setapp",
+            app: {
+                type: "app",
+                name: appName,
+                configuration: {
+                    type: "configuration",
+                    properties: null
+                }
+            }
+        })
+    };
+    $scope.addStage = function(appName, stageName) {
+        io.send({
+            type: "setstage",
+            stage: {
+                type: "stage",
+                app: appName,
+                stage: stageName,
+                configuration: null
+            }
+        });
     };
     $scope.uploadVersion = function(application, version, files) {
         $scope.uploadProgress = 0;

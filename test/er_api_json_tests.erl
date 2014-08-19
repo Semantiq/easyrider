@@ -25,7 +25,7 @@ login_test_() -> { "Login test", easyrider_tests:in_clean_run(
 		{struct,[
 			{"type", "appupdated"},
 			{"event", _},
-			{"app", _}
+			{"data", _}
 		]} = expect_json_event(),
 		er_api_json:tell(Session, "{\"type\":\"setinstance\", \"instance\":{\"type\":\"instance\", \"app\":\"my-app\", \"stage\":\"dev\", \"id\":\"app-0\", \"nodeid\":\"test0\"}}"),
 		{struct,[

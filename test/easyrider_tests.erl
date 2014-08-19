@@ -14,7 +14,7 @@ reject_ivalid_password_test_() -> {"Invalid password", in_clean_run(
 configure_app_test_() -> {"Upload, deploy and start test app", in_clean_run(
 	fun() ->
 		{ok, Session} = er_api:new(#login{username = "test", password = "test"}),
-		er_api:tell(Session, #subscribe{eventtypes = ["instance_events"]}),
+		er_api:tell(Session, #subscribe{eventtypes = ["instance_events", "recommended_versions"]}),
 		er_api:tell(Session, #setapp{app = #app{name = "app", configuration = #configuration{}}}),
 		er_api:tell(Session, #setstage{stage = #stage{app = "app", stage = "dev", configuration = #configuration{}}}),
 		er_api:tell(Session, #setinstance{

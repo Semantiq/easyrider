@@ -19,8 +19,14 @@ handle_message({text,Data}, not_logged_in) ->
 	end),
     {noreply, {session, Session}};
 handle_message({text,Data}, {session, Session}) ->
-	er_api_json:tell(Session, binary_to_list(Data)),
-	{noreply, {session, Session}};
+	StringData = binary_to_list(Data),
+	Result = (catch er_api_json:tell(Session, StringData)),
+	case Result of
+		{'EXIT', Reason} ->
+			error_logger:error_msg("Error handling message ~p: ~p~n", [StringData, Reason]),
+			{close, error};
+		_ -> {noreply, {session, Session}}
+	end;
 handle_message({close, _Status, _Reason}, Handler) ->
 	gen_server:cast(Handler, stop),
 	{close, user_disconnect}.

@@ -4,7 +4,7 @@
 
 -define(rd(Type), {Type, record_info(fields, Type)}).
 -define(RECORD_TYPES, orddict:from_list([
-	?rd(app), ?rd(stage), ?rd(instance), ?rd(event), ?rd(configuration),
+	?rd(app), ?rd(stage), ?rd(instance), ?rd(event), ?rd(configuration), ?rd(property),
 	?rd(login),  ?rd(subscribe), ?rd(setapp), ?rd(setstage), ?rd(setinstance), ?rd(deployinstance),
 	?rd(welcome), ?rd(rejected), ?rd(instanceevent), ?rd(snapshot), ?rd(snapshotentry),
 	?rd(appupdated)
@@ -47,6 +47,8 @@ record_to_json(Record) -> json2:encode(record_to_struct(Record)).
 
 record_to_struct(Record) when is_tuple(Record) ->
 	[Type | Props] = tuple_to_list(Record),
+	% TODO: remove this
+	io:format("Type: ~p~n", [Type]),
 	{ok, Definition} = orddict:find(Type, ?RECORD_TYPES),
 	{struct, [{"type", atom_to_list(Type)}] ++ [
 		{atom_to_list(Name), record_to_struct(Value)} || {Name, Value} <- lists:zip(Definition, Props)
