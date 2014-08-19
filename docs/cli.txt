@@ -1,0 +1,16 @@
+easyrider
+	create working-directory
+	node working-directory
+	create-token working-directory target
+	bootstrap working-directory
+	nodes
+	container create node-id
+	container upload src node-id dest
+	container sh ...
+	container remove
+
+easyrider bootstrap
+	easyrider create $1
+	easyrider create-token $1 $1/access-token
+	easyrider node $1 &
+	easyrider deploy $1/access-token easyrider.tar.bz2

@@ -1,0 +1,51 @@
+haproxy.tar.bz2:
+	resources/
+		haproxy.html
+		haproxy.js
+	init
+	.easyrider.yaml:
+		container: easyrider-plugin
+
+redis.tar.bz2:
+	bin/
+		backup.sh
+		restore.sh
+	resources/
+		redis.html
+		redis.js
+	.easyrider.yaml:
+		container: easyrider-plugin
+
+spring-app-container.tar.bz2:
+	app/
+	init:
+		- knows how to run the app
+		- generates properties file
+	.easyrider.yaml:
+		container: docker
+		mount-point: app
+
+easyrider-plugin.tar.bz2:
+	app/
+	init
+	.easyrider.yaml:
+		container: docker
+		mount-point: app
+
+docker.tar.bz2:
+	app/
+	init
+	.easyrider.yaml:
+		container: none
+		mount-point: app
+
+make-plugin.tar.bz2
+	bin/
+		build.sh
+	builder/
+	resources/
+		make-plugin.html
+		make-plugin.js
+	.easyrider.yaml:
+		container: plugin
+		mount-point: builder
