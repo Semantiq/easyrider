@@ -3,16 +3,39 @@ package easyrider
 trait Cause
 case class EventId() extends Cause
 case class CommandId() extends Cause
+case class EventKey(key: Seq[String]) {
+  def contains(other: EventKey): Boolean = {
+    other.key.take(key.size) == key
+  }
+}
+
+trait Command
 
 trait Event extends Cause {
   def eventId: EventId
+  def eventKey: EventKey
   def causedBy: Seq[Cause]
 }
 
-trait InfrastructureEvent
-case class NewNodeEvent() extends InfrastructureEvent
-case class UnreachableNodeEvent() extends InfrastructureEvent
-case class DownNodeEvent() extends InfrastructureEvent
+object Infrastructure {
+  trait InfrastructureCommand
+  case class FindNodes() extends Query
+  case class CreateContainer() extends InfrastructureCommand
+
+  trait InfrastructureEvent
+  case class FindNodesResponse() extends Response
+  case class NewNodeEvent() extends InfrastructureEvent
+  case class ContainerCreatedEvent() extends InfrastructureEvent
+  case class ContainerCreationError()
+  case class UnreachableNodeEvent() extends InfrastructureEvent
+  case class DownNodeEvent() extends InfrastructureEvent
+}
+
+object EventBus {
+  trait EventBusCommand
+  case class Subscribe[T >: Event](subscriptionId: String, eventType: Class[T], eventKey: EventKey) extends EventBusCommand
+  case class UnSubscribe(subscriptionId: String) extends EventBusCommand
+}
 
 trait ContainerEvent
 case class ContainerCreatedEvent() extends ContainerEvent
