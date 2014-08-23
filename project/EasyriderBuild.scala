@@ -9,7 +9,14 @@ object EasyriderBuild extends Build {
     libraryDependencies ++= Seq(
       "com.typesafe.akka" %% "akka-actor" % akkaVersion,
       "org.json4s" %% "json4s-native" % "3.2.10",
-      "com.wandoulabs.akka" %% "spray-websocket" % "0.1.2",
+
+      /*
+      git clone https://github.com/mateuszj/spray-websocket.git
+      cd spray-websocket
+      git checkout v0.1.2_2.11
+      sbt publishLocal
+      */
+      "com.wandoulabs.akka" %% "spray-websocket" % "0.1.2-SEMANTIQ",
       "org.scalatest" %% "scalatest" % "2.2.1" % "test",
       "com.typesafe.akka" %% "akka-actor" % akkaVersion,
       "com.typesafe.akka" %% "akka-testkit" % akkaVersion % "test")
