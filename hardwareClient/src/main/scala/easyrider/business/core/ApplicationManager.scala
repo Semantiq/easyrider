@@ -7,45 +7,54 @@ class ApplicationManager(eventBus: ActorRef) extends Actor {
   import easyrider.Applications._
   private var applications = Map[ApplicationId, Application]()
   private var stages = Map[StageId, Stage]()
+  private var containers = Map[ContainerId, ContainerConfiguration]()
 
   override def receive: Receive = {
-    case command @ CreateApplication(commandId, application) =>
-      application match {
-        case ExistingApplication(_) => sender ! command.failure(s"Application ${application.id.id} already exists")
-        case _ =>
-          applications += (application.id -> application)
-          eventBus ! ApplicationUpdatedEvent(EventDetails(EventId.generate(), EventKey(application.id.id), Seq(commandId)), application)
-      }
-    case command @ RemoveApplication(commandId, applicationId) =>
-      applicationId match {
-        case NonExistingApplication(_) => sender ! command.failure(s"Application ${applicationId.id} does not exist")
-        case ApplicationWithStages(_) => sender ! command.failure(s"Remove all stages from ${applicationId.id} first")
-        case ExistingApplication(application) =>
-          applications -= applicationId
-          eventBus ! ApplicationUpdatedEvent(EventDetails(EventId.generate(), EventKey(applicationId.id), Seq(commandId), removal = true), application)
-      }
-    case command @ UpdateApplication(commandId, application) =>
-      application match {
-        case NonExistingApplication(_) => sender ! command.failure(s"Application ${application.id} does not exist")
-        case _ =>
-          applications += (application.id -> application)
-          eventBus ! ApplicationUpdatedEvent(EventDetails(EventId.generate(), EventKey(application.id.id), Seq(commandId)), application)
-      }
-    case command @ CreateStage(commandId, stage) =>
-      stage match {
-        case NonExistingApplication(_) => sender ! command.failure(s"Application ${stage.id.applicationId.id} does not exist")
-        case ExistingStage(_) => sender ! command.failure(s"Stage ${stage.id.id} for application ${stage.id.applicationId.id} is already defined")
-        case _ =>
-          stages += (stage.id -> stage)
-          eventBus ! StageUpdatedEvent(EventDetails(EventId.generate(), EventKey(stage.id.applicationId.id, stage.id.id), Seq(commandId)), stage)
-      }
-    case command @ RemoveStage(commandId, stageId) =>
-      stageId match {
-        case NonExistingStage(_) => command.failure(s"Stage ${stageId.id} of application ${stageId.applicationId.id} does not exist")
-        case ExistingStage(stage) =>
-          stages -= stageId
-          eventBus ! StageUpdatedEvent(EventDetails(EventId.generate(), EventKey(stage.id.applicationId.id, stage.id.id), Seq(commandId), removal = true), stage)
-      }
+    case command @ CreateApplication(commandId, application) => application match {
+      case ExistingApplication(_) => sender ! command.failure(s"Application ${application.id.id} already exists")
+      case _ =>
+        applications += (application.id -> application)
+        eventBus ! ApplicationUpdatedEvent(EventDetails(EventId.generate(), EventKey(application.id.id), Seq(commandId)), application)
+    }
+    case command @ RemoveApplication(commandId, applicationId) => applicationId match {
+      case NonExistingApplication(_) => sender ! command.failure(s"Application ${applicationId.id} does not exist")
+      case ApplicationWithStages(_) => sender ! command.failure(s"Remove all stages from ${applicationId.id} first")
+      case ExistingApplication(application) =>
+        applications -= applicationId
+        eventBus ! ApplicationUpdatedEvent(EventDetails(EventId.generate(), application.id.eventKey, Seq(commandId), removal = true), application)
+    }
+    case command @ UpdateApplication(commandId, application) => application match {
+      case NonExistingApplication(_) => sender ! command.failure(s"Application ${application.id} does not exist")
+      case _ =>
+        applications += (application.id -> application)
+        eventBus ! ApplicationUpdatedEvent(EventDetails(EventId.generate(), application.id.eventKey, Seq(commandId)), application)
+    }
+    case command @ CreateStage(commandId, stage) => stage match {
+      case NonExistingApplication(_) => sender ! command.failure(s"Application ${stage.id.applicationId.id} does not exist")
+      case ExistingStage(_) => sender ! command.failure(s"Stage ${stage.id.id} for application ${stage.id.applicationId.id} is already defined")
+      case _ =>
+        stages += (stage.id -> stage)
+        eventBus ! StageUpdatedEvent(EventDetails(EventId.generate(), stage.id.eventKey, Seq(commandId)), stage)
+    }
+    case command @ RemoveStage(commandId, stageId) => stageId match {
+      case NonExistingStage(_) => sender ! command.failure(s"Stage ${stageId.id} of application ${stageId.applicationId.id} does not exist")
+      case ExistingStage(stage) =>
+        stages -= stageId
+        eventBus ! StageUpdatedEvent(EventDetails(EventId.generate(), stage.id.eventKey, Seq(commandId), removal = true), stage)
+    }
+    case command @ CreateContainerConfiguration(commandId, container) => container match {
+      case ExistingContainer(_) => sender ! command.failure(s"Container ${container.id.id} in application ${container.id.stageId.applicationId.id} stage ${container.id.stageId.id} already exists")
+      case NonExistingStage(_) => sender ! command.failure(s"Stage ${container.id.stageId.id} of application ${container.id.stageId.applicationId.id} does not exist")
+      case _ =>
+        containers += (container.id -> container)
+        eventBus ! ContainerConfigurationUpdatedEvent(EventDetails(EventId.generate(), container.id.eventKey, Seq(commandId)))
+    }
+    case command @ UpdateContainerConfiguration(commandId, container) => container match {
+      case NonExistingContainer(_) => sender ! command.failure(s"Container ${container.id.id} does not exist in application ${container.id.stageId.applicationId.id} stage ${container.id.stageId.id}")
+      case _ =>
+        containers += (container.id -> container)
+        eventBus ! ContainerConfigurationUpdatedEvent(EventDetails(EventId.generate(), container.id.eventKey, Seq(commandId)))
+    }
   }
 
   object ExistingApplication {
@@ -69,7 +78,14 @@ class ApplicationManager(eventBus: ActorRef) extends Actor {
     def unapply(stage: Stage): Option[Stage] = unapply(stage.id)
   }
   object NonExistingStage {
-    def unapply(stageId: StageId) = if (stages.contains(stageId)) None else Some(stageId)
+    def unapply(stageId: StageId): Option[StageId] = if (stages.contains(stageId)) None else Some(stageId)
+    def unapply(container: ContainerConfiguration): Option[StageId] = unapply(container.id.stageId)
+  }
+  object ExistingContainer {
+    def unapply(container: ContainerConfiguration): Option[ContainerConfiguration] = containers.get(container.id)
+  }
+  object NonExistingContainer {
+    def unapply(container: ContainerConfiguration) = if (containers.contains(container.id)) None else Some(container.id)
   }
 }
 

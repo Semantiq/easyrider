@@ -33,6 +33,6 @@ class ApplicationManagerTest extends TestKit(ActorSystem()) with FlatSpecLike wi
     apps ! RemoveApplication(CommandId("5"), applicationId)
     expectNoMsg()
   }
-  val applicationId = ApplicationId("test-app")
+  val applicationId = ApplicationId("testApp")
   val stageId = StageId(applicationId, "qa")
 }
