@@ -94,29 +94,37 @@ case class ContainerUpdatedEvent() extends ContainerEvent
 case class ContainerDeployedEvent() extends ContainerEvent
 case class ContainerStateChangedEvent() extends ContainerEvent
 
-trait StageEvent
-case class StageCreatedEvent() extends StageEvent
-case class StageUpdatedEvent() extends StageEvent
-case class StageRemovedEvent() extends StageEvent
-case class VersionRecommendedEvent() extends StageEvent
-case class ReleaseProgressEvent() extends StageEvent
-case class ReleaseSuccessful() extends StageEvent
-case class ReleaseFailed() extends StageEvent
+case class VersionAvailableEvent(eventDetails: EventDetails)
+case class VersionLabelsAddedEvent(eventDetails: EventDetails)
+
+case class VersionRecommendedEvent()
+case class ReleaseProgressEvent()
+case class ReleaseSuccessful()
+case class ReleaseFailed()
 
 object Applications {
   case class Property(namespace: String, name: String, value: String)
   case class ApplicationId(id: String) {
-    require("""^[a-zA-Z0-9_\-]+$""".r.findFirstIn(id).isDefined, "Application name can contain only letters and underscores")
+    require("""^[a-zA-Z0-9_\-]+$""".r.findFirstIn(id).isDefined, "Application id can contain only letters and underscores")
   }
   case class Application(id: ApplicationId, properties: Seq[Property])
-  trait ApplicationEvent extends Event
+  case class StageId(applicationId: ApplicationId, id: String) {
+    require("""^[a-zA-Z0-9_\-]+$""".r.findFirstIn(id).isDefined, "Stage id can contain only letters and underscores")
+  }
+  case class Stage(id: StageId, properties: Seq[Property])
   trait ApplicationCommand extends Command
   case class CreateApplication(commandId: CommandId, application: Application) extends ApplicationCommand
   case class RemoveApplication(commandId: CommandId, applicationId: ApplicationId) extends ApplicationCommand
-  
+  case class UpdateApplication(commandId: CommandId, application: Application) extends ApplicationCommand
+  case class CreateStage(commandId: CommandId, stage: Stage) extends ApplicationCommand
+  case class UpdateStage(commandId: CommandId, stage: Stage) extends ApplicationCommand
+  case class RemoveStage(commandId: CommandId, stageId: StageId) extends ApplicationCommand
+
+  trait ApplicationEvent extends Event
   case class ApplicationUpdatedEvent(eventDetails: EventDetails, application: Application) extends ApplicationEvent
-  case class VersionAvailableEvent(eventDetails: EventDetails) extends ApplicationEvent
-  case class VersionLabelsAddedEvent(eventDetails: EventDetails) extends ApplicationEvent
+
+  trait StageEvent extends Event
+  case class StageUpdatedEvent(eventDetails: EventDetails, stage: Stage) extends StageEvent
 }
 
 trait ResourceEvent
