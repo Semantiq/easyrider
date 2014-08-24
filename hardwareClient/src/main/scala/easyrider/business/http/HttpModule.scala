@@ -5,8 +5,6 @@ import akka.io.IO
 import spray.can.Http
 import spray.can.server.UHttp
 
-class HttpModule(system: ActorSystem, apiFactory: ActorRef => Props) {
-  val port = 8080
-
+class HttpModule(system: ActorSystem, apiFactory: ActorRef => Props, port: Int) {
   val server = system.actorOf(WebServer(port, apiFactory))
 }
