@@ -4,6 +4,12 @@ import java.util.UUID
 
 import easyrider.business.core.EventBus
 
+case class EventType(name: String)
+
+object Implicits {
+  implicit def class2eventType(x: Class[_]) = EventType(x.getName)
+}
+
 sealed trait Target
 case class PluginTarget(pluginId: ComponentId) extends Target
 case class ComponentId(id: String)
@@ -80,9 +86,9 @@ object Events {
   trait EventBusCommand extends Command with Query {
     def queryId = QueryId("query-" + commandId.id)
   }
-  case class Subscribe[T <: Event](commandId: CommandId, subscriptionId: String, eventType: Class[T], eventKey: EventKey) extends EventBusCommand
+  case class Subscribe(commandId: CommandId, subscriptionId: String, eventType: EventType, eventKey: EventKey) extends EventBusCommand
   case class UnSubscribe(commandId: CommandId, subscriptionId: String) extends EventBusCommand
-  case class Subscribed[T >: Event](queryId: QueryId, subscriptionId: String, eventType: Class[T], snapshot: Map[EventKey, T]) extends Result {
+  case class Subscribed[T](queryId: QueryId, subscriptionId: String, eventType: EventType, snapshot: Map[EventKey, T]) extends Result {
     def sender = id
   }
   case class UnSubscribed(queryId: QueryId, subscriptionId: String) extends Result {

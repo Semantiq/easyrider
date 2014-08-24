@@ -7,6 +7,7 @@ import easyrider.Infrastructure.NodeUpdatedEvent
 import easyrider._
 import easyrider.business.core
 import org.scalatest._
+import easyrider.Implicits._
 
 class EventBusTest() extends TestKit(ActorSystem()) with FlatSpecLike with Matchers {
   "EventBus" should "send events to subscribers" in {
