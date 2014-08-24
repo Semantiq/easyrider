@@ -20,7 +20,8 @@ class SshInfrastructurePlugin(apiFactory: ActorRef => Props) extends Actor {
   }
 
   def becomeRunning() {
-    api ! ConsoleExtensionAvailableEvent(EventDetails(EventId.generate(), EventKey(), Seq()), ConsoleExtension(componentId, new ExtensionId("hostsManager")))
+    val extension = ConsoleExtension(componentId, new ExtensionId("hostsManager"))
+    api ! ConsoleExtensionAvailableEvent(EventDetails(EventId.generate(), extension.eventKey, Seq()), extension)
     context.become(running)
   }
 

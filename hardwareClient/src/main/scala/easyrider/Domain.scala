@@ -29,7 +29,9 @@ sealed trait Command {
 
 object Components {
   case class ExtensionId(id: String)
-  case class ConsoleExtension(componentId: ComponentId, extensionId: ExtensionId)
+  case class ConsoleExtension(componentId: ComponentId, extensionId: ExtensionId) {
+    def eventKey = EventKey(componentId.id, extensionId.id)
+  }
 
   case class ComponentCommand(commandId: CommandId, target: Target, payload: Map[String, String]) extends Command
   case class ComponentEvent(eventDetails: EventDetails, payload: Map[String, String]) extends Event
