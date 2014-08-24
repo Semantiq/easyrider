@@ -112,12 +112,16 @@ app.service("Api", ["Connection", function(Connection) {
 					var any = false;
 					for(var j in s.snapshot) {
 						if(s.snapshot[j].eventDetails.eventKey.key.join("::") == eventKey) {
-							s.snapshot[j] = event;
+							if(event.eventDetails.removal) {
+								s.snapshot.splice(j, 1);
+							} else {
+								s.snapshot[j] = event;
+							}
 							any = true;
 							break;
 						}
 					}
-					if(!any) {
+					if(!any && !event.eventDetails.removal) {
 						s.snapshot.push(event);
 					}
 				}
@@ -126,4 +130,6 @@ app.service("Api", ["Connection", function(Connection) {
 	}
 
 	defineEvent("easyrider.Applications$ApplicationUpdatedEvent");
+	defineEvent("easyrider.Applications$StageUpdatedEvent");
+	defineEvent("easyrider.Applications$ContainerConfigurationUpdatedEvent");
 }]);

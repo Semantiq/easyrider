@@ -22,7 +22,38 @@
 				</ul>
 			</div>
 		</nav>
-		<div class="container-fluid" ng-view></div>
+		<div class="container-fluid">
+			<div class="modal fade" ng-controller="CommandCtrl" ng-class="{in:Command.command}">
+				<style>
+					.fade.in {
+						background: rgba(0,0,0,0.3);
+						display: block;
+					}
+					.modal-dialog {
+						width: 90% !important;
+					}
+				</style>
+				<div class="modal-dialog">
+					<div class="modal-content">
+						<div class="modal-header">
+							<h4 class="modal-title">Command editor</h4>
+						</div>
+						<div class="modal-body" ng-if="Command.command.jsonClass">
+							<div ng-include src="'/commands/'+Command.command.jsonClass+'/template.html'"></div>
+						</div>
+						<div class="modal-footer">
+							<button class="btn btn-default" ng-click="Command.cancel()">
+								Cancel</button>
+							<button class="btn btn-success" ng-click="Command.explain()">
+								Explain</button>
+							<button class="btn btn-danger" ng-click="Command.execute(false)">
+								Execute</button>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div ng-view></div>
+		</div>
 		<div class="container-fluid" ng-controller="LoginController"
 		ng-hide="Api.isAuthenticated"
 		style="position:fixed;top:0px;left:0px;right:0px;bottom:0px;background:white;padding-top:50px;">

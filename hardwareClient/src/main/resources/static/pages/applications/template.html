@@ -17,12 +17,17 @@
 <div class="panel panel-primary" ng-repeat="app in Applications.list">
 	<div class="panel-heading">
 		<div class="btn-toolbar pull-right">
-			<button class="btn btn-danger btn-xs">Remove application</button>
+			<button class="btn btn-success btn-xs" ng-click="addStage(app.application.id)">Add stage</button>
+			<button class="btn btn-danger btn-xs" ng-click="removeApplication(app.application.id)">Remove application</button>
 		</div>
 		{{app.application.id.id}}
 	</div>
 	<div class="panel-body">
 		<h4>Properites</h4>
 		<pre>{{app.application.properties|json}}</pre>
+		<h4>Stages</h4>
+		<span ng-repeat="stageEvent in Stages.stagesOfApplication(app.application.id)">
+			<a class="label label-default" href="/stages/{{stageEvent.stage.id.id}}">{{stageEvent.stage.id.id}}</a>&nbsp;
+		</span>
 	</div>
 </div>
