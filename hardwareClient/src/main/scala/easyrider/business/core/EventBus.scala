@@ -20,9 +20,8 @@ class EventBus extends Actor {
         current.updated(event.eventDetails.eventKey, event)
       }
       snapshots += (class2eventType(event.getClass) -> updated)
-      println(snapshots)
       subscriptions
-        .filter(s => s.eventType == event.getClass && s.eventKey.contains(event.eventDetails.eventKey))
+        .filter(s => s.eventType == class2eventType(event.getClass) && s.eventKey.contains(event.eventDetails.eventKey))
         .foreach(s => s.receiver ! event)
     case Terminated(subscriber) =>
       subscriptions = subscriptions.filter(s => s.receiver != subscriber)
