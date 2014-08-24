@@ -1,7 +1,10 @@
 package easyrider.business.http
 
+import java.lang.reflect.InvocationTargetException
+
 import akka.actor._
 import easyrider.Events.Subscribed
+import easyrider.business.http.WebServerWorker.MessageFormatError
 import spray.can.server.UHttp
 import spray.can.{Http, websocket}
 import spray.can.websocket.{FrameCommand, FrameCommandFailed}
@@ -30,7 +33,17 @@ class WebServerWorker(connection: ActorRef, apiFactory: ActorRef => Props) exten
       case x: AnyRef if sender() == api =>
         send(TextFrame(write[AnyRef](x)))
       case TextFrame(byteString) =>
-        api ! read[AnyRef](byteString.utf8String)
+        try {
+          val apiMessage = read[AnyRef](byteString.utf8String)
+          api ! apiMessage
+        } catch {
+          case e: MappingException =>
+            val message = e.getCause match {
+              case ite: InvocationTargetException => ite.getCause.getMessage
+              case _ => e.getMessage
+            }
+            send(TextFrame(write[AnyRef](MessageFormatError(message))))
+        }
       case x: FrameCommandFailed =>
         // TODO: Maybe it should stop this actor?
         log.error("frame command failed", x)
@@ -48,4 +61,6 @@ class WebServerWorker(connection: ActorRef, apiFactory: ActorRef => Props) exten
 
 object WebServerWorker {
   def apply(connection: ActorRef, apiFactory: ActorRef => Props) = Props(classOf[WebServerWorker], connection, apiFactory)
+
+  case class MessageFormatError(message: String)
 }
