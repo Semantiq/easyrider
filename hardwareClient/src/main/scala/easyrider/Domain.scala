@@ -33,7 +33,7 @@ object Components {
     def eventKey = EventKey(componentId.id, extensionId.id)
   }
 
-  case class ComponentCommand(commandId: CommandId, target: Target, payload: Map[String, String]) extends Command
+  case class ComponentCommand(commandId: CommandId, componentId: ComponentId, payload: Map[String, String]) extends Command
   case class ComponentEvent(eventDetails: EventDetails, payload: Map[String, String]) extends Event
   case class ConsoleExtensionAvailableEvent(eventDetails: EventDetails, extension: ConsoleExtension) extends Event
 }
