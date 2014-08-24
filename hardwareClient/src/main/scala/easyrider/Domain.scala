@@ -94,7 +94,9 @@ object Infrastructure {
 }
 
 object Api {
-  case class Authenticate()
+  trait Authenticate
+  case class AuthenticateUser() extends Authenticate
+  case class AuthenticateComponent(componentId: ComponentId) extends Authenticate
   case class Authentication()
   
   case class CommandSentEvent(eventDetails: EventDetails, command: Command, authentication: Authentication) extends Event

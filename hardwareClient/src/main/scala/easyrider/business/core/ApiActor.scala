@@ -9,7 +9,7 @@ class ApiActor(bus: ActorRef, applicationManager: ActorRef, client: ActorRef) ex
   import easyrider.Api._
 
   def receive = {
-    case Authenticate() =>
+    case AuthenticateUser() =>
       val auth = Authentication()
       context.become(authenticated(auth))
       client ! auth
