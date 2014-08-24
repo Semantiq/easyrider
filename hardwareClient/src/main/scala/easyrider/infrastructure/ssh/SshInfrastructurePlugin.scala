@@ -2,14 +2,14 @@ package easyrider.infrastructure.ssh
 
 import akka.actor.{Actor, ActorRef, Props}
 import akka.event.LoggingReceive
-import easyrider.Api.{Authenticate, Authentication}
+import easyrider.Api.{AuthenticateComponent, AuthenticateUser, Authentication}
 import easyrider.Components.{ComponentCommand, ConsoleExtension, ConsoleExtensionAvailableEvent, ExtensionId}
-import easyrider.{ComponentId, EventDetails, EventId, EventKey}
+import easyrider.{ComponentId, EventDetails, EventId}
 
 class SshInfrastructurePlugin(apiFactory: ActorRef => Props) extends Actor {
   val componentId = ComponentId(classOf[SshInfrastructurePlugin].getName)
   val api = context.actorOf(apiFactory(self), "Api")
-  api ! Authenticate()
+  api ! AuthenticateComponent(componentId)
 
   def authenticating = LoggingReceive {
     case Authentication() => becomeRunning()

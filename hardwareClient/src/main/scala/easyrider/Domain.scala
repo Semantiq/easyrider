@@ -33,7 +33,7 @@ object Components {
     def eventKey = EventKey(componentId.id, extensionId.id)
   }
 
-  case class ComponentCommand(commandId: CommandId, target: Target, payload: Map[String, String]) extends Command
+  case class ComponentCommand(commandId: CommandId, componentId: ComponentId, payload: Map[String, String]) extends Command
   case class ComponentEvent(eventDetails: EventDetails, payload: Map[String, String]) extends Event
   case class ConsoleExtensionAvailableEvent(eventDetails: EventDetails, extension: ConsoleExtension) extends Event
 }
@@ -93,7 +93,9 @@ object Infrastructure {
 }
 
 object Api {
-  case class Authenticate()
+  trait Authenticate
+  case class AuthenticateUser() extends Authenticate
+  case class AuthenticateComponent(componentId: ComponentId) extends Authenticate
   case class Authentication()
   
   case class CommandSentEvent(eventDetails: EventDetails, command: Command, authentication: Authentication) extends Event

@@ -2,16 +2,22 @@ package easyrider.business.core
 
 import akka.actor._
 import easyrider.Applications.ApplicationCommand
+import easyrider.Components.ComponentCommand
 import easyrider.Events.EventBusCommand
 import easyrider._
 
-class ApiActor(bus: ActorRef, applicationManager: ActorRef, client: ActorRef) extends Actor {
+class ApiActor(bus: ActorRef, applicationManager: ActorRef, componentManager: ActorRef, client: ActorRef) extends Actor {
   import easyrider.Api._
 
   def receive = {
-    case Authenticate() =>
+    case AuthenticateUser() =>
       val auth = Authentication()
       context.become(authenticated(auth))
+      client ! auth
+    case AuthenticateComponent(componentId) =>
+      val auth = Authentication()
+      context.become(authenticated(auth))
+      componentManager ! ComponentManager.Register(componentId)
       client ! auth
     case _ =>
       context.stop(self)
@@ -23,6 +29,10 @@ class ApiActor(bus: ActorRef, applicationManager: ActorRef, client: ActorRef) ex
         client ! e
       else
         bus ! e
+    case c: ComponentCommand if sender() == client =>
+      componentManager ! c
+    case c: ComponentCommand =>
+      client ! c
     case c: Command =>
       bus ! CommandSentEvent(EventDetails(EventId.generate(), EventKey(), Seq(c.commandId)), c, authenticated)
       processCommand(c)
@@ -41,5 +51,5 @@ class ApiActor(bus: ActorRef, applicationManager: ActorRef, client: ActorRef) ex
 }
 
 object ApiActor {
-  def apply(bus: ActorRef, applicationManager: ActorRef)(client: ActorRef) = Props(classOf[ApiActor], bus, applicationManager, client)
+  def apply(bus: ActorRef, applicationManager: ActorRef, componentManager: ActorRef)(client: ActorRef) = Props(classOf[ApiActor], bus, applicationManager, componentManager: ActorRef, client)
 }

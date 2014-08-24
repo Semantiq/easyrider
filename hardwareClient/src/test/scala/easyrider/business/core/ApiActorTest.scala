@@ -4,7 +4,7 @@ import java.util.UUID
 
 import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
-import easyrider.Api.{Authentication, Authenticate}
+import easyrider.Api.{Authentication, AuthenticateUser}
 import easyrider.Applications._
 import easyrider.Infrastructure.NodeUpdatedEvent
 import easyrider.{CommandId, EventDetails, EventId, EventKey}
@@ -27,7 +27,7 @@ class ApiActorTest() extends TestKit(ActorSystem()) with FlatSpecLike with Match
     def dummyEvent = NodeUpdatedEvent(EventDetails(EventId(UUID.randomUUID.toString), EventKey(), Seq()))
     val (_, bus, client, api) = setup()
 
-    client.send(api, Authenticate())
+    client.send(api, AuthenticateUser())
 
     client.expectMsg(Authentication())
 
@@ -41,8 +41,8 @@ class ApiActorTest() extends TestKit(ActorSystem()) with FlatSpecLike with Match
   }
   it should "add application and indicate it by event" in {
     val (applicationManager, bus, client, api) = setup()
-    val command: ApplicationCommand = CreateApplication(CommandId.generate, Application(ApplicationId("app"), Seq()))
-    client.send(api, Authenticate())
+    val command: ApplicationCommand = CreateApplication(CommandId.generate(), Application(ApplicationId("app"), Seq()))
+    client.send(api, AuthenticateUser())
 
     client.send(api, command)
     applicationManager.expectMsg(command)
@@ -50,8 +50,9 @@ class ApiActorTest() extends TestKit(ActorSystem()) with FlatSpecLike with Match
   def setup(): (TestProbe, TestProbe, TestProbe, ActorRef) = {
     val applicationManager = TestProbe()
     val bus = TestProbe()
+    val componentManager = TestProbe()
     val client = TestProbe()
-    val api = system.actorOf(ApiActor(bus.ref, applicationManager.ref)(client.ref))
+    val api = system.actorOf(ApiActor(bus.ref, applicationManager.ref, componentManager.ref)(client.ref))
     (applicationManager, bus, client, api)
   }
 
