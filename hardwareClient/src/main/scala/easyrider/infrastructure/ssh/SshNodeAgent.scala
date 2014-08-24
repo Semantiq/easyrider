@@ -3,12 +3,16 @@ package easyrider.infrastructure.ssh
 import akka.actor.{ActorRef, Actor, Props}
 import akka.event.LoggingReceive
 import com.jcraft.jsch.{ChannelExec, UserInfo, JSch}
-import easyrider.{EventId, EventDetails}
-import easyrider.Infrastructure.{CreationFailed, Created, ContainerStateChangedEvent, CreateContainer}
+import easyrider.{EventKey, EventId, EventDetails}
+import easyrider.Infrastructure._
 import easyrider.infrastructure.ssh.SshInfrastructure.NodeConfiguration
 import org.apache.commons.io.IOUtils
 
 class SshNodeAgent(eventBus: ActorRef, nodeConfiguration: NodeConfiguration) extends Actor {
+  override def preStart() {
+    eventBus ! NodeUpdatedEvent(EventDetails(EventId.generate(), EventKey(nodeConfiguration.id.id), Seq()))
+  }
+
   override def receive = LoggingReceive {
     case CreateContainer(commandId, _, containerId) =>
       def eventDetails = EventDetails(EventId.generate(), containerId.eventKey, Seq(commandId))
