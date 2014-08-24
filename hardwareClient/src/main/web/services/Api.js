@@ -3,7 +3,7 @@ app.service("Api", ["Connection", function(Connection) {
 	me.isAuthenticated = false;
 
 	var indexId = 0;
-	var idPrefix = "cmd" + Math.random() + "seq";
+	var idPrefix = "console";
 
 	function nextId() {
 		return idPrefix + indexId++;
@@ -11,7 +11,7 @@ app.service("Api", ["Connection", function(Connection) {
 
 	me.objects = {
 		Authenticate: function() {
-			this.jsonClass = "easyrider.Api$Authenticate";
+			this.jsonClass = "easyrider.Api$AuthenticateUser";
 		}
 	};
 
@@ -36,7 +36,7 @@ app.service("Api", ["Connection", function(Connection) {
 	function Subscription(subscriptionId) {
 		this.subscriptionId = subscriptionId;
 		this.subscribed = false;
-		this.snapshot = {};
+		this.snapshot = [];
 	}
 
 	var subscriptions = {};
@@ -52,7 +52,11 @@ app.service("Api", ["Connection", function(Connection) {
 			subscriptionId: subscriptionId,
 			eventType: {
 				jsonClass: "easyrider.EventType",
-				name: eventType
+				name: eventType,
+				sender: {
+					id: "core",
+					jsonClass: "easyrider.ComponentId"
+				}
 			},
 			eventKey: {
 				jsonClass: "easyrider.EventKey",
@@ -91,6 +95,35 @@ app.service("Api", ["Connection", function(Connection) {
 	Connection.on["easyrider.Events$Subscribed"] = function(msg) {
 		var s = subscriptions[msg.subscriptionId];
 		s.subscribed = true;
-		s.snapshot = msg.snapshot;
+		while(s.snapshot.length > 0) {
+			s.snapshot.pop();
+		}
+		for(var i in msg.snapshot) {
+			s.snapshot.push(msg.snapshot[i]);
+		}
 	};
+
+	function defineEvent(className) {
+		Connection.on[className] = function(event) {
+			var eventKey = event.eventDetails.eventKey.key.join("::");
+			for(var i in subscriptions) {
+				var s = subscriptions[i];
+				if(s.eventType.name == className) {
+					var any = false;
+					for(var j in s.snapshot) {
+						if(s.snapshot[j].eventDetails.eventKey.key.join("::") == eventKey) {
+							s.snapshot[j] = event;
+							any = true;
+							break;
+						}
+					}
+					if(!any) {
+						s.snapshot.push(event);
+					}
+				}
+			}
+		};
+	}
+
+	defineEvent("easyrider.Applications$ApplicationUpdatedEvent");
 }]);

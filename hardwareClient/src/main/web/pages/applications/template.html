@@ -2,5 +2,27 @@
 	<button class="btn btn-primary" ng-click="addApplication()">Add application</button>
 </div>
 <h1>Applications</h1>
+<hr />
 
-<pre>{{Applications|json}}</pre>
+<div class="jumbotron" ng-show="Applications.list.length==0">
+	<h1>There are no applications</h1>
+	<p>
+		Some help text
+	</p>
+	<button class="btn btn-primary btn-lg" ng-click="addApplication()">
+		Add your first application
+	</button>
+</div>
+
+<div class="panel panel-primary" ng-repeat="app in Applications.list">
+	<div class="panel-heading">
+		<div class="btn-toolbar pull-right">
+			<button class="btn btn-danger btn-xs">Remove application</button>
+		</div>
+		{{app.application.id.id}}
+	</div>
+	<div class="panel-body">
+		<h4>Properites</h4>
+		<pre>{{app.application.properties|json}}</pre>
+	</div>
+</div>

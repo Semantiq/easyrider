@@ -44,7 +44,6 @@ sealed trait Query {
 
 sealed trait Result {
   def queryId: QueryId
-  def sender: ComponentId
 }
 
 sealed trait Cause
@@ -106,12 +105,8 @@ object Events {
   }
   case class Subscribe(commandId: CommandId, subscriptionId: String, eventType: EventType, eventKey: EventKey) extends EventBusCommand
   case class UnSubscribe(commandId: CommandId, subscriptionId: String) extends EventBusCommand
-  case class Subscribed[T](queryId: QueryId, subscriptionId: String, eventType: EventType, snapshot: Seq[T]) extends Result {
-    def sender = id
-  }
-  case class UnSubscribed(queryId: QueryId, subscriptionId: String) extends Result {
-    def sender = id
-  }
+  case class Subscribed[T](queryId: QueryId, subscriptionId: String, eventType: EventType, snapshot: Seq[T]) extends Result
+  case class UnSubscribed(queryId: QueryId, subscriptionId: String) extends Result
 
   val id = ComponentId(classOf[EventBus].getName)
 }

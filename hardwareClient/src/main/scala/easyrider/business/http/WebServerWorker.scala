@@ -12,31 +12,6 @@ import org.json4s.native.Serialization
 import org.json4s._
 import org.json4s.native.Serialization.{write, read}
 
-/*class EventKeyMapSerializer extends CustomSerializer[Map[_, _]](format => (
-  {
-    ???
-  }, {
-  implicit val formats = Serialization.formats(FullTypeHints(List(classOf[AnyRef]))) + new EventKeyMapSerializer;
-
-  {
-    case x: Map[String, _] =>
-      Extraction.decompose(x)
-    case x: Map[_, _] =>
-      JArray(x.toSeq.map { case (key, value) =>
-        JObject(JField("key", Extraction.decompose(key)) :: JField("value", Extraction.decompose(value)) :: Nil)
-      }.toList)
-  }
-}
-))*/
-
-object ToJsonFriendly {
-  val convert: AnyRef => AnyRef = {
-    /*case s: Subscribed =>
-      s.*/
-    case x => x
-  }
-}
-
 class WebServerWorker(connection: ActorRef, apiFactory: ActorRef => Props) extends HttpServiceActor
   with websocket.WebSocketServerWorker {
 
@@ -53,11 +28,9 @@ class WebServerWorker(connection: ActorRef, apiFactory: ActorRef => Props) exten
       case Terminated(actor) if actor == api =>
         context.stop(self)
       case x: AnyRef if sender() == api =>
-        println(x)
-        send(TextFrame(write[AnyRef](ToJsonFriendly.convert(x))))
+        send(TextFrame(write[AnyRef](x)))
       case TextFrame(byteString) =>
-        val json = byteString.utf8String
-        api ! read[AnyRef](json)
+        api ! read[AnyRef](byteString.utf8String)
       case x: FrameCommandFailed =>
         // TODO: Maybe it should stop this actor?
         log.error("frame command failed", x)
