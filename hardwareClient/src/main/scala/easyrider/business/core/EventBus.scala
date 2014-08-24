@@ -27,8 +27,10 @@ class EventBus extends Actor {
       subscriptions = subscriptions.filter(s => s.receiver != subscriber)
     case command: EventBusCommand => command match {
       case Subscribe(commandId, subscriptionId, eventType, eventKey) =>
-        val eventsByKey = snapshots.getOrElse(eventType, Map()).filter(entry => eventKey.contains(entry._1))
-        sender() ! Subscribed(command.queryId, subscriptionId, eventType, eventsByKey)
+        val snapshot = snapshots.getOrElse(eventType, Map()).values
+          .filter(event => eventKey.contains(event.eventDetails.eventKey))
+          .toSeq
+        sender() ! Subscribed(command.queryId, subscriptionId, eventType, snapshot)
         subscriptions += Subscription(eventType, eventKey, sender(), subscriptionId)
         context.watch(sender())
       case command @ UnSubscribe(commandId, subscriptionId) =>
