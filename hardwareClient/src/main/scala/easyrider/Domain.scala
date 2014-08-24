@@ -59,7 +59,7 @@ sealed trait Event {
 }
 
 object Infrastructure {
-  case class Node(id: String) {
+  case class NodeId(id: String) {
     require("""^[a-zA-Z0-9_]+$""".r.findFirstIn(id).isDefined, "Node id can contain only letters and underscores")
   }
 
@@ -67,9 +67,10 @@ object Infrastructure {
   case class CreateContainer(commandId: CommandId) extends InfrastructureCommand
 
   case class FindNodes(queryId: QueryId) extends Query
-  case class FindNodesResult(sender: ComponentId, queryId: QueryId, nodes: Seq[Node]) extends Result
+  case class FindNodesResult(sender: ComponentId, queryId: QueryId, nodes: Seq[NodeId]) extends Result
 
   trait InfrastructureEvent extends Event
+  case class ContainerStateChangedEvent(eventDetails: EventDetails) extends InfrastructureEvent
   case class NodeUpdatedEvent(eventDetails: EventDetails) extends InfrastructureEvent
   case class ContainerCreatedEvent(eventDetails: EventDetails) extends InfrastructureEvent
   case class ContainerCreationError(eventDetails: EventDetails)
@@ -141,7 +142,6 @@ object Applications {
 
   trait ContainerEvent extends Event
   case class ContainerConfigurationUpdatedEvent(eventDetails: EventDetails) extends ContainerEvent
-  case class ContainerStateChangedEvent(eventDetails: EventDetails) extends ContainerEvent
 }
 
 trait ResourceEvent
