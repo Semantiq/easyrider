@@ -2,12 +2,13 @@ package easyrider.business.core
 
 import akka.actor.{Actor, ActorRef, Props, Terminated}
 import akka.event.LoggingReceive
-import easyrider.{Event, EventKey}
+import easyrider.{Event, EventKey, EventType}
+import easyrider.Implicits._
 
 class EventBus extends Actor {
   import easyrider.Events._
-  private case class Subscription(eventType: Class[_ <: Event], eventKey: EventKey, receiver: ActorRef, subscriptionId: String)
-  private var snapshots = Map[Class[_ <: Event], Map[EventKey, Event]]()
+  private case class Subscription(eventType: EventType, eventKey: EventKey, receiver: ActorRef, subscriptionId: String)
+  private var snapshots = Map[EventType, Map[EventKey, Event]]()
   private var subscriptions = Set[Subscription]()
 
   override def receive: Receive = LoggingReceive {
@@ -18,7 +19,8 @@ class EventBus extends Actor {
       } else {
         current.updated(event.eventDetails.eventKey, event)
       }
-      snapshots += (event.getClass -> updated)
+      snapshots += (class2eventType(event.getClass) -> updated)
+      println(snapshots)
       subscriptions
         .filter(s => s.eventType == event.getClass && s.eventKey.contains(event.eventDetails.eventKey))
         .foreach(s => s.receiver ! event)

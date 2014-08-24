@@ -1,0 +1,10 @@
+{
+  "name": "easyrider",
+  "version": "0.0.1",
+  "devDependencies": {
+    "grunt": "*",
+    "grunt-contrib-copy": "^0.5.0",
+    "grunt-contrib-jshint": "*",
+    "grunt-contrib-uglify": "*"
+  }
+}
