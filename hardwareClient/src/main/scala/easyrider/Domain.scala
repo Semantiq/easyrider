@@ -2,6 +2,7 @@ package easyrider
 
 import java.util.UUID
 
+import easyrider.Applications.ContainerId
 import easyrider.business.core.EventBus
 
 sealed trait Target
@@ -56,15 +57,18 @@ object Infrastructure {
   case class NodeId(id: String) {
     require("""^[a-zA-Z0-9_]+$""".r.findFirstIn(id).isDefined, "Node id can contain only letters and underscores")
   }
+  sealed trait ContainerState
+  case object CreationFailed extends ContainerState
+  case object Created extends ContainerState
 
   trait InfrastructureCommand extends Command
-  case class CreateContainer(commandId: CommandId) extends InfrastructureCommand
+  case class CreateContainer(commandId: CommandId, nodeId: NodeId, containerId: ContainerId) extends InfrastructureCommand
 
   case class FindNodes(queryId: QueryId) extends Query
   case class FindNodesResult(sender: ComponentId, queryId: QueryId, nodes: Seq[NodeId]) extends Result
 
   trait InfrastructureEvent extends Event
-  case class ContainerStateChangedEvent(eventDetails: EventDetails) extends InfrastructureEvent
+  case class ContainerStateChangedEvent(eventDetails: EventDetails, state: ContainerState) extends InfrastructureEvent
   case class NodeUpdatedEvent(eventDetails: EventDetails) extends InfrastructureEvent
   case class ContainerCreatedEvent(eventDetails: EventDetails) extends InfrastructureEvent
   case class ContainerCreationError(eventDetails: EventDetails)
@@ -116,6 +120,7 @@ object Applications {
   case class ContainerId(stageId: StageId, id: String) {
     require("""^[a-zA-Z0-9_]+$""".r.findFirstIn(id).isDefined, "Container id can contain only letters and underscores")
     def eventKey = EventKey(stageId.applicationId.id, stageId.id, id)
+    def containerName = stageId.applicationId.id + "-" + stageId.id + "-" + id
   }
   case class ContainerConfiguration(id: ContainerId, properties: Seq[Property])
   trait ApplicationCommand extends Command
