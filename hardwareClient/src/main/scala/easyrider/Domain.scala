@@ -5,15 +5,17 @@ import java.util.UUID
 import easyrider.Applications.ContainerId
 import easyrider.business.core.EventBus
 
-case class EventType(name: String)
-
-object Implicits {
-  implicit def class2eventType(x: Class[_]) = EventType(x.getName)
+sealed trait Target
+case class ComponentId(id: String) extends Target
+object ComponentId {
+  val core = ComponentId("core")
 }
 
-sealed trait Target
-case class PluginTarget(pluginId: ComponentId) extends Target
-case class ComponentId(id: String)
+case class EventType(sender: ComponentId, name: String)
+
+object Implicits {
+  implicit def class2eventType(x: Class[_]) = EventType(ComponentId.core, x.getName)
+}
 
 case class Failure(commandId: CommandId, message: String, exception: Option[Exception]) {
   def isSystemFailure = exception.isDefined
@@ -24,6 +26,13 @@ sealed trait Command {
   def failure(message: String) = Failure(commandId, message, None)
   def systemFailure(message: String, exception: Exception) = Failure(commandId, message, Some(exception))
 }
+
+object Components {
+  case class ComponentCommand(commandId: CommandId, target: Target, payload: Map[String, String]) extends Command
+  case class ComponentEvent(eventDetails: EventDetails, payload: Map[String, String]) extends Event
+  case class ConsoleExtensionAvailableEvent(eventDetails: EventDetails, ) extends Event
+}
+
 sealed trait Query {
   def queryId: QueryId
 }
@@ -41,7 +50,6 @@ object EventId {
 }
 
 case class CommandId(id: String) extends Cause
-
 object CommandId {
   def generate() = CommandId(UUID.randomUUID().toString)
 }
@@ -61,7 +69,7 @@ sealed trait Event {
 
 object Infrastructure {
   case class NodeId(id: String) {
-    require("""^[a-zA-Z0-9_]+$""".r.findFirstIn(id).isDefined, "Node id can contain only letters and underscores")
+    require(id.matches("""^[a-zA-Z0-9_]+$"""), "Node id can contain only letters and underscores")
   }
   sealed trait ContainerState
   case object CreationFailed extends ContainerState
@@ -114,17 +122,17 @@ case class ReleaseFailed()
 object Applications {
   case class Property(namespace: String, name: String, value: String)
   case class ApplicationId(id: String) {
-    require("""^[a-zA-Z0-9_]+$""".r.findFirstIn(id).isDefined, "Application id can contain only letters and underscores")
+    require(id.matches("""^[a-zA-Z0-9_]+$"""), "Application id can contain only letters and underscores")
     def eventKey = EventKey(id)
   }
   case class Application(id: ApplicationId, properties: Seq[Property])
   case class StageId(applicationId: ApplicationId, id: String) {
-    require("""^[a-zA-Z0-9_]+$""".r.findFirstIn(id).isDefined, "Stage id can contain only letters and underscores")
+    require(id.matches("""^[a-zA-Z0-9_]+$"""), "Stage id can contain only letters and underscores")
     def eventKey = EventKey(applicationId.id, id)
   }
   case class Stage(id: StageId, properties: Seq[Property])
   case class ContainerId(stageId: StageId, id: String) {
-    require("""^[a-zA-Z0-9_]+$""".r.findFirstIn(id).isDefined, "Container id can contain only letters and underscores")
+    require(id.matches("""^[a-zA-Z0-9_]+$"""), "Container id can contain only letters and underscores")
     def eventKey = EventKey(stageId.applicationId.id, stageId.id, id)
     def containerName = stageId.applicationId.id + "-" + stageId.id + "-" + id
   }
