@@ -23,9 +23,7 @@ app.service("Api", ["Connection", function(Connection) {
 	Connection.onOpen = function() {
 		if(me.authObject)
 			Connection.send(me.authObject);
-		for(var i in subscriptionsRequested)
-			Connection.send(subscriptionsRequested[i]);
-	}
+	};
 
 	function forceAuthenticated() {
 		if(!me.isAuthenticated)
@@ -33,6 +31,15 @@ app.service("Api", ["Connection", function(Connection) {
 	}
 
 	var subscriptionsRequested = [];
+	var sendAfterAuthentication = [];
+
+	function Subscription(subscriptionId) {
+		this.subscriptionId = subscriptionId;
+		this.subscribed = false;
+		this.snapshot = {};
+	}
+
+	var subscriptions = {};
 
 	me.subscribe = function(eventType, eventKey) {
 		var subscriptionId = nextId();
@@ -52,11 +59,38 @@ app.service("Api", ["Connection", function(Connection) {
 				key: eventKey.push ? eventKey : eventKey.split(" ")
 			}
 		};
-		Connection.send(subscription);
+		if(me.isAuthenticated)
+			Connection.send(subscription);
 		subscriptionsRequested.push(subscription);
+		var s = new Subscription(subscriptionId);
+		subscriptions[subscriptionId] = s;
+		s.eventKey = subscription.eventKey;
+		s.eventType = subscription.eventType;
+		s.commandId = subscription.commandId;
+		return s;
+	};
+
+	me.command = function(jsonClass, command) {
+		command.jsonClass = jsonClass;
+		command.commandId = { id: nextId() };
+		if(me.isAuthenticated)
+			Connection.send(command);
+		else
+			sendAfterAuthentication.push(command);
 	};
 
 	Connection.on["easyrider.Api$Authentication"] = function() {
 		me.isAuthenticated = true;
+		for(var i in subscriptionsRequested)
+			Connection.send(subscriptionsRequested[i]);
+		for(i in sendAfterAuthentication)
+			Connection.send(sendAfterAuthentication[i]);
+		sendAfterAuthentication = [];
+	};
+
+	Connection.on["easyrider.Events$Subscribed"] = function(msg) {
+		var s = subscriptions[msg.subscriptionId];
+		s.subscribed = true;
+		s.snapshot = msg.snapshot;
 	};
 }]);

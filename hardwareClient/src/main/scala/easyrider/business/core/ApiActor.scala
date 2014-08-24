@@ -2,6 +2,7 @@ package easyrider.business.core
 
 import akka.actor._
 import easyrider.Applications.ApplicationCommand
+import easyrider.Events.EventBusCommand
 import easyrider._
 
 class ApiActor(bus: ActorRef, applicationManager: ActorRef, client: ActorRef) extends Actor {
@@ -28,12 +29,14 @@ class ApiActor(bus: ActorRef, applicationManager: ActorRef, client: ActorRef) ex
     case q: Query =>
       ???
     case r: Result =>
-      ???
+      client ! r
   }
 
   val processCommand: Command => Unit = {
     case c: ApplicationCommand =>
       applicationManager ! c
+    case c: EventBusCommand =>
+      bus ! c
   }
 }
 
