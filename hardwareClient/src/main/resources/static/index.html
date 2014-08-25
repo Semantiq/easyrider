@@ -40,13 +40,22 @@
 						</div>
 						<div class="modal-body" ng-if="Command.command.jsonClass">
 							<div ng-include src="'/commands/'+Command.command.jsonClass+'/template.html'"></div>
+							<div ng-repeat="alert in validation.alerts"
+								class="alert" ng-class="['alert-'+alert.level]">
+								<h4 class="alert-heading">{{alert.title}}</h4>
+								{{alert.text}}
+							</div>
 						</div>
 						<div class="modal-footer">
 							<button class="btn btn-default" ng-click="Command.cancel()">
 								Cancel</button>
-							<button class="btn btn-success" ng-click="Command.explain()">
+							<button class="btn btn-success"
+								ng-disabled="!validation.canExplain"
+								ng-click="Command.explain()">
 								Explain</button>
-							<button class="btn btn-danger" ng-click="Command.execute(false)">
+							<button class="btn btn-danger"
+								ng-disabled="!validation.canExecute" 
+								ng-click="Command.execute(false)">
 								Execute</button>
 						</div>
 					</div>

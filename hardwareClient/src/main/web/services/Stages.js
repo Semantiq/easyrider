@@ -1,4 +1,4 @@
-app.service('Stages', ['Api', function(Api) {
+app.service('Stages', ['Api', "Validators", "Utils", function(Api, Validators, Utils) {
 	var me = this;
 
 	me.subscription = Api.subscribe("easyrider.Applications$StageUpdatedEvent", []);
@@ -34,4 +34,12 @@ app.service('Stages', ['Api', function(Api) {
 
 		return stages;
 	};
+
+	Validators.addValidator("easyrider.Applications$CreateStage",
+		function(command, reporter) {
+		if(!command.stage.id.applicationId)
+			reporter.fail("No application selected", "You must select application related to this stage");
+		if(!Utils.isValidId(command.stage.id.id))
+			reporter.fail("Invalid stage id", Utils.idInfo);
+	});
 }]);
