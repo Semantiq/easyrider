@@ -99,6 +99,8 @@ object SshInfrastructure {
   case class CreateNode(commandId: CommandId, nodeConfiguration: NodeConfiguration) extends SshInfrastructureCommand
   case class UpdateNode(commandId: CommandId, nodeConfiguration: NodeConfiguration) extends SshInfrastructureCommand
   case class RemoveNode(commandId: CommandId, nodeId: NodeId, keepData: Boolean = true) extends SshInfrastructureCommand
+
+  case class NodeConfigurationUpdated(eventDetails: EventDetails, nodeConfiguration: NodeConfiguration) extends Event
 }
 
 object Api {

@@ -4,13 +4,14 @@ import akka.actor.{Actor, ActorRef, Props}
 import akka.event.LoggingReceive
 import com.jcraft.jsch.{ChannelExec, JSch}
 import easyrider.Infrastructure._
-import easyrider.SshInfrastructure.{CreateNode, NodeConfiguration}
+import easyrider.SshInfrastructure.{NodeConfigurationUpdated, CreateNode, NodeConfiguration}
 import easyrider.{EventDetails, EventId, EventKey}
 import org.apache.commons.io.IOUtils
 
 class SshNodeAgent(eventBus: ActorRef) extends Actor {
   def unConfigured = LoggingReceive {
     case CreateNode(commandId, configuration) =>
+      eventBus ! NodeConfigurationUpdated(EventDetails(EventId.generate(), EventKey(configuration.id.id), Seq(commandId)), configuration)
       runSshCommand(configuration, "mkdir -p easyrider")
       eventBus ! NodeUpdatedEvent(EventDetails(EventId.generate(), EventKey(configuration.id.id), Seq()))
       context.become(configured(configuration))
