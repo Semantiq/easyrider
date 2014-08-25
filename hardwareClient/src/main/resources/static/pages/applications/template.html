@@ -27,7 +27,7 @@
 		<pre>{{app.application.properties|json}}</pre>
 		<h4>Stages</h4>
 		<span ng-repeat="stageEvent in Stages.stagesOfApplication(app.application.id)">
-			<a class="label label-default" href="/stages/{{stageEvent.stage.id.id}}">{{stageEvent.stage.id.id}}</a>&nbsp;
+			<a class="label label-default" href="/application/{{app.application.id.id}}/stage/{{stageEvent.stage.id.id}}">{{stageEvent.stage.id.id}}</a>&nbsp;
 		</span>
 	</div>
 </div>
