@@ -11,7 +11,8 @@ module.exports = function(grunt) {
 					'../resources/static/main.min.js': [
 						'js/init.js',
 						'services/**/*.js',
-						'pages/**/*.js'
+						'pages/**/*.js',
+						'directives/**/*.js'
 					]
 				}
 			}
@@ -23,6 +24,8 @@ module.exports = function(grunt) {
 			main: {
 				files: [
 					{ expand: true, flatten: false, src: ["pages/**/*.html"], dest: "../resources/static" },
+					{ expand: true, flatten: false, src: ["directives/**/*.html"], dest: "../resources/static" },
+					{ expand: true, flatten: false, src: ["commands/**/*.html"], dest: "../resources/static" },
 					{ expand: true, flatten: false, src: ["bower_components/**"], dest: "../resources/static/vendor" },
 					{ expand: true, flatten: true, src: ["html/index.html"], dest: "../resources/static" }
 				]

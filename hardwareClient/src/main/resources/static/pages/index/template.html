@@ -5,76 +5,25 @@
 				Applications
 			</div>
 			<div class="panel-body">
-				Test
-			</div>
-		</div>
-		<div class="panel panel-default">
-			<div class="panel-heading">
-				Stages
-			</div>
-			<div class="panel-body">
-				Test
-			</div>
-		</div>
-		<div class="panel panel-default">
-			<div class="panel-heading">
-				Instances
-			</div>
-			<div class="panel-body">
-				Test
+				<table class="table table-striped">
+					<thead>
+						<tr>
+							<th>Id</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr ng-repeat="app in Applications.list">
+							<td>{{app.application.id.id}}</td>
+						</tr>
+					</tbody>
+				</table>
 			</div>
 		</div>
 	</div>
 	<div class="col-md-4">
-		<div class="panel panel-default">
-			<div class="panel-heading">
-				Infrastructure
-			</div>
-			<div class="panel-body">
-				Test
-			</div>
-		</div>
-		<div class="panel panel-default">
-			<div class="panel-heading">
-				Stages
-			</div>
-			<div class="panel-body">
-				Test
-			</div>
-		</div>
-		<div class="panel panel-default">
-			<div class="panel-heading">
-				Instances
-			</div>
-			<div class="panel-body">
-				Test
-			</div>
-		</div>
+		
 	</div>
 	<div class="col-md-4">
-		<div class="panel panel-default">
-			<div class="panel-heading">
-				Nodes
-			</div>
-			<div class="panel-body">
-				Test
-			</div>
-		</div>
-		<div class="panel panel-default">
-			<div class="panel-heading">
-				Stages
-			</div>
-			<div class="panel-body">
-				Test
-			</div>
-		</div>
-		<div class="panel panel-default">
-			<div class="panel-heading">
-				Instances
-			</div>
-			<div class="panel-body">
-				Test
-			</div>
-		</div>
+		
 	</div>
 </div>
