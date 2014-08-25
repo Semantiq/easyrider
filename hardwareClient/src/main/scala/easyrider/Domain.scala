@@ -2,9 +2,10 @@ package easyrider
 
 import java.util.UUID
 
-import easyrider.Applications.ContainerId
+import easyrider.Applications.{ApplicationId, ContainerId}
 import easyrider.Infrastructure.NodeId
 import easyrider.business.core.EventBus
+import org.joda.time.DateTime
 
 sealed trait Target
 case class ComponentId(id: String) extends Target
@@ -66,7 +67,8 @@ case class EventKey(key: String*) {
   }
 }
 
-case class EventDetails(eventId: EventId, eventKey: EventKey, causedBy: Seq[Cause], removal: Boolean = false)
+case class EventDetails(eventId: EventId, eventKey: EventKey, causedBy: Seq[Cause], removal: Boolean = false,
+                         publicationTime: DateTime = DateTime.now())
 
 sealed trait Event {
   def eventDetails: EventDetails
@@ -79,6 +81,9 @@ object Infrastructure {
   sealed trait ContainerState
   case object CreationFailed extends ContainerState
   case object Created extends ContainerState
+  sealed trait NodeState
+  case object CreatingNode extends NodeState
+  case object NodeCreated extends NodeState
 
   trait InfrastructureCommand extends Command
   case class CreateContainer(commandId: CommandId, nodeId: NodeId, containerId: ContainerId) extends InfrastructureCommand
@@ -88,7 +93,7 @@ object Infrastructure {
 
   trait InfrastructureEvent extends Event
   case class ContainerStateChangedEvent(eventDetails: EventDetails, state: ContainerState) extends InfrastructureEvent
-  case class NodeUpdatedEvent(eventDetails: EventDetails) extends InfrastructureEvent
+  case class NodeUpdatedEvent(eventDetails: EventDetails, state: NodeState) extends InfrastructureEvent
   case class ContainerCreatedEvent(eventDetails: EventDetails) extends InfrastructureEvent
   case class ContainerCreationError(eventDetails: EventDetails)
 }
@@ -124,8 +129,15 @@ object Events {
   val id = ComponentId(classOf[EventBus].getName)
 }
 
-case class VersionAvailableEvent(eventDetails: EventDetails)
-case class VersionLabelsAddedEvent(eventDetails: EventDetails)
+object Repository {
+  case class Label(name: String, cause: Cause, addedTime: DateTime = DateTime.now())
+  case class Version(applicationId: ApplicationId, number: String, uploadTime: DateTime = DateTime.now())
+  trait RepositoryEvent extends Event
+  case class VersionUploadProgressEvent()
+  case class VersionAvailableEvent(eventDetails: EventDetails, version: Version) extends RepositoryEvent
+  case class VersionLabelsAddedEvent(eventDetails: EventDetails, version: Version, newLabels: Seq[Label],
+                                     labels: Seq[Label]) extends RepositoryEvent
+}
 
 case class VersionRecommendedEvent()
 case class ReleaseProgressEvent()
