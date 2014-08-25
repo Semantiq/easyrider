@@ -167,7 +167,7 @@ object Applications {
   case class StageUpdatedEvent(eventDetails: EventDetails, stage: Stage) extends StageEvent
 
   trait ContainerEvent extends Event
-  case class ContainerConfigurationUpdatedEvent(eventDetails: EventDetails) extends ContainerEvent
+  case class ContainerConfigurationUpdatedEvent(eventDetails: EventDetails, container: ContainerConfiguration) extends ContainerEvent
 }
 
 trait ResourceEvent
