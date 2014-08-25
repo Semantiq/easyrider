@@ -3,3 +3,15 @@
 </div>
 <h1>SSH Nodes</h1>
 <hr />
+
+<div class="jumbotron" ng-show="sshNodeConfigurationEvents.length==0">
+    <h1>There are no SSH nodes</h1>
+    <p>
+        Some help text
+    </p>
+    <button class="btn btn-primary btn-lg" ng-click="addSshNode()">
+        Add your first SSH node
+    </button>
+</div>
+
+<ssh-node ng-repeat="sshNodeConfiguration in sshNodeConfigurationEvents" configuration="sshNodeConfiguration"></ssh-node>
