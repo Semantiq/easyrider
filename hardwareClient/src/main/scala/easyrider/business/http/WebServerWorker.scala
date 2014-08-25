@@ -48,6 +48,7 @@ class WebServerWorker(connection: ActorRef, apiFactory: ActorRef => Props) exten
         // TODO: Maybe it should stop this actor?
         log.error("frame command failed", x)
       case x: HttpRequest => // Possibly nothing to do
+        println("got http request")
     }
   }
 
