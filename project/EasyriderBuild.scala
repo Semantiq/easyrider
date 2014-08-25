@@ -19,6 +19,7 @@ object EasyriderBuild extends Build {
       "com.wandoulabs.akka" %% "spray-websocket" % "0.1.2-SEMANTIQ",
       "commons-io" % "commons-io" % "2.4",
       "com.jcraft" % "jsch" % "0.1.51",
+      "joda-time" % "joda-time" % "2.4",
       "org.scalatest" %% "scalatest" % "2.2.1" % "test",
       "com.typesafe.akka" %% "akka-actor" % akkaVersion,
       "com.typesafe.akka" %% "akka-testkit" % akkaVersion % "test")
