@@ -3,6 +3,7 @@ package easyrider
 import java.util.UUID
 
 import easyrider.Applications.ContainerId
+import easyrider.Infrastructure.NodeId
 import easyrider.business.core.EventBus
 
 sealed trait Target
@@ -90,6 +91,14 @@ object Infrastructure {
   case class NodeUpdatedEvent(eventDetails: EventDetails) extends InfrastructureEvent
   case class ContainerCreatedEvent(eventDetails: EventDetails) extends InfrastructureEvent
   case class ContainerCreationError(eventDetails: EventDetails)
+}
+
+object SshInfrastructure {
+  case class NodeConfiguration(id: NodeId, host: String, port: Int, login: String, password: String)
+  trait SshInfrastructureCommand extends Command
+  case class CreateNode(commandId: CommandId, nodeConfiguration: NodeConfiguration) extends SshInfrastructureCommand
+  case class UpdateNode(commandId: CommandId, nodeConfiguration: NodeConfiguration) extends SshInfrastructureCommand
+  case class RemoveNode(commandId: CommandId, nodeId: NodeId, keepData: Boolean = true) extends SshInfrastructureCommand
 }
 
 object Api {

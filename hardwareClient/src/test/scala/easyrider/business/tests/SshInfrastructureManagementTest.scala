@@ -2,13 +2,12 @@ package easyrider.business.tests
 
 import akka.testkit.TestProbe
 import easyrider.Api.{AuthenticateUser, Authentication}
-import easyrider.{EventKey, CommandId}
-import easyrider.Components.ComponentCommand
-import easyrider.Events.{Subscribed, Subscribe}
-import easyrider.Infrastructure.NodeUpdatedEvent
-import easyrider.business.{Easyrider, EasyriderTest}
-import easyrider.infrastructure.ssh.SshInfrastructurePlugin
+import easyrider.Events.{Subscribe, Subscribed}
 import easyrider.Implicits._
+import easyrider.Infrastructure.{NodeId, NodeUpdatedEvent}
+import easyrider.SshInfrastructure.NodeConfiguration
+import easyrider.business.{Easyrider, EasyriderTest}
+import easyrider.{CommandId, EventKey, SshInfrastructure}
 
 class SshInfrastructureManagementTest extends EasyriderTest(new Easyrider(8081)) {
   "EasyRider" should "allow to add ssh host" in {
@@ -21,13 +20,7 @@ class SshInfrastructureManagementTest extends EasyriderTest(new Easyrider(8081))
     client.send(api, Subscribe(CommandId.generate(), "nodeEvents", classOf[NodeUpdatedEvent], EventKey()))
     client.expectMsgClass(classOf[Subscribed[_]])
 
-    client.send(api, ComponentCommand(CommandId.generate(), SshInfrastructurePlugin.componentId, Map(
-      "type" -> "NodeConfiguration",
-      "id" -> "nodeA",
-      "host" -> "localhost",
-      "port" -> "22",
-      "login" -> "test",
-      "password" -> "test")))
+    client.send(api, SshInfrastructure.CreateNode(CommandId.generate(), NodeConfiguration(NodeId("nodeA"), "localhost", 22, "test", "test")))
     client.expectMsgClass(classOf[NodeUpdatedEvent])
   }
 
