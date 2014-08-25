@@ -14,30 +14,4 @@
 	</button>
 </div>
 
-<div class="panel panel-primary" ng-repeat="stage in Stages.list">
-	<div class="panel-heading">
-		<div class="btn-toolbar pull-right">
-			<button class="btn btn-success btn-xs" ng-click="addContainer(stage.stage.id)">
-				Add container
-			</button>
-			<button class="btn btn-danger btn-xs" ng-click="removeStage(stage.stage.id)">Remove stage</button>
-		</div>
-		{{stage.stage.id.applicationId.id}} @ {{stage.stage.id.id}}
-	</div>
-	<div class="panel-body">
-		<h4>Properites</h4>
-		<pre>{{stage.stage.properties|json}}</pre>
-		<h4>Containers</h4>
-		<div class="list-group">
-			<div class="list-group-item" ng-repeat="containerUpdatedEvent in ContainersConfiguration.containersInStage(stage.stage.id)">
-				<div class="btn-toolbar pull-right">
-					<button class="btn btn-primary btn-xs">Update container</button>
-					<button class="btn btn-danger btn-xs">Remove container</button>
-				</div>
-				{{containerUpdatedEvent.containerConfiguration.id.id}}
-				<strong>Properties</strong>
-				{{containerUpdatedEvent.containerConfiguration.properties|json}}
-			</div>
-		</div>
-	</div>
-</div>
+<div ng-repeat="stage in Stages.list" stage="stage"></div>
