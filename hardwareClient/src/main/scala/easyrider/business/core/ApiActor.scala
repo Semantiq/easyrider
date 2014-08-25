@@ -38,6 +38,8 @@ class ApiActor(bus: ActorRef, applicationManager: ActorRef, componentManager: Ac
       ???
     case r: Result =>
       client ! r
+    case f: Failure =>
+      client ! f
   }
 
   val processCommand: Command => Unit = {
