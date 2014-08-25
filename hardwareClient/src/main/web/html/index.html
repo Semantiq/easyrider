@@ -7,6 +7,16 @@
 		.panel-primary .panel-heading a {
 			color: white;
 		}
+		.indicator span {
+			-moz-transition: 0.2s opacity ease-in-out;
+			-webkit-transition: 0.2s opacity ease-in-out;
+			-o-transition: 0.2s opacity ease-in-out;
+			-ms-transition: 0.2s opacity ease-in-out;
+			transition: 0.2s opacity ease-in-out;
+		}
+		.indicator i {
+			opacity: 0.7;
+		}
 		</style>
 	</head>
 	<body>
@@ -14,6 +24,12 @@
 			<div class="container-fluid">
 				<div class="navbar-header">
 					<a class="navbar-brand" href="/">EasyRider</a>
+				</div>
+				<div class="navbar-text indicator" ng-controller="ConnectionInfoCtrl">
+					<i class="glyphicon glyphicon-user"></i>
+					<span ng-style="toUser()">&lt;</span>
+					<span ng-style="toCloud()">&gt;</span>
+					<i class="glyphicon glyphicon-cloud"></i>
 				</div>
 				<ul class="nav navbar-nav pull-right">
 					<li><a href="/" target="_self">Sign out</a></li>
