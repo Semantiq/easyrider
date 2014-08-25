@@ -99,6 +99,8 @@ object SshInfrastructure {
   case class CreateNode(commandId: CommandId, nodeConfiguration: NodeConfiguration) extends SshInfrastructureCommand
   case class UpdateNode(commandId: CommandId, nodeConfiguration: NodeConfiguration) extends SshInfrastructureCommand
   case class RemoveNode(commandId: CommandId, nodeId: NodeId, keepData: Boolean = true) extends SshInfrastructureCommand
+
+  case class NodeConfigurationUpdated(eventDetails: EventDetails, nodeConfiguration: NodeConfiguration) extends Event
 }
 
 object Api {
@@ -165,7 +167,7 @@ object Applications {
   case class StageUpdatedEvent(eventDetails: EventDetails, stage: Stage) extends StageEvent
 
   trait ContainerEvent extends Event
-  case class ContainerConfigurationUpdatedEvent(eventDetails: EventDetails) extends ContainerEvent
+  case class ContainerConfigurationUpdatedEvent(eventDetails: EventDetails, container: ContainerConfiguration) extends ContainerEvent
 }
 
 trait ResourceEvent

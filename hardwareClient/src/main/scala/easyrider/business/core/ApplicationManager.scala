@@ -47,13 +47,13 @@ class ApplicationManager(eventBus: ActorRef) extends Actor {
       case NonExistingStage(_) => sender ! command.failure(s"Stage ${container.id.stageId.id} of application ${container.id.stageId.applicationId.id} does not exist")
       case _ =>
         containers += (container.id -> container)
-        eventBus ! ContainerConfigurationUpdatedEvent(EventDetails(EventId.generate(), container.id.eventKey, Seq(commandId)))
+        eventBus ! ContainerConfigurationUpdatedEvent(EventDetails(EventId.generate(), container.id.eventKey, Seq(commandId)), container)
     }
     case command @ UpdateContainerConfiguration(commandId, container) => container match {
       case NonExistingContainer(_) => sender ! command.failure(s"Container ${container.id.id} does not exist in application ${container.id.stageId.applicationId.id} stage ${container.id.stageId.id}")
       case _ =>
         containers += (container.id -> container)
-        eventBus ! ContainerConfigurationUpdatedEvent(EventDetails(EventId.generate(), container.id.eventKey, Seq(commandId)))
+        eventBus ! ContainerConfigurationUpdatedEvent(EventDetails(EventId.generate(), container.id.eventKey, Seq(commandId)), container)
     }
   }
 
