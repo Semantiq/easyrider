@@ -1,4 +1,4 @@
-app.service('Applications', ['Api', function(Api) {
+app.service('Applications', ['Api', "Validators", "Utils", function(Api, Validators, Utils) {
 	var me = this;
 
 	me.subscription = Api.subscribe("easyrider.Applications$ApplicationUpdatedEvent", []);
@@ -21,4 +21,10 @@ app.service('Applications', ['Api', function(Api) {
 			applicationId: applicationId
 		};
 	};
+
+	Validators.addValidator("easyrider.Applications$CreateApplication",
+		function(command, reporter) {
+		if(!Utils.isValidId(command.application.id.id))
+			reporter.fail("Invalid application id", Utils.idInfo);
+	});
 }]);
