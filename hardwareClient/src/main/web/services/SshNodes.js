@@ -2,7 +2,9 @@ app.service('SshNodes', ['Api', "Validators", "Utils", function(Api, Validators,
 	var me = this;
 
 	me.subscription = Api.subscribe("easyrider.SshInfrastructure$NodeConfigurationUpdated", []);
+	me.stateSubscription = Api.subscribe("easyrider.Infrastructure$NodeUpdatedEvent", []);
 	me.list = me.subscription.snapshot;
+	me.stateList = me.stateSubscription.snapshot;
 
 	me.addSshNodeTemplate = function() {
 		return {
@@ -17,6 +19,15 @@ app.service('SshNodes', ['Api', "Validators", "Utils", function(Api, Validators,
 				password: ""
 			}
 		};
+	};
+
+	me.nodeStates = function() {
+        var nodes = {
+        };
+        for (var i in me.stateList) {
+            nodes[me.stateList[i].eventDetails.eventKey.key[0]] = me.stateList[i];
+        }
+        return nodes;
 	};
 //	me.removeApplicationTemplate = function(applicationId) {
 //		return {

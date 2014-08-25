@@ -14,4 +14,4 @@
     </button>
 </div>
 
-<ssh-node ng-repeat="sshNodeConfiguration in sshNodeConfigurationEvents" configuration="sshNodeConfiguration"></ssh-node>
+<ssh-node ng-repeat="sshNodeConfiguration in sshNodeConfigurationEvents" configuration="sshNodeConfiguration" state="nodeStates()[sshNodeConfiguration.nodeConfiguration.id.id]"></ssh-node>

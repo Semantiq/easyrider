@@ -137,4 +137,5 @@ app.service("Api", ["Connection", function(Connection) {
 	defineEvent("easyrider.Applications$StageUpdatedEvent");
 	defineEvent("easyrider.Applications$ContainerConfigurationUpdatedEvent");
 	defineEvent("easyrider.SshInfrastructure$NodeConfigurationUpdated");
+	defineEvent("easyrider.Infrastructure$NodeUpdatedEvent");
 }]);

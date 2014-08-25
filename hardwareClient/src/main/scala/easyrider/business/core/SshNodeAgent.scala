@@ -11,9 +11,10 @@ import org.apache.commons.io.IOUtils
 class SshNodeAgent(eventBus: ActorRef) extends Actor {
   def unConfigured = LoggingReceive {
     case CreateNode(commandId, configuration) =>
+      eventBus ! NodeUpdatedEvent(EventDetails(EventId.generate(), EventKey(configuration.id.id), Seq()), CreatingNode)
       eventBus ! NodeConfigurationUpdated(EventDetails(EventId.generate(), EventKey(configuration.id.id), Seq(commandId)), configuration)
       runSshCommand(configuration, "mkdir -p easyrider")
-      eventBus ! NodeUpdatedEvent(EventDetails(EventId.generate(), EventKey(configuration.id.id), Seq()))
+      eventBus ! NodeUpdatedEvent(EventDetails(EventId.generate(), EventKey(configuration.id.id), Seq()), NodeCreated)
       context.become(configured(configuration))
   }
 

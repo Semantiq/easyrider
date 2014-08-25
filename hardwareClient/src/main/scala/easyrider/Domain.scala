@@ -79,6 +79,9 @@ object Infrastructure {
   sealed trait ContainerState
   case object CreationFailed extends ContainerState
   case object Created extends ContainerState
+  sealed trait NodeState
+  case object CreatingNode extends NodeState
+  case object NodeCreated extends NodeState
 
   trait InfrastructureCommand extends Command
   case class CreateContainer(commandId: CommandId, nodeId: NodeId, containerId: ContainerId) extends InfrastructureCommand
@@ -88,7 +91,7 @@ object Infrastructure {
 
   trait InfrastructureEvent extends Event
   case class ContainerStateChangedEvent(eventDetails: EventDetails, state: ContainerState) extends InfrastructureEvent
-  case class NodeUpdatedEvent(eventDetails: EventDetails) extends InfrastructureEvent
+  case class NodeUpdatedEvent(eventDetails: EventDetails, state: NodeState) extends InfrastructureEvent
   case class ContainerCreatedEvent(eventDetails: EventDetails) extends InfrastructureEvent
   case class ContainerCreationError(eventDetails: EventDetails)
 }
