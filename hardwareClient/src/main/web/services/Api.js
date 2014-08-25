@@ -103,6 +103,10 @@ app.service("Api", ["Connection", function(Connection) {
 		}
 	};
 
+	Connection.on["easyrider.Failure"] = function(msg) {
+		alert(msg.message);
+	};
+
 	function defineEvent(className) {
 		Connection.on[className] = function(event) {
 			var eventKey = event.eventDetails.eventKey.key.join("::");
