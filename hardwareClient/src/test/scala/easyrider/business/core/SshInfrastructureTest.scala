@@ -1,7 +1,7 @@
-package easyrider.infrastructure.ssh
+package easyrider.business.core
 
 import akka.actor.ActorSystem
-import akka.testkit.{TestProbe, ImplicitSender, TestKit}
+import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import org.scalatest.{FlatSpecLike, Matchers}
 
 class SshInfrastructureTest extends TestKit(ActorSystem()) with FlatSpecLike with Matchers with ImplicitSender {

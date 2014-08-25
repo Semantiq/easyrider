@@ -1,21 +1,25 @@
-package easyrider.infrastructure.ssh
+package easyrider.business.core
 
 import akka.actor.{Actor, ActorRef, Props}
 import akka.event.LoggingReceive
 import com.jcraft.jsch.{ChannelExec, JSch}
 import easyrider.Infrastructure._
-import easyrider.infrastructure.ssh.SshInfrastructure.{CreateNode, NodeConfiguration}
+import easyrider.SshInfrastructure.{CreateNode, NodeConfiguration}
 import easyrider.{EventDetails, EventId, EventKey}
 import org.apache.commons.io.IOUtils
 
-class SshNodeAgent(eventBus: ActorRef, nodeConfiguration: NodeConfiguration) extends Actor {
-  override def receive = LoggingReceive {
-    case CreateNode =>
-      runSshCommand("mkdir -p easyrider")
-      eventBus ! NodeUpdatedEvent(EventDetails(EventId.generate(), EventKey(nodeConfiguration.id.id), Seq()))
+class SshNodeAgent(eventBus: ActorRef) extends Actor {
+  def unConfigured = LoggingReceive {
+    case CreateNode(commandId, configuration) =>
+      runSshCommand(configuration, "mkdir -p easyrider")
+      eventBus ! NodeUpdatedEvent(EventDetails(EventId.generate(), EventKey(configuration.id.id), Seq()))
+      context.become(configured(configuration))
+  }
+
+  def configured(configuration: NodeConfiguration) = LoggingReceive {
     case CreateContainer(commandId, _, containerId) =>
       def eventDetails = EventDetails(EventId.generate(), containerId.eventKey, Seq(commandId))
-      val (exitStatus, output) = runSshCommand(s"mkdir -p /opt/easyrider/containers/${containerId.containerName}")
+      val (exitStatus, output) = runSshCommand(configuration, s"mkdir -p /opt/easyrider/containers/${containerId.containerName}")
       println(output)
       exitStatus match {
         case 0 =>
@@ -25,7 +29,9 @@ class SshNodeAgent(eventBus: ActorRef, nodeConfiguration: NodeConfiguration) ext
       }
   }
 
-  private def runSshCommand(command: String) = {
+  override def receive = unConfigured
+
+  private def runSshCommand(nodeConfiguration: NodeConfiguration, command: String) = {
     val jsch = new JSch()
     val session = jsch.getSession(nodeConfiguration.login, nodeConfiguration.host, nodeConfiguration.port)
     session.setPassword(nodeConfiguration.password)
@@ -44,5 +50,5 @@ class SshNodeAgent(eventBus: ActorRef, nodeConfiguration: NodeConfiguration) ext
 }
 
 object SshNodeAgent {
-  def apply(eventBus: ActorRef)(nodeConfiguration: NodeConfiguration) = Props(classOf[SshNodeAgent], eventBus, nodeConfiguration)
+  def apply(eventBus: ActorRef)() = Props(classOf[SshNodeAgent], eventBus)
 }
