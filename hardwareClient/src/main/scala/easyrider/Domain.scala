@@ -2,6 +2,8 @@ package easyrider
 
 import java.util.UUID
 
+import akka.actor.ActorRef
+import akka.util.ByteString
 import easyrider.Applications.{ApplicationId, ContainerId}
 import easyrider.Infrastructure.NodeId
 import easyrider.business.core.EventBus
@@ -131,12 +133,19 @@ object Events {
 
 object Repository {
   case class Label(name: String, cause: Cause, addedTime: DateTime = DateTime.now())
-  case class Version(applicationId: ApplicationId, number: String, uploadTime: DateTime = DateTime.now())
+  case class Version(applicationId: ApplicationId, number: String, uploadTime: DateTime = DateTime.now()) {
+    def eventKey = EventKey(applicationId.id, number)
+  }
   trait RepositoryEvent extends Event
   case class VersionUploadProgressEvent()
   case class VersionAvailableEvent(eventDetails: EventDetails, version: Version) extends RepositoryEvent
   case class VersionLabelsAddedEvent(eventDetails: EventDetails, version: Version, newLabels: Seq[Label],
                                      labels: Seq[Label]) extends RepositoryEvent
+
+  case class StartUpload(commandId: CommandId, version: Version) extends Command
+  case class Upload(upload: ActorRef)
+  case class UploadChunk(bytes: ByteString)
+  case class UploadCompleted()
 }
 
 case class VersionRecommendedEvent()

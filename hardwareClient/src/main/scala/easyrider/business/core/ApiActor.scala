@@ -4,11 +4,12 @@ import akka.actor._
 import easyrider.Applications.ApplicationCommand
 import easyrider.Components.ComponentCommand
 import easyrider.Events.EventBusCommand
+import easyrider.Repository.StartUpload
 import easyrider.SshInfrastructure.SshInfrastructureCommand
 import easyrider._
 
 class ApiActor(bus: ActorRef, applicationManager: ActorRef, componentManager: ActorRef, sshInfrastructure: ActorRef,
-               client: ActorRef) extends Actor {
+               repositoryStorage: ActorRef, client: ActorRef) extends Actor {
   import easyrider.Api._
 
   def receive = {
@@ -43,6 +44,8 @@ class ApiActor(bus: ActorRef, applicationManager: ActorRef, componentManager: Ac
   }
 
   val processCommand: Command => Unit = {
+    case c: StartUpload =>
+      repositoryStorage.forward(c)
     case c: ApplicationCommand =>
       applicationManager ! c
     case c: EventBusCommand =>
@@ -57,5 +60,7 @@ class ApiActor(bus: ActorRef, applicationManager: ActorRef, componentManager: Ac
 }
 
 object ApiActor {
-  def apply(bus: ActorRef, applicationManager: ActorRef, componentManager: ActorRef, sshInfrastructure: ActorRef)(client: ActorRef) = Props(classOf[ApiActor], bus, applicationManager, componentManager, sshInfrastructure, client)
+  def apply(bus: ActorRef, applicationManager: ActorRef, componentManager: ActorRef, sshInfrastructure: ActorRef,
+            repositoryStorage: ActorRef)(client: ActorRef) = Props(classOf[ApiActor], bus, applicationManager,
+            componentManager, sshInfrastructure, repositoryStorage, client)
 }

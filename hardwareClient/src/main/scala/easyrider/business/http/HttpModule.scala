@@ -1,10 +1,12 @@
 package easyrider.business.http
 
-import akka.actor.{ActorRef, Props, ActorSystem}
-import akka.io.IO
-import spray.can.Http
-import spray.can.server.UHttp
+import akka.actor.{ActorRef, ActorSystem, Props}
+import akka.util.Timeout
+
+import scala.concurrent.duration._
 
 class HttpModule(system: ActorSystem, apiFactory: ActorRef => Props, port: Int) {
-  val server = system.actorOf(WebServer(port, apiFactory))
+  val timeout = Timeout(5 seconds)
+  val workerFactory = WebServerWorker(apiFactory, timeout) _
+  val server = system.actorOf(WebServer(port, workerFactory))
 }

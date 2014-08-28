@@ -1,0 +1,17 @@
+#!/bin/bash
+
+while getopts a:v:f: option; do
+	case "${option}" in
+		f) FILE=${OPTARG};;
+		a) APP=${OPTARG};;
+		v) VERSION=${OPTARG};;
+	esac
+done
+
+if [ "$FILE" == "" ] || [ "$APP" == "" ] || [ "$VERSION" == "" ]; then
+    echo "Syntax:"
+    echo "$0 -f <FILE> -a <APP> -v <VERSION>"
+    exit 1
+fi
+
+curl -v -include --user test:test --form application=$APP --form version=$VERSION --form content=@$FILE http://localhost:8080/api/repository/upload

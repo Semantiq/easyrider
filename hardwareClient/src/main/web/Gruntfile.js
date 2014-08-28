@@ -4,7 +4,8 @@ module.exports = function(grunt) {
 		pkg: grunt.file.readJSON('package.json'),
 		uglify: {
 			options: {
-				banner: '/*! EasyRider build <%= grunt.template.today("dd-mm-yyyy") %> */\n'
+				banner: '/*! EasyRider build <%= grunt.template.today("dd-mm-yyyy") %> */\n',
+				beautify: true
 			},
 			dist: {
 				files: {
@@ -27,6 +28,7 @@ module.exports = function(grunt) {
 					{ expand: true, flatten: false, src: ["directives/**/*.html"], dest: "../resources/static" },
 					{ expand: true, flatten: false, src: ["commands/**/*.html"], dest: "../resources/static" },
 					{ expand: true, flatten: false, src: ["bower_components/**"], dest: "../resources/static/vendor" },
+					{ expand: true, flatten: false, src: ["vendor/**"], dest: "../resources/static/vendor" },
 					{ expand: true, flatten: true, src: ["html/index.html"], dest: "../resources/static" }
 				]
 			}

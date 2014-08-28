@@ -25,18 +25,16 @@ object EasyriderBuild extends Build {
       "com.typesafe.akka" %% "akka-testkit" % akkaVersion % "test")
   )
 
-  lazy val root = hardwareClient
+  lazy val root = Project(
+    id = "root",
+    base = file("hardwareClient"),
+    settings = Project.defaultSettings ++ Revolver.settings ++ settings ++ super.settings)
   //Project(id = "easyrider", base = file("."), settings = Project.defaultSettings) aggregate (hardwareClient)
 
   /*lazy val hardware = Project(
     id = "hardware",
     base = file("hardware"),
     settings = Project.defaultSettings ++ settings ++ super.settings) dependsOn(hardwareClient)*/
-
-  lazy val hardwareClient = Project(
-    id = "hardwareClient",
-    base = file("hardwareClient"),
-    settings = Project.defaultSettings ++ Revolver.settings ++ settings ++ super.settings)
 
   /*lazy val business = Project(
     id = "business",

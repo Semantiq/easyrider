@@ -5,19 +5,19 @@ import akka.io.IO
 import spray.can.Http
 import spray.can.server.UHttp
 
-class WebServer(port: Int, apiFactory: ActorRef => Props) extends Actor {
-  override def preStart {
+class WebServer(port: Int, workerFactory: ActorRef => Props) extends Actor {
+  override def preStart() {
     implicit val system = context.system
     IO(UHttp) ! Http.Bind(self, "localhost", port)
   }
   def receive = {
     case Http.Connected(remoteAddress, localAddress) =>
       val serverConnection = sender()
-      val conn = context.actorOf(WebServerWorker(serverConnection, apiFactory))
+      val conn = context.actorOf(workerFactory(serverConnection))
       serverConnection ! Http.Register(conn)
   }
 }
 
 object WebServer {
-  def apply(port: Int, apiFactory: ActorRef => Props) = Props(classOf[WebServer], port, apiFactory)
+  def apply(port: Int, workerFactory: ActorRef => Props) = Props(classOf[WebServer], port, workerFactory)
 }
