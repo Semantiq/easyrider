@@ -20,6 +20,13 @@ class SshInfrastructure(sshNodeAgent: () => Props) extends Actor {
       case Some(nodeAgent) => nodeAgent ! command
       case None => command.failure(s"Unknown node ${nodeId.id}")
     }
+    case AddressedContainerCommand(nodeId, message) =>
+      nodes.get(nodeId) match {
+        case Some(node) =>
+          node.forward(message)
+        case None =>
+          sender ! message.failure(s"Node ${nodeId.id} does not exist")
+      }
   }
 }
 
