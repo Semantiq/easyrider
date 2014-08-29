@@ -17,8 +17,7 @@
 		<div class="list-group">
 			<div class="list-group-item" ng-repeat="containerUpdatedEvent in ContainersConfiguration.containersInStage(stage.stage.id)">
 				<div class="btn-toolbar pull-right">
-					<button class="btn btn-primary btn-xs">Update container</button>
-					<button class="btn btn-danger btn-xs">Remove container</button>
+					<button class="btn btn-primary btn-xs" ng-click="deployVersion(containerUpdatedEvent)">Deploy version</button>
 				</div>
 				<h4>{{containerUpdatedEvent.container.id.id}}</h4>
 				<strong>Properties</strong>

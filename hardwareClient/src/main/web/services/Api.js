@@ -104,10 +104,11 @@ app.service("Api", ["Connection", function(Connection) {
 			s.snapshot.push(msg.snapshot[i]);
 		}
 	};
-
-	Connection.on["easyrider.Failure"] = function(msg) {
+	function handleFailure(msg) {
 		alert(msg.message);
-	};
+	}
+	Connection.on["easyrider.Failure"] = handleFailure;
+	Connection.on["easyrider.business.http.WebServerWorker$MessageFormatError"] = handleFailure;
 
 	function defineEvent(className) {
 		Connection.on[className] = function(event) {
