@@ -22,6 +22,10 @@
 				<h4>{{containerUpdatedEvent.container.id.id}}</h4>
 				<strong>Properties</strong>
 				<pre>{{containerUpdatedEvent.container.properties|json}}</pre>
+				<strong>Status</strong>
+				<pre>{{ContainersState.containerStatus(containerUpdatedEvent.container.id)|json}}</pre>
+				<strong>Deployed versions</strong>
+				<pre>DeployedVersions|json</pre>
 			</div>
 		</div>
 	</div>

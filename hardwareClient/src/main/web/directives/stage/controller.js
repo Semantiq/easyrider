@@ -5,8 +5,9 @@ app.directive("stage", function() {
 			stage: '='
 		},
 		templateUrl: "/directives/stage/template.html",
-		controller: ["$scope", 'ContainersConfiguration', 'Stages', 'Command', function($scope, ContainersConfiguration, Stages, Command) {
+		controller: ["$scope", 'ContainersConfiguration', 'ContainersState', 'Stages', 'Command', function($scope, ContainersConfiguration, ContainersState, Stages, Command) {
 			$scope.ContainersConfiguration = ContainersConfiguration;
+			$scope.ContainersState = ContainersState;
 
 			$scope.addStage = function() {
 				Command.show(Stages.addStageTemplate());
