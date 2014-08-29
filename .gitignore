@@ -4,4 +4,5 @@ target
 .idea
 .idea_modules
 *~
-
+hardwareClient/src/main/resources/static/*
+hardwareClient/src/main/web/node_modules/*
