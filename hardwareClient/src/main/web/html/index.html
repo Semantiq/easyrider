@@ -4,19 +4,19 @@
 		<title>EasyRider</title>
 		<link rel="stylesheet" href="/vendor/bower_components/bootstrap/dist/css/bootstrap.min.css" />
 		<style>
-		.panel-primary .panel-heading a {
-			color: white;
-		}
-		.indicator span {
-			-moz-transition: 0.2s opacity ease-in-out;
-			-webkit-transition: 0.2s opacity ease-in-out;
-			-o-transition: 0.2s opacity ease-in-out;
-			-ms-transition: 0.2s opacity ease-in-out;
-			transition: 0.2s opacity ease-in-out;
-		}
-		.indicator i {
-			opacity: 0.7;
-		}
+			.panel-primary .panel-heading a {
+				color: white;
+			}
+			.indicator span {
+				-moz-transition: 0.2s opacity ease-in-out;
+				-webkit-transition: 0.2s opacity ease-in-out;
+				-o-transition: 0.2s opacity ease-in-out;
+				-ms-transition: 0.2s opacity ease-in-out;
+				transition: 0.2s opacity ease-in-out;
+			}
+			.indicator i {
+				opacity: 0.7;
+			}
 		</style>
 	</head>
 	<body>
@@ -38,7 +38,6 @@
 					<li><a href="/applications">Applications</a></li>
 					<li><a href="/stages">Stages</a></li>
                     <li><a href="/sshNodes">SSH nodes</a></li>
-                    <li><a href="/repository/upload">Upload</a></li>
 				</ul>
 			</div>
 		</nav>
@@ -48,6 +47,7 @@
 					.fade.in {
 						background: rgba(0,0,0,0.3);
 						display: block;
+						overflow-y: auto;
 					}
 					.modal-dialog {
 						width: 90% !important;
@@ -69,11 +69,11 @@
 						<div class="modal-footer">
 							<button class="btn btn-default" ng-click="Command.cancel()">
 								Cancel</button>
-							<button class="btn btn-success"
+							<button class="btn btn-default"
 								ng-disabled="!validation.canExplain"
 								ng-click="Command.explain()">
 								Explain</button>
-							<button class="btn btn-danger"
+							<button class="btn btn-primary"
 								ng-disabled="!validation.canExecute" 
 								ng-click="Command.execute(false)">
 								Execute</button>
@@ -103,6 +103,7 @@
 							</div>
 							<div class="form-group">
 								<button class="btn btn-primary btn-lg"
+									autofocus
 									ng-click="signIn()">
 									Sign in
 								</button>

@@ -1,12 +1,16 @@
-app.config(["$routeProvider", function($routeProvider) {
-	$routeProvider.when("/repository/upload", {
-		templateUrl: "/pages/repoUpload/template.html",
+app.directive("uploadVersion", function() {
+	return {
+        restrict: "E",
+		templateUrl: "/directives/uploadVersion/template.html",
+        scope: {
+            applicationId: "=appid"
+        },
 		controller: ["$scope", "$upload", "$location", function($scope, $upload, $location) {
-		    $scope.upload = {
-                applicationId: {}
-		    };
+		    $scope.upload = { };
 		    $scope.uploading = false;
 		    $scope.start = function() {
+                if(!$scope.files || !$scope.files[0])
+                    return;
 		        $scope.uploading = true;
                 $scope.uploadProgress = 0;
                 var upload = $upload.upload({
@@ -15,7 +19,7 @@ app.config(["$routeProvider", function($routeProvider) {
                         //"Authorization": ("Basic " + btoa($scope.username + ":" + $scope.password))
                     },
                     data: {
-                        application: $scope.upload.applicationId.id,
+                        application: $scope.applicationId.id,
                         version: $scope.upload.version
                     },
                     file: $scope.files[0],
@@ -25,9 +29,9 @@ app.config(["$routeProvider", function($routeProvider) {
                     $scope.uploadProgress = 100 * event.loaded / event.total;
                 });
                 upload.success(function(data) {
-                   $location.path("/application/" + $scope.upload.applicationId.id + "/version/" + $scope.upload.version);
+                   $location.path("/application/" + $scope.applicationId.id + "/version/" + $scope.upload.version);
                 });
 		    };
 		}]
-	});
-}]);
+	};
+});
