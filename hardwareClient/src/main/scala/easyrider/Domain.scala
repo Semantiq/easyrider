@@ -105,7 +105,7 @@ object Infrastructure {
 
   trait InfrastructureEvent extends Event
   case class ContainerStateChangedEvent(eventDetails: EventDetails, state: ContainerState) extends InfrastructureEvent
-  case class VersionDeploymentProgressEvent(eventDetails: EventDetails, version: Version, state: DeploymentState)
+  case class VersionDeploymentProgressEvent(eventDetails: EventDetails, version: Version, state: DeploymentState) extends InfrastructureEvent
   case class NodeUpdatedEvent(eventDetails: EventDetails, nodeId: NodeId, state: NodeState) extends InfrastructureEvent
   case class ContainerCreatedEvent(eventDetails: EventDetails) extends InfrastructureEvent
   case class ContainerCreationError(eventDetails: EventDetails)

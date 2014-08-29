@@ -1,8 +1,8 @@
 package easyrider.business.core
 
 import akka.actor.{Actor, ActorRef, Props}
-import easyrider.Infrastructure.{AddressedContainerCommand, ContainerCommand}
-import easyrider.{EventDetails, EventId, EventKey}
+import easyrider.Infrastructure.{CreateContainer, AddressedContainerCommand, ContainerCommand}
+import easyrider.{CommandId, EventDetails, EventId, EventKey}
 
 class ApplicationManager(eventBus: ActorRef, infrastructure: ActorRef) extends Actor {
   import easyrider.Applications._
@@ -47,6 +47,8 @@ class ApplicationManager(eventBus: ActorRef, infrastructure: ActorRef) extends A
       case ExistingContainer(_) => sender ! command.failure(s"Container ${container.id.id} in application ${container.id.stageId.applicationId.id} stage ${container.id.stageId.id} already exists")
       case NonExistingStage(_) => sender ! command.failure(s"Stage ${container.id.stageId.id} of application ${container.id.stageId.applicationId.id} does not exist")
       case _ =>
+        // TODO: can this be corelated with original command?
+        infrastructure ! CreateContainer(CommandId.generate(), container.nodeId, container.id)
         containers += (container.id -> container)
         eventBus ! ContainerConfigurationUpdatedEvent(EventDetails(EventId.generate(), container.id.eventKey, Seq(commandId)), container)
     }

@@ -24,7 +24,7 @@ class SshNodeAgent(eventBus: ActorRef) extends Actor {
   def configured(configuration: NodeConfiguration) = LoggingReceive {
     case CreateContainer(commandId, _, containerId) =>
       def eventDetails = EventDetails(EventId.generate(), containerId.eventKey, Seq(commandId))
-      val (exitStatus, output) = runSshCommand(configuration, versionsDir(containerId))
+      val (exitStatus, output) = runSshCommand(configuration, "mkdir -p " + versionsDir(containerId))
       println(output)
       exitStatus match {
         case 0 =>
@@ -52,7 +52,7 @@ class SshNodeAgent(eventBus: ActorRef) extends Actor {
   }
 
   private def versionsDir(containerId: ContainerId): String = {
-    s"mkdir -p /opt/easyrider/containers/${containerId.containerName}/versions"
+    s"easyrider/containers/${containerId.containerName}/versions"
   }
 
   override def receive = unConfigured
