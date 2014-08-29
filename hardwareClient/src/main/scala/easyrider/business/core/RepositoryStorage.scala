@@ -1,18 +1,24 @@
 package easyrider.business.core
 
-import akka.actor.{Props, Actor}
+import java.io.File
+
+import akka.actor.{Actor, Props}
 import akka.event.LoggingReceive
 import easyrider.CommandId
-import easyrider.Repository.{Version, Upload, StartUpload}
+import easyrider.Repository.{StartUpload, Upload, Version}
 
-class RepositoryStorage(uploadFactory: (CommandId, Version) => Props) extends Actor {
+class RepositoryStorage(easyriderData: File, uploadFactory: (CommandId, Version, File) => Props) extends Actor {
+  val repositoryDir = new File(easyriderData, "repository")
+  repositoryDir.mkdirs()
+
   override def receive = LoggingReceive {
     case StartUpload(commandId, version) =>
-      val upload = context.actorOf(uploadFactory(commandId, version))
+      val upload = context.actorOf(uploadFactory(commandId, version, repositoryDir))
       sender() ! Upload(upload)
   }
 }
 
 object RepositoryStorage {
-  def apply(uploadFactory: (CommandId, Version) => Props) = Props(classOf[RepositoryStorage], uploadFactory)
+  def apply(easyriderData: File, uploadFactory: (CommandId, Version, File) => Props) = Props(classOf[RepositoryStorage],
+    easyriderData: File, uploadFactory)
 }

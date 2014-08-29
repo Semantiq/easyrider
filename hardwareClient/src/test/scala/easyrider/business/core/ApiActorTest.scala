@@ -6,7 +6,7 @@ import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import easyrider.Api.{Authentication, AuthenticateUser}
 import easyrider.Applications._
-import easyrider.Infrastructure.{NodeCreated, NodeUpdatedEvent}
+import easyrider.Infrastructure.{NodeId, NodeCreated, NodeUpdatedEvent}
 import easyrider.{CommandId, EventDetails, EventId, EventKey}
 import org.scalatest.{FlatSpecLike, Matchers}
 
@@ -17,13 +17,14 @@ class ApiActorTest() extends TestKit(ActorSystem()) with FlatSpecLike with Match
     val watcher = TestProbe()
     watcher watch api
 
-    client.send(api, NodeUpdatedEvent(EventDetails(EventId("1"), EventKey(), Seq()), NodeCreated))
+    client.send(api, NodeUpdatedEvent(EventDetails(EventId("1"), EventKey(), Seq()), NodeId("node0"), NodeCreated))
 
     watcher.expectTerminated(api)
   }
 
   it should "transfer events in two ways after authentication" in {
-    def dummyEvent = NodeUpdatedEvent(EventDetails(EventId(UUID.randomUUID.toString), EventKey(), Seq()), NodeCreated)
+    def dummyEvent = NodeUpdatedEvent(EventDetails(EventId(UUID.randomUUID.toString), EventKey(), Seq()), NodeId("node0"),
+      NodeCreated)
     val (_, bus, client, api) = setup()
 
     client.send(api, AuthenticateUser())
@@ -51,8 +52,9 @@ class ApiActorTest() extends TestKit(ActorSystem()) with FlatSpecLike with Match
     val bus = TestProbe()
     val componentManager = TestProbe()
     val infrastructure = TestProbe()
+    val repositoryStorage = TestProbe()
     val client = TestProbe()
-    val api = system.actorOf(ApiActor(bus.ref, applicationManager.ref, componentManager.ref, infrastructure.ref)(client.ref))
+    val api = system.actorOf(ApiActor(bus.ref, applicationManager.ref, componentManager.ref, infrastructure.ref, repositoryStorage.ref)(client.ref))
     (applicationManager, bus, client, api)
   }
 

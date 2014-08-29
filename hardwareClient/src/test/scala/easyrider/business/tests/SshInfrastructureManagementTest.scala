@@ -1,5 +1,7 @@
 package easyrider.business.tests
 
+import java.io.File
+
 import akka.testkit.TestProbe
 import easyrider.Api.{AuthenticateUser, Authentication}
 import easyrider.Events.{Subscribe, Subscribed}
@@ -9,7 +11,7 @@ import easyrider.SshInfrastructure.NodeConfiguration
 import easyrider.business.{Easyrider, EasyriderTest}
 import easyrider.{CommandId, EventKey, SshInfrastructure}
 
-class SshInfrastructureManagementTest extends EasyriderTest(new Easyrider(8081)) {
+class SshInfrastructureManagementTest extends EasyriderTest(new Easyrider(8081, new File("target/easyrider"))) {
   "EasyRider" should "allow to add ssh host" in {
     val client = TestProbe()
     val api = easyrider.actorSystem.actorOf(easyrider.core.apiFactory(client.ref))
