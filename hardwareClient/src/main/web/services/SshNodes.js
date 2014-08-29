@@ -1,7 +1,7 @@
 app.service('SshNodes', ['Api', "Validators", "Utils", function(Api, Validators, Utils) {
 	var me = this;
 
-	me.subscription = Api.subscribe("easyrider.SshInfrastructure$NodeConfigurationUpdated", []);
+	me.subscription = Api.subscribe("easyrider.SshInfrastructure$NodeConfigurationUpdatedEvent", []);
 	me.stateSubscription = Api.subscribe("easyrider.Infrastructure$NodeUpdatedEvent", []);
 	me.list = me.subscription.snapshot;
 	me.stateList = me.stateSubscription.snapshot;

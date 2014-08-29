@@ -11,6 +11,7 @@ import easyrider.CommandId
 import easyrider.Repository._
 import easyrider.business.http.WebServerWorker.MessageFormatError
 import org.json4s._
+import org.json4s.ext.JodaTimeSerializers
 import org.json4s.native.Serialization
 import org.json4s.native.Serialization.{read, write}
 import spray.can.websocket
@@ -30,7 +31,7 @@ class WebServerWorker(connection: ActorRef, apiFactory: ActorRef => Props, impli
   context.watch(api)
 
   def businessLogic: Receive = {
-    implicit val formats = Serialization.formats(FullTypeHints(List(classOf[AnyRef])))
+    implicit val formats = Serialization.formats(FullTypeHints(List(classOf[AnyRef]))) ++ JodaTimeSerializers.all
 
     {
       case Terminated(actor) if actor == api =>
@@ -67,12 +68,13 @@ class WebServerWorker(connection: ActorRef, apiFactory: ActorRef => Props, impli
                entity(as[MultipartFormData]) { formData =>
                  (formData.get("content"), formData.get("application"), formData.get("version")) match {
                    case (Some(content), Some(name), Some(version)) =>
-                     val api = context.actorOf(apiFactory(self), "Api")
+                     val api = context.actorOf(apiFactory(self))
                      api ! AuthenticateUser()
                      val commandId = CommandId.generate()
                      val upload = api ? StartUpload(commandId, Version(ApplicationId(name.entity.asString), version.entity.asString))
                      upload.onSuccess {
                        case Upload(target) =>
+                         context.stop(api)
                          content.entity.data.toChunkStream(2048).foreach(e => target ! UploadChunk(e.toByteString))
                          target ! UploadCompleted()
                      }

@@ -42,6 +42,8 @@ app.service("Api", ["Connection", function(Connection) {
 	var subscriptions = {};
 
 	me.subscribe = function(eventType, eventKey) {
+	    if(!Connection.on[eventType])
+	        defineEvent(eventType);
 		var subscriptionId = nextId();
 		var subscription = {
 			jsonClass: "easyrider.Events$Subscribe",
@@ -132,10 +134,4 @@ app.service("Api", ["Connection", function(Connection) {
 			}
 		};
 	}
-
-	defineEvent("easyrider.Applications$ApplicationUpdatedEvent");
-	defineEvent("easyrider.Applications$StageUpdatedEvent");
-	defineEvent("easyrider.Applications$ContainerConfigurationUpdatedEvent");
-	defineEvent("easyrider.SshInfrastructure$NodeConfigurationUpdated");
-	defineEvent("easyrider.Infrastructure$NodeUpdatedEvent");
 }]);

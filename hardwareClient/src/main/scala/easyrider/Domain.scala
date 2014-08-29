@@ -6,6 +6,7 @@ import akka.actor.ActorRef
 import akka.util.ByteString
 import easyrider.Applications.{ApplicationId, ContainerId}
 import easyrider.Infrastructure.NodeId
+import easyrider.Repository.Version
 import easyrider.business.core.EventBus
 import org.joda.time.DateTime
 
@@ -89,13 +90,14 @@ object Infrastructure {
 
   trait InfrastructureCommand extends Command
   case class CreateContainer(commandId: CommandId, nodeId: NodeId, containerId: ContainerId) extends InfrastructureCommand
+  case class DeployVersion(commandId: CommandId, containerId: ContainerId, version: Version) extends InfrastructureCommand
 
   case class FindNodes(queryId: QueryId) extends Query
   case class FindNodesResult(sender: ComponentId, queryId: QueryId, nodes: Seq[NodeId]) extends Result
 
   trait InfrastructureEvent extends Event
   case class ContainerStateChangedEvent(eventDetails: EventDetails, state: ContainerState) extends InfrastructureEvent
-  case class NodeUpdatedEvent(eventDetails: EventDetails, state: NodeState) extends InfrastructureEvent
+  case class NodeUpdatedEvent(eventDetails: EventDetails, nodeId: NodeId, state: NodeState) extends InfrastructureEvent
   case class ContainerCreatedEvent(eventDetails: EventDetails) extends InfrastructureEvent
   case class ContainerCreationError(eventDetails: EventDetails)
 }
@@ -107,7 +109,7 @@ object SshInfrastructure {
   case class UpdateNode(commandId: CommandId, nodeConfiguration: NodeConfiguration) extends SshInfrastructureCommand
   case class RemoveNode(commandId: CommandId, nodeId: NodeId, keepData: Boolean = true) extends SshInfrastructureCommand
 
-  case class NodeConfigurationUpdated(eventDetails: EventDetails, nodeConfiguration: NodeConfiguration) extends Event
+  case class NodeConfigurationUpdatedEvent(eventDetails: EventDetails, nodeConfiguration: NodeConfiguration) extends Event
 }
 
 object Api {
@@ -170,7 +172,7 @@ object Applications {
     def eventKey = EventKey(stageId.applicationId.id, stageId.id, id)
     def containerName = stageId.applicationId.id + "-" + stageId.id + "-" + id
   }
-  case class ContainerConfiguration(id: ContainerId, properties: Seq[Property])
+  case class ContainerConfiguration(id: ContainerId, nodeId: NodeId, properties: Seq[Property])
   trait ApplicationCommand extends Command
   case class CreateApplication(commandId: CommandId, application: Application) extends ApplicationCommand
   case class RemoveApplication(commandId: CommandId, applicationId: ApplicationId) extends ApplicationCommand
