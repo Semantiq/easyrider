@@ -16,6 +16,13 @@ app.service("ContainersConfiguration", ["Api", "Validators", "Utils", function(A
 			}
 		};
 	};
+	me.deployVersionTemplate = function(containerId) {
+		return {
+			jsonClass: "easyrider.Infrastructure$DeployVersion",
+			containerId: containerId,
+			version: { }
+		};
+	};
 
 	me.containersInStage = function(stageId) {
 		var lst = [];
@@ -23,8 +30,8 @@ app.service("ContainersConfiguration", ["Api", "Validators", "Utils", function(A
 		for(var i in me.list) {
 			var cce = me.list[i];
 
-			// FIXME
-			lst.push(cce);
+			if(stageId.id == cce.container.id.stageId.id)
+				lst.push(cce);
 		}
 
 		return lst;

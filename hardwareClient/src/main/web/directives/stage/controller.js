@@ -17,6 +17,10 @@ app.directive("stage", function() {
 			$scope.addContainer = function(stageId) {
 				Command.show(ContainersConfiguration.addContainerConfigurationTemplate(stageId));
 			};
+
+			$scope.deployVersion = function(containerUpdatedEvent) {
+				Command.show(ContainersConfiguration.deployVersionTemplate(containerUpdatedEvent.container.id));
+			};
 		}]
 	};
 });
