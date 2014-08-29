@@ -29,6 +29,8 @@
 		<span ng-repeat="stageEvent in Stages.stagesOfApplication(app.application.id)">
 			<a class="label label-default" href="/application/{{app.application.id.id}}/stage/{{stageEvent.stage.id.id}}">{{stageEvent.stage.id.id}}</a>&nbsp;
 		</span>
+		<h4>Upload version</h4>
+		<upload-version appid="app.application.id"></upload-version>
 		<h4>Versions</h4>
 		<span ng-repeat="versionEvent in versionsForApplication(app.application.id, Versions.list)">
 			<a class="label label-default" href="/application/{{app.application.id.id}}/version/{{versionEvent.version.number}}">{{versionEvent.version.number}}</a>

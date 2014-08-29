@@ -22,7 +22,6 @@ app.config(["$routeProvider", function($routeProvider) {
 			        if (appId.id == versionEvent.eventDetails.eventKey.key[0])
 			            filtered.push(versionEvent);
 			    }
-			    console.log(filtered);
 			    return filtered;
 			};
 		}]
