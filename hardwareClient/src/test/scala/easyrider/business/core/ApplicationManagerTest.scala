@@ -9,7 +9,8 @@ import org.scalatest.{Matchers, FlatSpecLike}
 class ApplicationManagerTest extends TestKit(ActorSystem()) with FlatSpecLike with Matchers with ImplicitSender {
   "ApplicationManager" should "allow to add and remove apps" in {
     val eventBus = TestProbe()
-    val apps = system.actorOf(ApplicationManager(eventBus.ref))
+    val infrastructure = TestProbe()
+    val apps = system.actorOf(ApplicationManager(eventBus.ref, infrastructure.ref))
 
     apps ! CreateApplication(CommandId.generate(), Application(applicationId, Seq()))
 
@@ -23,7 +24,8 @@ class ApplicationManagerTest extends TestKit(ActorSystem()) with FlatSpecLike wi
 
   it should "not allow to remove application with stages" in {
     val eventBus = TestProbe()
-    val apps = system.actorOf(ApplicationManager(eventBus.ref))
+    val infrastructure = TestProbe()
+    val apps = system.actorOf(ApplicationManager(eventBus.ref, infrastructure.ref))
 
     apps ! CreateApplication(CommandId("1"), Application(applicationId, Seq()))
     apps ! CreateStage(CommandId("2"), Stage(stageId, Seq()))

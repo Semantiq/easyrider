@@ -68,6 +68,7 @@ case class EventKey(key: String*) {
   def contains(other: EventKey): Boolean = {
     other.key.take(key.size) == key
   }
+  def append(extraKey: String) = EventKey(key :+ extraKey :_*)
 }
 
 case class EventDetails(eventId: EventId, eventKey: EventKey, causedBy: Seq[Cause], removal: Boolean = false,
@@ -87,16 +88,24 @@ object Infrastructure {
   sealed trait NodeState
   case object CreatingNode extends NodeState
   case object NodeCreated extends NodeState
+  sealed trait DeploymentState
+  case object DeploymentInProgress extends DeploymentState
+  case object DeploymentCompleted extends DeploymentState
 
   trait InfrastructureCommand extends Command
   case class CreateContainer(commandId: CommandId, nodeId: NodeId, containerId: ContainerId) extends InfrastructureCommand
-  case class DeployVersion(commandId: CommandId, containerId: ContainerId, version: Version) extends InfrastructureCommand
+  trait ContainerCommand extends InfrastructureCommand {
+    def containerId: ContainerId
+  }
+  case class DeployVersion(commandId: CommandId, containerId: ContainerId, version: Version) extends ContainerCommand
+  case class AddressedContainerCommand(nodeId: NodeId, containerCommand: ContainerCommand)
 
   case class FindNodes(queryId: QueryId) extends Query
   case class FindNodesResult(sender: ComponentId, queryId: QueryId, nodes: Seq[NodeId]) extends Result
 
   trait InfrastructureEvent extends Event
   case class ContainerStateChangedEvent(eventDetails: EventDetails, state: ContainerState) extends InfrastructureEvent
+  case class VersionDeploymentProgressEvent(eventDetails: EventDetails, version: Version, state: DeploymentState)
   case class NodeUpdatedEvent(eventDetails: EventDetails, nodeId: NodeId, state: NodeState) extends InfrastructureEvent
   case class ContainerCreatedEvent(eventDetails: EventDetails) extends InfrastructureEvent
   case class ContainerCreationError(eventDetails: EventDetails)

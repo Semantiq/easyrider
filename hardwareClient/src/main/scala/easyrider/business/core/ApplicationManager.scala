@@ -1,9 +1,10 @@
 package easyrider.business.core
 
-import akka.actor.{ActorRef, Actor, Props}
-import easyrider.{EventKey, EventId, EventDetails}
+import akka.actor.{Actor, ActorRef, Props}
+import easyrider.Infrastructure.{AddressedContainerCommand, ContainerCommand}
+import easyrider.{EventDetails, EventId, EventKey}
 
-class ApplicationManager(eventBus: ActorRef) extends Actor {
+class ApplicationManager(eventBus: ActorRef, infrastructure: ActorRef) extends Actor {
   import easyrider.Applications._
   private var applications = Map[ApplicationId, Application]()
   private var stages = Map[StageId, Stage]()
@@ -55,6 +56,11 @@ class ApplicationManager(eventBus: ActorRef) extends Actor {
         containers += (container.id -> container)
         eventBus ! ContainerConfigurationUpdatedEvent(EventDetails(EventId.generate(), container.id.eventKey, Seq(commandId)), container)
     }
+    case command: ContainerCommand =>
+      containers.get(command.containerId) match {
+        case Some(container) => infrastructure.forward(AddressedContainerCommand(container.nodeId, command))
+        case None => sender ! command.failure(s"Container ${command.containerId.containerName} does not exist")
+      }
   }
 
   object ExistingApplication {
@@ -90,5 +96,5 @@ class ApplicationManager(eventBus: ActorRef) extends Actor {
 }
 
 object ApplicationManager {
-  def apply(eventBus: ActorRef) = Props(classOf[ApplicationManager], eventBus)
+  def apply(eventBus: ActorRef, infrastructure: ActorRef) = Props(classOf[ApplicationManager], eventBus, infrastructure)
 }
