@@ -18,10 +18,8 @@ object EasyriderBuild extends Build {
       sbt publishLocal
       */
 
-      "io.spray" % "spray-can" % "1.3.1",
-      "io.spray" % "spray-routing" % "1.3.1",
-
-      //"com.wandoulabs.akka" %% "spray-websocket" % "0.1.2-SEMANTIQ",
+      "com.wandoulabs.akka" %% "spray-websocket" % "0.1.2-SEMANTIQ",
+    
       "commons-io" % "commons-io" % "2.4",
       "com.jcraft" % "jsch" % "0.1.51",
       "joda-time" % "joda-time" % "2.4",

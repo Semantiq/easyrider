@@ -1,24 +1,10 @@
 <div class="row-fluid">
 	<div class="col-md-4">
-		<div class="panel panel-default">
-			<div class="panel-heading">
-				Applications
-			</div>
-			<div class="panel-body">
-				<table class="table table-striped">
-					<thead>
-						<tr>
-							<th>Id</th>
-						</tr>
-					</thead>
-					<tbody>
-						<tr ng-repeat="app in Applications.list">
-							<td>{{app.application.id.id}}</td>
-						</tr>
-					</tbody>
-				</table>
-			</div>
-		</div>
+		<badge state="'unknown'" label="'No data'"></badge>
+		<badge state="'pending'" label="'Work in progress'"></badge>
+		<badge state="'success'" label="'Version installed'"></badge>
+		<badge state="'failure'" label="'NullPointerException'"></badge>
+		<badge state="'paused'" label="'Waiting for your action'"></badge>
 	</div>
 	<div class="col-md-4">
 		
