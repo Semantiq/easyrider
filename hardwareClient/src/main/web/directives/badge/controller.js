@@ -5,12 +5,9 @@ app.directive("badge", function() {
 			state: "=",
 			label: "="
 		},
-		template: "<span style='font-size:13.5px;line-height:27px' class='label label-{{labelColor[data().state]}}'><i class='{{icon[data().state]}}'></i>&nbsp;{{label||data().label}}</span>",
+		template: "<span style='font-size:13.5px;line-height:27px' class='label label-{{labelColor[StatusClasses[state.jsonClass].state]}}'><i class='{{icon[StatusClasses[state.jsonClass].state]}}'></i>&nbsp;{{label||StatusClasses[state.jsonClass].label}}</span>",
 		controller: ["$scope", "StatusClasses", function($scope, StatusClasses) {
-		    $scope.data = function() {
-		        if(!$scope.state) return { state: "unknown", label: "Unknown state" };
-		        return StatusClasses[$scope.state.jsonClass];
-		    };
+		    $scope.StatusClasses = StatusClasses;
 
 			$scope.icon = {
 				unknown: "fa fa-question",

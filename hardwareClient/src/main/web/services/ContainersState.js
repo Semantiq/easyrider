@@ -4,6 +4,8 @@ app.service("ContainersState", ["Api", function(Api) {
 	me.subscription = Api.subscribe("easyrider.Infrastructure$ContainerStateChangedEvent", []);
 	me.list = me.subscription.snapshot;
 
+	var unknown = { jsonClass: "unknown" };
+
 	me.containerStatus = function(containerId) {
 		for(var i in me.list) {
 			var status = me.list[i];
@@ -12,7 +14,6 @@ app.service("ContainersState", ["Api", function(Api) {
 			    eventKey[1] == containerId.stageId.id &&
 			    eventKey[2] == containerId.id) return status.state;
 		}
-
-		return {jsonClass: "unknown"};
+		return unknown;
 	};
 }]);

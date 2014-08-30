@@ -83,8 +83,11 @@ object Infrastructure {
     require(id.matches("""^[a-zA-Z0-9_]+$"""), "Node id can contain only letters and underscores")
   }
   sealed trait ContainerState
-  case object CreationFailed extends ContainerState
-  case object Created extends ContainerState
+  case object ContainerCreationFailed extends ContainerState
+  case object ContainerCreated extends ContainerState
+  case class ContainerRunning(version: Version) extends ContainerState
+  case class ContainerStopping(version: Version) extends ContainerState
+  case class ContainerForceStopping(version: Version) extends ContainerState
   sealed trait NodeState
   case object CreatingNode extends NodeState
   case object NodeCreated extends NodeState
@@ -98,6 +101,8 @@ object Infrastructure {
     def containerId: ContainerId
   }
   case class DeployVersion(commandId: CommandId, containerId: ContainerId, version: Version) extends ContainerCommand
+  case class StartContainer(commandId: CommandId, containerId: ContainerId, version: Version) extends ContainerCommand
+  case class StopContainer(commandId: CommandId, containerId: ContainerId, immediate: Boolean = false) extends ContainerCommand
   case class AddressedContainerCommand(nodeId: NodeId, containerCommand: ContainerCommand)
 
   case class FindNodes(queryId: QueryId) extends Query
@@ -144,7 +149,7 @@ object Events {
 
 object Repository {
   case class Label(name: String, cause: Cause, addedTime: DateTime = DateTime.now())
-  case class Version(applicationId: ApplicationId, number: String, uploadTime: DateTime = DateTime.now()) {
+  case class Version(applicationId: ApplicationId, number: String) {
     def eventKey = EventKey(applicationId.id, number)
   }
   trait RepositoryEvent extends Event

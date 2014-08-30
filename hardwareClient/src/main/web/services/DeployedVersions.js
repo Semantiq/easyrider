@@ -4,6 +4,7 @@ app.service("DeployedVersions", ["Api", function(Api) {
 	me.subscription = Api.subscribe("easyrider.Infrastructure$VersionDeploymentProgressEvent", []);
 	me.list = me.subscription.snapshot;
 
+    var emptyList = [];
 	me.deployedVersionsByContainerId = function(containerId) {
 		var lst = [];
 
@@ -14,6 +15,9 @@ app.service("DeployedVersions", ["Api", function(Api) {
 			    eventKey[1] == containerId.stageId.id &&
 			    eventKey[2] == containerId.id) lst.push(me.list[i]);
 		}
+
+		if(lst.length === 0)
+		    return emptyList;
 
 		return lst;
 	};

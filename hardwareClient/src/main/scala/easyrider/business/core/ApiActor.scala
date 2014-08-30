@@ -4,7 +4,7 @@ import akka.actor._
 import easyrider.Applications.ApplicationCommand
 import easyrider.Components.ComponentCommand
 import easyrider.Events.EventBusCommand
-import easyrider.Infrastructure.DeployVersion
+import easyrider.Infrastructure.{ContainerCommand, DeployVersion}
 import easyrider.Repository.StartUpload
 import easyrider.SshInfrastructure.SshInfrastructureCommand
 import easyrider._
@@ -55,7 +55,7 @@ class ApiActor(bus: ActorRef, applicationManager: ActorRef, componentManager: Ac
       componentManager ! c
     case c: ComponentCommand =>
       client ! c
-    case c: DeployVersion =>
+    case c: ContainerCommand =>
       applicationManager ! c
     case c: SshInfrastructureCommand =>
       sshInfrastructure ! c
