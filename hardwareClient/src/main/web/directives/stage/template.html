@@ -23,9 +23,17 @@
 				<strong>Properties</strong>
 				<pre>{{containerUpdatedEvent.container.properties|json}}</pre>
 				<strong>Status</strong>
-				<pre>{{ContainersState.containerStatus(containerUpdatedEvent.container.id)|json}}</pre>
+				<badge ng-repeat="status in [ContainersState.containerStatus(containerUpdatedEvent.container.id)]"
+					   state="status" label="status.version.number"></badge>
 				<strong>Deployed versions</strong>
-				<pre>{{DeployedVersions.deployedVersionsByContainerId(containerUpdatedEvent.container.id)|json}}</pre>
+				<ul class="list-group">
+					<li class="list-group-item" ng-repeat="deployedVersion in DeployedVersions.deployedVersionsByContainerId(containerUpdatedEvent.container.id)">
+						<div class="btn-toolbar pull-right">
+							<button class="btn btn-primary bt-xs">Run</button>
+						</div>
+						<badge state="deployedVersion.state" label="deployedVersion.version.number"></badge>
+					</li>
+				</ul>
 			</div>
 		</div>
 	</div>

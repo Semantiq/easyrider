@@ -25,6 +25,7 @@ app.service("ContainersConfiguration", ["Api", "Validators", "Utils", function(A
 	};
 
 	me.containersInStage = function(stageId) {
+	    if (!stageId) return [];
 		var lst = [];
 
 		for(var i in me.list) {
