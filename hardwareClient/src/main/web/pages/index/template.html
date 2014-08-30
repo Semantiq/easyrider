@@ -1,15 +1,8 @@
 <div class="row-fluid">
-	<div class="col-md-4">
-		<badge state="'unknown'" label="'No data'"></badge>
-		<badge state="'pending'" label="'Work in progress'"></badge>
-		<badge state="'success'" label="'Version installed'"></badge>
-		<badge state="'failure'" label="'NullPointerException'"></badge>
-		<badge state="'paused'" label="'Waiting for your action'"></badge>
-	</div>
-	<div class="col-md-4">
-		
-	</div>
-	<div class="col-md-4">
-		
+	<div class="col-md-12">
+		<input type="search" class="form-control" ng-model="Search.query" ng-change="Search.process()" />
+		<hr />
+		<pre>{{Search.typeahead|json}}</pre>
+		<pre>{{Search.results|json}}</pre>
 	</div>
 </div>

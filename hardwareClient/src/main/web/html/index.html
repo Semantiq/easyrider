@@ -2,23 +2,8 @@
 <html ng-app="easyrider">
 	<head>
 		<title>EasyRider</title>
-		<link rel="stylesheet" href="/vendor/bower_components/bootstrap/dist/css/bootstrap.min.css" />
+		<link rel="stylesheet" href="main.css" />
 		<link rel="stylesheet" href="/vendor/bower_components/fontawesome/css/font-awesome.min.css" />
-		<style>
-			.panel-primary .panel-heading a {
-				color: white;
-			}
-			.indicator span {
-				-moz-transition: 0.2s opacity ease-in-out;
-				-webkit-transition: 0.2s opacity ease-in-out;
-				-o-transition: 0.2s opacity ease-in-out;
-				-ms-transition: 0.2s opacity ease-in-out;
-				transition: 0.2s opacity ease-in-out;
-			}
-			.indicator i {
-				opacity: 0.7;
-			}
-		</style>
 	</head>
 	<body>
 		<nav class="navbar navbar-default" role="navigation">
@@ -27,10 +12,10 @@
 					<a class="navbar-brand" href="/">EasyRider</a>
 				</div>
 				<div class="navbar-text indicator" ng-controller="ConnectionInfoCtrl">
-					<i class="glyphicon glyphicon-user"></i>
+					<i class="fa fa-user"></i>
 					<span ng-style="toUser()">&lt;</span>
 					<span ng-style="toCloud()">&gt;</span>
-					<i class="glyphicon glyphicon-cloud"></i>
+					<i class="fa fa-cloud"></i>
 				</div>
 				<ul class="nav navbar-nav pull-right">
 					<li><a href="/" target="_self">Sign out</a></li>
@@ -44,16 +29,6 @@
 		</nav>
 		<div class="container-fluid">
 			<div class="modal fade" ng-controller="CommandCtrl" ng-class="{in:Command.command}">
-				<style>
-					.fade.in {
-						background: rgba(0,0,0,0.3);
-						display: block;
-						overflow-y: auto;
-					}
-					.modal-dialog {
-						width: 90% !important;
-					}
-				</style>
 				<div class="modal-dialog">
 					<div class="modal-content">
 						<div class="modal-header">
@@ -116,6 +91,7 @@
 		</div>
 		<script src="/vendor/vendor/angular-file-upload/angular-file-upload-html5-shim.js"></script>
 		<script src="/vendor/bower_components/angular/angular.js"></script>
+		<script src="search.js"></script>
 		<script src="/vendor/bower_components/angular-route/angular-route.js"></script>
 		<script src="/vendor/bower_components/angular-animate/angular-animate.js"></script>
 		<script src="/vendor/vendor/angular-file-upload/angular-file-upload.js"></script>
