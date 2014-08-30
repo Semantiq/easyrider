@@ -25,7 +25,7 @@
 				<strong>Status</strong>
 				<pre>{{ContainersState.containerStatus(containerUpdatedEvent.container.id)|json}}</pre>
 				<strong>Deployed versions</strong>
-				<pre>DeployedVersions|json</pre>
+				<pre>{{DeployedVersions.deployedVersionsByContainerId(containerUpdatedEvent.container.id)|json}}</pre>
 			</div>
 		</div>
 	</div>

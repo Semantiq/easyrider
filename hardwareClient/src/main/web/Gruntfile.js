@@ -5,7 +5,8 @@ module.exports = function(grunt) {
 		uglify: {
 			options: {
 				banner: '/*! EasyRider build <%= grunt.template.today("dd-mm-yyyy") %> */\n',
-				beautify: true
+				compress: false,
+				mangle: false
 			},
 			dist: {
 				files: {
