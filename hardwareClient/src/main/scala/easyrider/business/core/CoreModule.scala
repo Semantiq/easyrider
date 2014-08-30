@@ -5,7 +5,7 @@ import java.io.File
 import akka.actor.ActorSystem
 
 class CoreModule(easyriderData: File, actorSystem: ActorSystem) {
-  val eventBus = actorSystem.actorOf(EventBus(), "EventBus")
+  val eventBus = actorSystem.actorOf(EventBus(easyriderData), "EventBus")
   val infrastructure = actorSystem.actorOf(SshInfrastructure(SshNodeAgent(eventBus)), "SshInfrastructure")
   val applicationManager = actorSystem.actorOf(ApplicationManager(eventBus, infrastructure), "ApplicationManager")
   val componentManager = actorSystem.actorOf(ComponentManager(), "ComponentManager")
