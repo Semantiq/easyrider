@@ -36,20 +36,27 @@ class SshNodeAgent(eventBus: ActorRef) extends Actor {
     case DeployVersion(commandId, containerId, version) =>
       val eventKey = containerId.eventKey append version.number
       eventBus ! VersionDeploymentProgressEvent(EventDetails(EventId.generate(), eventKey, Seq(commandId)), version, DeploymentInProgress)
-      val jsch = new JSch()
-      val session = jsch.getSession(configuration.login, configuration.host, configuration.port)
-      session.setPassword(configuration.password)
-      session.setConfig("StrictHostKeyChecking", "no")
-      session.connect()
-      val channel = session.openChannel("sftp").asInstanceOf[ChannelSftp]
-      channel.connect()
-      channel.cd(versionsDir(containerId))
-      val output = channel.put(version.number + ".tar.bz2")
-      output.write("Hello world!".getBytes)
-      output.close()
-      channel.disconnect()
-      session.disconnect()
-      eventBus ! VersionDeploymentProgressEvent(EventDetails(EventId.generate(), eventKey, Seq(commandId)), version, DeploymentCompleted)
+      try {
+        val jsch = new JSch()
+        val session = jsch.getSession(configuration.login, configuration.host, configuration.port)
+        session.setPassword(configuration.password)
+        session.setConfig("StrictHostKeyChecking", "no")
+        session.connect()
+        val channel = session.openChannel("sftp").asInstanceOf[ChannelSftp]
+        channel.connect()
+        channel.cd(versionsDir(containerId))
+        val output = channel.put(version.number + ".tar.bz2")
+        output.write("Hello world!".getBytes)
+        output.close()
+        channel.disconnect()
+        session.disconnect()
+        eventBus ! VersionDeploymentProgressEvent(EventDetails(EventId.generate(), eventKey, Seq(commandId)), version, DeploymentCompleted)
+      } catch {
+        case ex: Exception =>
+          // TODO: check what operation failed and make the message out of that
+          // TODO: log the exception
+          VersionDeploymentProgressEvent(EventDetails(EventId.generate(), eventKey, Seq(commandId)), version, DeploymentFailed(ex.getMessage))
+      }
     case StartContainer(commandId, containerId, version) =>
       // TODO: implement
       runSshCommand(configuration, "echo '" + version.number + "' > " + containerDir(containerId) + "/running.version")

@@ -64,6 +64,9 @@ object CommandId {
 }
 
 case class QueryId(id: String)
+object QueryId {
+  def generate() = QueryId(UUID.randomUUID().toString)
+}
 case class EventKey(key: String*) {
   def contains(other: EventKey): Boolean = {
     other.key.take(key.size) == key
@@ -94,6 +97,7 @@ object Infrastructure {
   sealed trait DeploymentState
   case object DeploymentInProgress extends DeploymentState
   case object DeploymentCompleted extends DeploymentState
+  case class DeploymentFailed(reason: String) extends DeploymentState
 
   trait InfrastructureCommand extends Command
   case class CreateContainer(commandId: CommandId, nodeId: NodeId, containerId: ContainerId) extends InfrastructureCommand
@@ -143,6 +147,8 @@ object Events {
   case class UnSubscribe(commandId: CommandId, subscriptionId: String) extends EventBusCommand
   case class Subscribed[T](queryId: QueryId, subscriptionId: String, eventType: EventType, snapshot: Seq[T]) extends Result
   case class UnSubscribed(queryId: QueryId, subscriptionId: String) extends Result
+  case class GetSnapshot(queryId: QueryId, eventType: EventType) extends Query
+  case class GetSnapshotResponse(queryId: QueryId, snapshot: Seq[Event]) extends Result
 
   val id = ComponentId(classOf[EventBus].getName)
 }

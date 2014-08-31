@@ -1,8 +1,16 @@
 package easyrider.business.core
 
 import akka.actor.{Actor, ActorRef, Props}
-import easyrider.Infrastructure.{CreateContainer, AddressedContainerCommand, ContainerCommand}
-import easyrider.{CommandId, EventDetails, EventId, EventKey}
+import akka.pattern.ask
+import akka.pattern.pipe
+import akka.util.Timeout
+import easyrider.Events.{GetSnapshot, GetSnapshotResponse}
+import easyrider.Implicits._
+import easyrider.Infrastructure.{AddressedContainerCommand, ContainerCommand, CreateContainer}
+import easyrider._
+import easyrider.business.core.ApplicationManager.RestoredConfiguration
+
+import scala.concurrent.duration._
 
 class ApplicationManager(eventBus: ActorRef, infrastructure: ActorRef) extends Actor {
   import easyrider.Applications._
@@ -10,7 +18,31 @@ class ApplicationManager(eventBus: ActorRef, infrastructure: ActorRef) extends A
   private var stages = Map[StageId, Stage]()
   private var containers = Map[ContainerId, ContainerConfiguration]()
 
-  override def receive: Receive = {
+  implicit val timeout = Timeout(3 seconds)
+  implicit val dispatcher = context.system.dispatcher
+  val appsFuture = eventBus ? GetSnapshot(QueryId.generate(), classOf[ApplicationUpdatedEvent])
+  val stagesFuture = eventBus ? GetSnapshot(QueryId.generate(), classOf[StageUpdatedEvent])
+  val containersFuture = eventBus ? GetSnapshot(QueryId.generate(), classOf[ContainerConfigurationUpdatedEvent])
+  private val restoredConfiguration = for {
+    apps <- appsFuture
+    stages <- stagesFuture
+    containers <- containersFuture
+  } yield RestoredConfiguration(
+      applications = apps.asInstanceOf[GetSnapshotResponse].snapshot.map { case ApplicationUpdatedEvent(_, app) => app },
+      stages = stages.asInstanceOf[GetSnapshotResponse].snapshot.map { case StageUpdatedEvent(_, stage) => stage },
+      containers = containers.asInstanceOf[GetSnapshotResponse].snapshot.map { case ContainerConfigurationUpdatedEvent(_, container) => container })
+  restoredConfiguration pipeTo self
+
+  def initializing: Receive = {
+    case restored: RestoredConfiguration =>
+      def unpack[T, K](map: Map[T, Seq[K]]) = map.map { case (key, Seq(value)) => (key, value) }
+      applications = unpack(restored.applications.groupBy(_.id))
+      stages = unpack(restored.stages.groupBy(_.id))
+      containers = unpack(restored.containers.groupBy(_.id))
+      context.become(running)
+  }
+
+  def running: Receive = {
     case command @ CreateApplication(commandId, application) => application match {
       case ExistingApplication(_) => sender ! command.failure(s"Application ${application.id.id} already exists")
       case _ =>
@@ -47,8 +79,8 @@ class ApplicationManager(eventBus: ActorRef, infrastructure: ActorRef) extends A
       case ExistingContainer(_) => sender ! command.failure(s"Container ${container.id.id} in application ${container.id.stageId.applicationId.id} stage ${container.id.stageId.id} already exists")
       case NonExistingStage(_) => sender ! command.failure(s"Stage ${container.id.stageId.id} of application ${container.id.stageId.applicationId.id} does not exist")
       case _ =>
-        // TODO: can this be corelated with original command?
-        infrastructure ! CreateContainer(CommandId.generate(), container.nodeId, container.id)
+        // TODO: can this be corelated with original command? what if it fails?
+        infrastructure.forward(CreateContainer(CommandId.generate(), container.nodeId, container.id))
         containers += (container.id -> container)
         eventBus ! ContainerConfigurationUpdatedEvent(EventDetails(EventId.generate(), container.id.eventKey, Seq(commandId)), container)
     }
@@ -64,6 +96,8 @@ class ApplicationManager(eventBus: ActorRef, infrastructure: ActorRef) extends A
         case None => sender ! command.failure(s"Container ${command.containerId.containerName} does not exist")
       }
   }
+
+  override def receive = initializing
 
   object ExistingApplication {
     def unapply(applicationId: ApplicationId): Option[Application] = applications.get(applicationId)
@@ -98,5 +132,9 @@ class ApplicationManager(eventBus: ActorRef, infrastructure: ActorRef) extends A
 }
 
 object ApplicationManager {
+  import easyrider.Applications._
+
   def apply(eventBus: ActorRef, infrastructure: ActorRef) = Props(classOf[ApplicationManager], eventBus, infrastructure)
+
+  private case class RestoredConfiguration(applications: Seq[Application], stages: Seq[Stage], containers: Seq[ContainerConfiguration])
 }

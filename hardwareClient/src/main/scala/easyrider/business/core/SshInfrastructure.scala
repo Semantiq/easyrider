@@ -2,14 +2,36 @@ package easyrider.business.core
 
 import akka.actor.{Actor, ActorRef, Props}
 import akka.event.LoggingReceive
-import easyrider.ComponentId
+import akka.util.Timeout
+import easyrider.{CommandId, QueryId, ComponentId}
+import easyrider.Events.{GetSnapshotResponse, GetSnapshot}
 import easyrider.Infrastructure._
-import easyrider.SshInfrastructure.CreateNode
+import easyrider.SshInfrastructure.{NodeConfigurationUpdatedEvent, CreateNode}
 
-class SshInfrastructure(sshNodeAgent: () => Props) extends Actor {
+import scala.concurrent.duration._
+import akka.pattern.ask
+import akka.pattern.pipe
+
+import easyrider.Implicits._
+
+class SshInfrastructure(eventBus: ActorRef, sshNodeAgent: () => Props) extends Actor {
   var nodes = Map[NodeId, ActorRef]()
 
-  override def receive = LoggingReceive {
+  implicit val timeout = Timeout(3 seconds)
+  implicit val dispatcher = context.system.dispatcher
+  eventBus ? GetSnapshot(QueryId.generate(), classOf[NodeConfigurationUpdatedEvent]) pipeTo self
+
+  def initializing: Receive = {
+    case GetSnapshotResponse(_, events: Seq[NodeConfigurationUpdatedEvent]) =>
+      nodes = events.map { event =>
+        val agent = context.actorOf(sshNodeAgent())
+        agent ! CreateNode(CommandId.generate(), event.nodeConfiguration)
+        event.nodeConfiguration.id -> agent
+      }.toMap
+      context.become(running)
+  }
+
+  def running = LoggingReceive {
     case addNode: CreateNode if !nodes.contains(addNode.nodeConfiguration.id) =>
       val node = context.actorOf(sshNodeAgent())
       nodes += (addNode.nodeConfiguration.id -> node)
@@ -28,8 +50,10 @@ class SshInfrastructure(sshNodeAgent: () => Props) extends Actor {
           sender ! message.failure(s"Node ${nodeId.id} does not exist")
       }
   }
+
+  override def receive = initializing
 }
 
 object SshInfrastructure {
-  def apply(sshNodeAgent: () => Props) = Props(classOf[SshInfrastructure], sshNodeAgent)
+  def apply(eventBus: ActorRef, sshNodeAgent: () => Props) = Props(classOf[SshInfrastructure], eventBus, sshNodeAgent)
 }

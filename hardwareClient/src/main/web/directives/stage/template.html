@@ -19,12 +19,13 @@
 				<div class="btn-toolbar pull-right">
 					<button class="btn btn-primary btn-xs" ng-click="deployVersion(containerUpdatedEvent)">Deploy version</button>
 				</div>
-				<h4>{{containerUpdatedEvent.container.id.id}}</h4>
+				<h4>
+					{{containerUpdatedEvent.container.id.id}}
+					<badge ng-repeat="status in [ContainersState.containerStatus(containerUpdatedEvent.container.id)]"
+						   state="status" label="status.version.number"></badge>
+				</h4>
 				<strong>Properties</strong>
 				<pre>{{containerUpdatedEvent.container.properties|json}}</pre>
-				<strong>Status</strong>
-				<badge ng-repeat="status in [ContainersState.containerStatus(containerUpdatedEvent.container.id)]"
-					   state="status" label="status.version.number"></badge>
 				<strong>Deployed versions</strong>
 				<ul class="list-group">
 					<li class="list-group-item" ng-repeat="deployedVersion in DeployedVersions.deployedVersionsByContainerId(containerUpdatedEvent.container.id)">

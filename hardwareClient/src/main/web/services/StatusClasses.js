@@ -35,6 +35,10 @@ app.constant("StatusClasses", {
         state: 'success',
         label: 'Deployment completed'
     },
+    'easyrider.Infrastructure$DeploymentFailed$': {
+        state: 'success',
+        label: 'Deployment failed'
+    },
     'unknown': {
         state: 'unknown',
         label: 'Unknown'

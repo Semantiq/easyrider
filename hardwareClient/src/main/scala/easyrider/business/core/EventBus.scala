@@ -47,6 +47,8 @@ class EventBus(easyriderData: File) extends Actor {
         sender() ! UnSubscribed(command.queryId, subscriptionId)
         subscriptions = subscriptions.filter(s => s.subscriptionId != subscriptionId)
     }
+    case GetSnapshot(queryId, eventType) =>
+      sender() ! GetSnapshotResponse(queryId, snapshots.getOrElse(eventType, Map()).values.toSeq)
   }
 
   private def snapshotFile = new File(easyriderData, "snapshot.json")
