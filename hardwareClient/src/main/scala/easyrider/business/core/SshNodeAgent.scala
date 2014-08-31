@@ -88,8 +88,9 @@ class SshNodeAgent(eventBus: ActorRef) extends Actor {
     val shell = session.openChannel("exec").asInstanceOf[ChannelExec]
     shell.setCommand(command)
     val in = shell.getInputStream
+    val err = shell.getErrStream
     shell.connect()
-    val output = IOUtils.toString(in)
+    val output = "out='" + IOUtils.toString(in) + "' err='" + IOUtils.toString(err) + "'"
     val exitStatus = shell.getExitStatus
     shell.disconnect()
     session.disconnect()
