@@ -28,9 +28,9 @@ class ApplicationManager(eventBus: ActorRef, infrastructure: ActorRef) extends A
     stages <- stagesFuture
     containers <- containersFuture
   } yield RestoredConfiguration(
-      applications = apps.asInstanceOf[GetSnapshotResponse].snapshot.map { case ApplicationUpdatedEvent(_, app) => app },
-      stages = stages.asInstanceOf[GetSnapshotResponse].snapshot.map { case StageUpdatedEvent(_, stage) => stage },
-      containers = containers.asInstanceOf[GetSnapshotResponse].snapshot.map { case ContainerConfigurationUpdatedEvent(_, container) => container })
+      applications = apps.asInstanceOf[GetSnapshotResponse[ApplicationUpdatedEvent]].snapshot.map { case ApplicationUpdatedEvent(_, app) => app },
+      stages = stages.asInstanceOf[GetSnapshotResponse[StageUpdatedEvent]].snapshot.map { case StageUpdatedEvent(_, stage) => stage },
+      containers = containers.asInstanceOf[GetSnapshotResponse[ContainerConfigurationUpdatedEvent]].snapshot.map { case ContainerConfigurationUpdatedEvent(_, container) => container })
   restoredConfiguration pipeTo self
 
   def initializing: Receive = {

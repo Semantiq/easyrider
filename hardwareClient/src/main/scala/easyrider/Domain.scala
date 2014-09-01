@@ -148,7 +148,7 @@ object Events {
   case class Subscribed[T](queryId: QueryId, subscriptionId: String, eventType: EventType, snapshot: Seq[T]) extends Result
   case class UnSubscribed(queryId: QueryId, subscriptionId: String) extends Result
   case class GetSnapshot(queryId: QueryId, eventType: EventType) extends Query
-  case class GetSnapshotResponse(queryId: QueryId, snapshot: Seq[Event]) extends Result
+  case class GetSnapshotResponse[T](queryId: QueryId, snapshot: Seq[T]) extends Result
 
   val id = ComponentId(classOf[EventBus].getName)
 }
