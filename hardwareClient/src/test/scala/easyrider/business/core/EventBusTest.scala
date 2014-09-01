@@ -8,12 +8,13 @@ import easyrider.Events.{Subscribe, Subscribed, UnSubscribe, UnSubscribed}
 import easyrider.Infrastructure.{NodeId, NodeCreated, NodeUpdatedEvent}
 import easyrider._
 import easyrider.business.core
+import org.apache.commons.io.FileUtils
 import org.scalatest._
 import easyrider.Implicits._
 
 class EventBusTest() extends TestKit(ActorSystem()) with FlatSpecLike with Matchers {
   "EventBus" should "send events to subscribers" in {
-    val bus = system.actorOf(core.EventBus(new File("target/easyrider")))
+    val bus = system.actorOf(core.EventBus(emptyDirectory))
 
     val publisher = TestProbe()
     val subscriber = TestProbe()
@@ -25,7 +26,7 @@ class EventBusTest() extends TestKit(ActorSystem()) with FlatSpecLike with Match
   }
 
   it should "not send events after un-subscribe" in {
-    val bus = system.actorOf(core.EventBus(new File("target/easyrider")))
+    val bus = system.actorOf(core.EventBus(emptyDirectory))
 
     val publisher = TestProbe()
     val subscriber = TestProbe()
@@ -41,13 +42,19 @@ class EventBusTest() extends TestKit(ActorSystem()) with FlatSpecLike with Match
   }
 
   it should "handle removal events" in {
-    val bus = system.actorOf(core.EventBus(new File("target/easyrider")))
+    val bus = system.actorOf(core.EventBus(emptyDirectory))
     val client = TestProbe()
     client.send(bus, NodeUpdatedEvent(EventDetails(EventId("1"), EventKey("node0"), Seq(CommandId("1"))), NodeId("node0"), NodeCreated))
     client.send(bus, NodeUpdatedEvent(EventDetails(EventId("2"), EventKey("node0"), Seq(CommandId("2")), removal = true), NodeId("node0"), NodeCreated))
     client.send(bus, Subscribe(CommandId.generate(), "node-events", classOf[NodeUpdatedEvent], EventKey()))
     val subscribed = client.expectMsgClass(classOf[Subscribed[_]])
     subscribed.snapshot should be ('empty)
+  }
+
+  private def emptyDirectory: File = {
+    val dir = new File("target/easyrider")
+    FileUtils.deleteDirectory(dir)
+    dir
   }
 
   val dummySubscribe = Subscribe(CommandId("1"), "all", classOf[NodeUpdatedEvent], EventKey())
