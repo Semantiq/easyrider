@@ -25,8 +25,8 @@ class SshNodeAgent(eventBus: ActorRef) extends Actor {
   def configured(configuration: NodeConfiguration) = LoggingReceive {
     case CreateContainer(commandId, _, containerId) =>
       def eventDetails = EventDetails(EventId.generate(), containerId.eventKey, Seq(commandId))
-      val (exitStatus, output) = runSshCommand(configuration, "mkdir -p " + versionsDir(containerId))
-      println(output)
+      val (exitStatus, output, outputErr) = runSshCommand(configuration, "mkdir -p " + versionsDir(containerId))
+      println("out:" + output + " err:" + outputErr)
       exitStatus match {
         case 0 =>
           eventBus ! ContainerStateChangedEvent(eventDetails, ContainerCreated)
@@ -63,7 +63,7 @@ class SshNodeAgent(eventBus: ActorRef) extends Actor {
       eventBus ! ContainerStateChangedEvent(EventDetails(EventId.generate(), containerId.eventKey, Seq(commandId)), ContainerRunning(version))
     case StopContainer(commandId, containerId, immediate) =>
       // TODO: implement
-      val (0, runningVersionNumber) = runSshCommand(configuration, "cat " + containerDir(containerId) + "/running.version")
+      val (0, runningVersionNumber, _) = runSshCommand(configuration, "cat " + containerDir(containerId) + "/running.version")
       eventBus ! ContainerStateChangedEvent(EventDetails(EventId.generate(), containerId.eventKey, Seq(commandId)), ContainerStopping(Version(containerId.stageId.applicationId, runningVersionNumber.trim)))
       Thread.sleep(1000)
       eventBus ! ContainerStateChangedEvent(EventDetails(EventId.generate(), containerId.eventKey, Seq(commandId)), ContainerCreated)
@@ -90,11 +90,12 @@ class SshNodeAgent(eventBus: ActorRef) extends Actor {
     val in = shell.getInputStream
     val err = shell.getErrStream
     shell.connect()
-    val output = "out='" + IOUtils.toString(in) + "' err='" + IOUtils.toString(err) + "'"
+    val output = IOUtils.toString(in)
+    val outputErr = IOUtils.toString(err)
     val exitStatus = shell.getExitStatus
     shell.disconnect()
     session.disconnect()
-    (exitStatus, output)
+    (exitStatus, output, outputErr)
   }
 }
 

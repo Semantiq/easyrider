@@ -1,7 +1,6 @@
 package easyrider.business.tests
 
-import java.io.File
-
+import akka.actor.ActorSystem
 import akka.testkit.TestProbe
 import easyrider.Api.{AuthenticateUser, Authentication}
 import easyrider.Applications._
@@ -10,11 +9,11 @@ import easyrider.Implicits._
 import easyrider.Infrastructure._
 import easyrider.Repository.Version
 import easyrider.SshInfrastructure.NodeConfiguration
-import easyrider.business.{Easyrider, EasyriderTest}
 import easyrider._
+import easyrider.business.EasyriderTest
 
-class SshInfrastructureManagementTest extends EasyriderTest(new Easyrider(8081, new File("target/easyrider"))) {
-  "EasyRider" should "allow to add ssh host" in {
+class SshInfrastructureManagementTest extends EasyriderTest(ActorSystem("test")) {
+  "EasyRider" should "allow to add ssh host" in withEasyrider { easyrider =>
     val client = TestProbe()
     val api = easyrider.actorSystem.actorOf(easyrider.core.apiFactory(client.ref))
 
@@ -32,7 +31,7 @@ class SshInfrastructureManagementTest extends EasyriderTest(new Easyrider(8081, 
 
   }
 
-  it should "deploy & start application packages on a container on ssh host" in {
+  it should "deploy & start application packages on a container on ssh host" in withEasyrider { easyrider =>
     val client = TestProbe()
     val api = easyrider.actorSystem.actorOf(easyrider.core.apiFactory(client.ref))
 
