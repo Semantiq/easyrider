@@ -1,6 +1,6 @@
 package easyrider.business.core
 
-import akka.actor.{Actor, ActorRef, Props}
+import akka.actor.{Stash, Actor, ActorRef, Props}
 import akka.pattern.ask
 import akka.pattern.pipe
 import akka.util.Timeout
@@ -12,7 +12,7 @@ import easyrider.business.core.ApplicationManager.RestoredConfiguration
 
 import scala.concurrent.duration._
 
-class ApplicationManager(eventBus: ActorRef, infrastructure: ActorRef) extends Actor {
+class ApplicationManager(eventBus: ActorRef, infrastructure: ActorRef) extends Actor with Stash {
   import easyrider.Applications._
   private var applications = Map[ApplicationId, Application]()
   private var stages = Map[StageId, Stage]()
@@ -39,7 +39,9 @@ class ApplicationManager(eventBus: ActorRef, infrastructure: ActorRef) extends A
       applications = unpack(restored.applications.groupBy(_.id))
       stages = unpack(restored.stages.groupBy(_.id))
       containers = unpack(restored.containers.groupBy(_.id))
+      unstashAll()
       context.become(running)
+    case other => stash()
   }
 
   def running: Receive = {
