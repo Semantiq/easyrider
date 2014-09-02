@@ -23,6 +23,19 @@ app.directive("stage", function() {
 			$scope.deployVersion = function(containerUpdatedEvent) {
 				Command.show(ContainersConfiguration.deployVersionTemplate(containerUpdatedEvent.container.id));
 			};
+
+            $scope.startContainer = function(containerId, version) {
+                Command.show(ContainersConfiguration.startContainerTemplate(containerId, version));
+            };
+            $scope.stopContainer = function(containerId) {
+                Command.show(ContainersConfiguration.stopContainerTemplate(containerId));
+            };
+            $scope.canStop = function(containerState) {
+                return containerState.jsonClass == 'easyrider.Infrastructure$ContainerRunning';
+            };
+            $scope.canRemove = function(containerState) {
+                return containerState.jsonClass == 'easyrider.Infrastructure$ContainerCreated$';
+            };
 		}]
 	};
 });

@@ -15,15 +15,15 @@ app.constant("StatusClasses", {
         state: 'paused',
         label: 'Not running'
     },
-    'easyrider.Infrastructure$ContainerRunning$': {
+    'easyrider.Infrastructure$ContainerRunning': {
         state: 'success',
         label: 'Running'
     },
-    'easyrider.Infrastructure$ContainerStopping$': {
+    'easyrider.Infrastructure$ContainerStopping': {
         state: 'pending',
         label: 'Stopping'
     },
-    'easyrider.Infrastructure$ContainerForceStopping$': {
+    'easyrider.Infrastructure$ContainerForceStopping': {
         state: 'pending',
         label: 'Force stopping'
     },

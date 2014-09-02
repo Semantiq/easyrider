@@ -23,6 +23,19 @@ app.service("ContainersConfiguration", ["Api", "Validators", "Utils", function(A
 			version: { }
 		};
 	};
+	me.startContainerTemplate = function(containerId, version) {
+	    return {
+	        jsonClass: 'easyrider.Infrastructure$StartContainer',
+	        containerId: containerId,
+            version: version
+	    };
+	};
+	me.stopContainerTemplate = function(containerId) {
+	    return {
+	        jsonClass: 'easyrider.Infrastructure$StopContainer',
+	        containerId: containerId
+	    };
+	};
 
 	me.containersInStage = function(stageId) {
 	    if (!stageId) return [];

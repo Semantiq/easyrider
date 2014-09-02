@@ -16,13 +16,15 @@
 		<h4>Containers</h4>
 		<div class="list-group">
 			<div class="list-group-item" ng-repeat="containerUpdatedEvent in ContainersConfiguration.containersInStage(stage.stage.id)">
+				<div  ng-repeat="status in [ContainersState.containerStatus(containerUpdatedEvent.container.id)]">
 				<div class="btn-toolbar pull-right">
 					<button class="btn btn-primary btn-xs" ng-click="deployVersion(containerUpdatedEvent)">Deploy version</button>
+					<button class="btn btn-primary btn-xs" ng-disabled="!canStop(status)" ng-click="stopContainer(containerUpdatedEvent.container.id)">Stop</button>
+					<button class="btn btn-danger btn-xs" ng-disabled="!canRemove(status)">Remove container</button>
 				</div>
 				<h4>
 					{{containerUpdatedEvent.container.id.id}}
-					<badge ng-repeat="status in [ContainersState.containerStatus(containerUpdatedEvent.container.id)]"
-						   state="status" label="status.version.number"></badge>
+					<badge state="status" label="status.version.number"></badge>
 				</h4>
 				<strong>Properties</strong>
 				<pre>{{containerUpdatedEvent.container.properties|json}}</pre>
@@ -30,11 +32,13 @@
 				<ul class="list-group">
 					<li class="list-group-item" ng-repeat="deployedVersion in DeployedVersions.deployedVersionsByContainerId(containerUpdatedEvent.container.id)">
 						<div class="btn-toolbar pull-right">
-							<button class="btn btn-primary bt-xs">Run</button>
+							<button class="btn btn-primary btn-xs" ng-disabled="canStop(status)" ng-click="startContainer(containerUpdatedEvent.container.id, deployedVersion.version)">Run</button>
+							<button class="btn btn-danger btn-xs" ng-disabled="status.version.number == deployedVersion.version.number">Remove</button>
 						</div>
 						<badge state="deployedVersion.state" label="deployedVersion.version.number"></badge>
 					</li>
 				</ul>
+				</div>
 			</div>
 		</div>
 	</div>
