@@ -24,7 +24,7 @@ class SshInfrastructure(eventBus: ActorRef, sshNodeAgent: () => Props) extends A
   def initializing: Receive = {
     case GetSnapshotResponse(_, events: Seq[NodeConfigurationUpdatedEvent]) =>
       nodes = events.map { event =>
-        val agent = context.actorOf(sshNodeAgent())
+        val agent = context.actorOf(sshNodeAgent(), event.nodeConfiguration.id.id)
         agent ! CreateNode(CommandId.generate(), event.nodeConfiguration)
         event.nodeConfiguration.id -> agent
       }.toMap
@@ -33,7 +33,7 @@ class SshInfrastructure(eventBus: ActorRef, sshNodeAgent: () => Props) extends A
 
   def running = LoggingReceive {
     case addNode: CreateNode if !nodes.contains(addNode.nodeConfiguration.id) =>
-      val node = context.actorOf(sshNodeAgent())
+      val node = context.actorOf(sshNodeAgent(), addNode.nodeConfiguration.id.id)
       nodes += (addNode.nodeConfiguration.id -> node)
       node ! addNode
     case FindNodes(queryId) =>
