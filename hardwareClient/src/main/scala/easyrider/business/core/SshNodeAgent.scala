@@ -2,15 +2,15 @@ package easyrider.business.core
 
 import akka.actor.{Actor, ActorRef, Props}
 import akka.event.LoggingReceive
-import com.jcraft.jsch.{ChannelSftp, ChannelExec, JSch}
+import com.jcraft.jsch.{ChannelExec, JSch}
 import easyrider.Applications.ContainerId
 import easyrider.Infrastructure._
 import easyrider.Repository.Version
-import easyrider.SshInfrastructure.{NodeConfigurationUpdatedEvent, CreateNode, NodeConfiguration}
+import easyrider.SshInfrastructure.{CreateNode, NodeConfiguration, NodeConfigurationUpdatedEvent}
 import easyrider.{EventDetails, EventId, EventKey}
 import org.apache.commons.io.IOUtils
 
-class SshNodeAgent(eventBus: ActorRef) extends Actor {
+class SshNodeAgent(eventBus: ActorRef, deployerFactory: (NodeConfiguration, DeployVersion) => Props) extends Actor with SshNodeDirectoryLayout {
   val containers = Set[ContainerId]()
 
   def unConfigured = LoggingReceive {
@@ -33,30 +33,8 @@ class SshNodeAgent(eventBus: ActorRef) extends Actor {
         case other =>
           eventBus ! ContainerStateChangedEvent(eventDetails, ContainerCreationFailed)
       }
-    case DeployVersion(commandId, containerId, version) =>
-      val eventKey = containerId.eventKey append version.number
-      eventBus ! VersionDeploymentProgressEvent(EventDetails(EventId.generate(), eventKey, Seq(commandId)), version, DeploymentInProgress)
-      try {
-        val jsch = new JSch()
-        val session = jsch.getSession(configuration.login, configuration.host, configuration.port)
-        session.setPassword(configuration.password)
-        session.setConfig("StrictHostKeyChecking", "no")
-        session.connect()
-        val channel = session.openChannel("sftp").asInstanceOf[ChannelSftp]
-        channel.connect()
-        channel.cd(versionsDir(containerId))
-        val output = channel.put(version.number + ".tar.bz2")
-        output.write("Hello world!".getBytes)
-        output.close()
-        channel.disconnect()
-        session.disconnect()
-        eventBus ! VersionDeploymentProgressEvent(EventDetails(EventId.generate(), eventKey, Seq(commandId)), version, DeploymentCompleted)
-      } catch {
-        case ex: Exception =>
-          // TODO: check what operation failed and make the message out of that
-          // TODO: log the exception
-          VersionDeploymentProgressEvent(EventDetails(EventId.generate(), eventKey, Seq(commandId)), version, DeploymentFailed(ex.getMessage))
-      }
+    case command @ DeployVersion(commandId, containerId, version) =>
+      context.actorOf(deployerFactory(configuration, command))
     case StartContainer(commandId, containerId, version) =>
       // TODO: implement
       runSshCommand(configuration, "echo '" + version.number + "' > " + containerDir(containerId) + "/running.version")
@@ -67,14 +45,6 @@ class SshNodeAgent(eventBus: ActorRef) extends Actor {
       eventBus ! ContainerStateChangedEvent(EventDetails(EventId.generate(), containerId.eventKey, Seq(commandId)), ContainerStopping(Version(containerId.stageId.applicationId, runningVersionNumber.trim)))
       Thread.sleep(1000)
       eventBus ! ContainerStateChangedEvent(EventDetails(EventId.generate(), containerId.eventKey, Seq(commandId)), ContainerCreated)
-  }
-
-  private def versionsDir(containerId: ContainerId) = {
-    containerDir(containerId) + "/versions"
-  }
-
-  def containerDir(containerId: ContainerId) = {
-    s"easyrider/containers/${containerId.containerName}"
   }
 
   override def receive = unConfigured
@@ -100,5 +70,5 @@ class SshNodeAgent(eventBus: ActorRef) extends Actor {
 }
 
 object SshNodeAgent {
-  def apply(eventBus: ActorRef)() = Props(classOf[SshNodeAgent], eventBus)
+  def apply(eventBus: ActorRef, deployerFactory: (NodeConfiguration, DeployVersion) => Props)() = Props(classOf[SshNodeAgent], eventBus, deployerFactory)
 }

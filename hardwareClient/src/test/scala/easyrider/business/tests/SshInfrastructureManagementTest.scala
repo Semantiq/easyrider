@@ -1,5 +1,7 @@
 package easyrider.business.tests
 
+import java.io.File
+
 import akka.actor.ActorSystem
 import akka.testkit.TestProbe
 import easyrider.Api.{AuthenticateUser, Authentication}
@@ -11,6 +13,7 @@ import easyrider.Repository.Version
 import easyrider.SshInfrastructure.NodeConfiguration
 import easyrider._
 import easyrider.business.EasyriderTest
+import org.apache.commons.io.FileUtils
 
 class SshInfrastructureManagementTest extends EasyriderTest(ActorSystem("test")) {
   "EasyRider" should "allow to add ssh host" in withEasyrider { easyrider =>
@@ -34,6 +37,8 @@ class SshInfrastructureManagementTest extends EasyriderTest(ActorSystem("test"))
   it should "deploy & start application packages on a container on ssh host" in withEasyrider { easyrider =>
     val client = TestProbe()
     val api = easyrider.actorSystem.actorOf(easyrider.core.apiFactory(client.ref))
+    // TODO: perform upload, to avoid writing to easyrider folders directly
+    FileUtils.write(new File("target/easyrider/repository/app/1.0.0.tar.bz2"), "Test package content")
 
     client.send(api, AuthenticateUser())
     client.expectMsgClass(classOf[Authentication])

@@ -165,8 +165,10 @@ object Repository {
                                      labels: Seq[Label]) extends RepositoryEvent
 
   case class StartUpload(commandId: CommandId, version: Version) extends Command
+  case class StartDownload(version: Version)
   case class Upload(upload: ActorRef)
   case class UploadChunk(bytes: ByteString)
+  case object Ack
   case class UploadCompleted()
 }
 
