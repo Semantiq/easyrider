@@ -2,7 +2,7 @@ package easyrider.business.core
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.event.LoggingReceive
-import com.jcraft.jsch.{ChannelSftp, JSch}
+import com.jcraft.jsch.{ChannelExec, ChannelSftp, JSch}
 import easyrider.Infrastructure._
 import easyrider.Repository.{Ack, StartDownload, UploadChunk, UploadCompleted}
 import easyrider.SshInfrastructure.NodeConfiguration
@@ -11,6 +11,8 @@ import org.apache.commons.io.IOUtils
 
 class SshNodeDeployer(eventBus: ActorRef, repository: ActorRef, configuration: NodeConfiguration, command: DeployVersion) extends Actor with SshNodeDirectoryLayout with ActorLogging {
   private val eventKey = command.containerId.eventKey append command.version.number
+  private val packageFile = command.version.number + ".tar.bz2"
+  private val packageFolder = versionsDir(command.containerId)
 
   repository ! StartDownload(command.version)
   eventBus ! VersionDeploymentProgressEvent(EventDetails(EventId.generate(), eventKey, Seq(command.commandId)), command.version, DeploymentInProgress)
@@ -24,8 +26,8 @@ class SshNodeDeployer(eventBus: ActorRef, repository: ActorRef, configuration: N
     session.connect()
     val channel = session.openChannel("sftp").asInstanceOf[ChannelSftp]
     channel.connect()
-    channel.cd(versionsDir(command.containerId))
-    val output = channel.put(command.version.number + ".tar.bz2")
+    channel.cd(packageFolder)
+    val output = channel.put(packageFile)
     (session, channel, output)
   })
 
@@ -40,6 +42,11 @@ class SshNodeDeployer(eventBus: ActorRef, repository: ActorRef, configuration: N
         output.close()
         channel.disconnect()
         session.disconnect()
+      }
+      notifyOnError { () =>
+        SshNodeAgent.runSshCommand(configuration, s"rm -r $packageFolder/${command.version.number}")
+        SshNodeAgent.runSshCommand(configuration, s"mkdir -p $packageFolder/${command.version.number}")
+        SshNodeAgent.runSshCommand(configuration, s"/usr/bin/tar -jxf $packageFolder/$packageFile -C $packageFolder/${command.version.number}")
         eventBus ! VersionDeploymentProgressEvent(EventDetails(EventId.generate(), eventKey, Seq(command.commandId)), command.version, DeploymentCompleted)
       }
   }

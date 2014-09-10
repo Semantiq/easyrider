@@ -38,7 +38,7 @@ class SshInfrastructureManagementTest extends EasyriderTest(ActorSystem("test"))
     val client = TestProbe()
     val api = easyrider.actorSystem.actorOf(easyrider.core.apiFactory(client.ref))
     // TODO: perform upload, to avoid writing to easyrider folders directly
-    FileUtils.write(new File("target/easyrider/repository/app/1.0.0.tar.bz2"), "Test package content")
+    FileUtils.copyFile(new File("testing/testing.tar.bz2"), new File("target/easyrider/repository/app/1.0.0.tar.bz2"))
 
     client.send(api, AuthenticateUser())
     client.expectMsgClass(classOf[Authentication])
