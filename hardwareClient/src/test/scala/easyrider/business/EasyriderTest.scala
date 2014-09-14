@@ -11,7 +11,7 @@ abstract class EasyRiderTest(actorSystem: ActorSystem) extends TestKit(actorSyst
   def withEasyrider(test: EasyRider => Unit): Unit = {
     val data = new File("target/easyrider")
     FileUtils.deleteDirectory(data)
-    val easyrider = new EasyRider(8081, data)
+    val easyrider = new EasyRider(8082, data)
     test(easyrider)
     easyrider.actorSystem.shutdown()
     easyrider.actorSystem.awaitTermination()
