@@ -122,6 +122,11 @@ object Infrastructure {
   case class NodeUpdatedEvent(eventDetails: EventDetails, nodeId: NodeId, state: NodeState) extends InfrastructureEvent
   case class ContainerCreatedEvent(eventDetails: EventDetails) extends InfrastructureEvent
   case class ContainerCreationError(eventDetails: EventDetails)
+
+  case class ApplicationStartingEvent(eventDetails: EventDetails, progress: Option[String]) extends Event
+  case class ApplicationStartedEvent(eventDetails: EventDetails) extends Event
+  case class ApplicationStoppingEvent(eventDetails: EventDetails, progress: Option[String]) extends Event
+  case class ApplicationStoppedEvent(eventDetails: EventDetails) extends Event
 }
 
 object SshInfrastructure {
