@@ -1,11 +1,31 @@
-#!/bin/sh
+#!/bin/bash
 
+SCRIPT="node init.js"
+
+start() {
+    if [ -f "RUNNING_PID" ] && ps -p $(cat RUNNING_PID) > /dev/null; then
+        echo $SCRIPT already started
+        return 1
+    fi
+    echo Starting $SCRIPT
+    $SCRIPT &
+    echo $! > RUNNING_PID
+    echo $SCRIPT started
+}
+ 
+stop() {
+    if [ ! -f "RUNNING_PID" ] || ! ps -p $(cat RUNNING_PID) > /dev/null; then
+        echo $SCRIPT is not running
+        rm RUNNING_PID > /dev/null
+        return 1
+    fi
+    echo Stopping $SCRIPT
+    kill -15 $(cat "RUNNING_PID") && rm -f "RUNNING_PID"
+    echo $SCRIPT stopped
+}
 case $1 in
-    start) echo "Starting ..."
+    start) start
     ;;
-    stop) echo "Stopping ..."
+    stop) stop
     ;;
 esac
-
-# port=8082
-# while true; do { echo -e 'HTTP/1.1 200 OK\r\n'; echo "Hello world $VERSION"; } | nc -l $port; done
