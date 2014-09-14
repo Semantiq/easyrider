@@ -22,7 +22,7 @@ class SshNodeAgent(eventBus: ActorRef, easyRiderUrl: URL, sshSessionFactory: (No
     case CreateNode(commandId, configuration) =>
       eventBus ! NodeUpdatedEvent(EventDetails(EventId.generate(), EventKey(configuration.id.id), Seq()), configuration.id, CreatingNode)
       eventBus ! NodeConfigurationUpdatedEvent(EventDetails(EventId.generate(), EventKey(configuration.id.id), Seq(commandId)), configuration)
-      val sshSession = context.actorOf(sshSessionFactory(configuration))
+      val sshSession = context.actorOf(sshSessionFactory(configuration), "sshSession")
       sshSession ! RunSshCommand(CommandId.generate(), configuration.id, "mkdir -p easyrider")
       eventBus ! NodeUpdatedEvent(EventDetails(EventId.generate(), EventKey(configuration.id.id), Seq()), configuration.id, NodeCreated)
       context.become(configured(configuration, sshSession))
@@ -35,8 +35,20 @@ class SshNodeAgent(eventBus: ActorRef, easyRiderUrl: URL, sshSessionFactory: (No
         case RunSshCommandSuccess(_, _) => eventBus ! ContainerStateChangedEvent(eventDetails, ContainerCreated)
         case Failure(_, message, _) => eventBus ! ContainerStateChangedEvent(eventDetails, ContainerCreationFailed)
       }
-    case command: DeployVersion =>
-      sshSession ! command
+    case DeployVersion(commandId, containerId, version) =>
+      val eventKey = containerId.eventKey append version.number
+      val packageFile = version.number + ".tar.bz2"
+      val packageFolder = versionsDir(containerId)
+      eventBus ! VersionDeploymentProgressEvent(EventDetails(EventId.generate(), eventKey, Seq(commandId)), version, DeploymentInProgress)
+      sshSession ? SftpUploadCommand(CommandId.generate(), version, packageFolder, packageFile) flatMap {
+        case _: SftpUploadCommandSuccess => sshSession ? RunSshCommand(CommandId.generate(), configuration.id, s"rm -r $packageFile/$packageFile")
+      } flatMap {
+        case _: RunSshCommandSuccess => sshSession ? RunSshCommand(CommandId.generate(), configuration.id, s"mkdir -p $packageFolder/${version.number}")
+      } flatMap {
+        case _: RunSshCommandSuccess => sshSession ? RunSshCommand(CommandId.generate(), configuration.id, s"tar -jxf $packageFolder/$packageFile -C $packageFolder/${version.number}")
+      } onSuccess {
+        case _: RunSshCommandSuccess => eventBus ! VersionDeploymentProgressEvent(EventDetails(EventId.generate(), eventKey, Seq(commandId)), version, DeploymentCompleted)
+      }
     case StartContainer(commandId, containerId, version) =>
       // TODO: create real token
       val authentication = """{"jsonClass":"easyrider.Api$AuthenticateUser"}"""
