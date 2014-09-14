@@ -1,5 +1,6 @@
 package easyrider.business.core
 
+import java.net.URL
 import java.util.concurrent.TimeUnit
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
@@ -12,7 +13,7 @@ import easyrider.Repository.Version
 import easyrider.SshInfrastructure._
 import easyrider._
 
-class SshNodeAgent(eventBus: ActorRef, sshSessionFactory: (NodeConfiguration) => Props) extends Actor with SshNodeDirectoryLayout with ActorLogging {
+class SshNodeAgent(eventBus: ActorRef, easyRiderUrl: URL, sshSessionFactory: (NodeConfiguration) => Props) extends Actor with SshNodeDirectoryLayout with ActorLogging {
   implicit val timeout = Timeout(60, TimeUnit.SECONDS)
   implicit val dispatcher = context.system.dispatcher
   val containers = Set[ContainerId]()
@@ -37,7 +38,9 @@ class SshNodeAgent(eventBus: ActorRef, sshSessionFactory: (NodeConfiguration) =>
     case command: DeployVersion =>
       sshSession ! command
     case StartContainer(commandId, containerId, version) =>
-      val startInitFuture = sshSession ? RunSshCommand(CommandId.generate(), configuration.id, "./" + versionsDir(containerId) + "/" + version.number + "/init start")
+      // TODO: create real token
+      val authentication = """{"jsonClass":"easyrider.Api$AuthenticateUser"}"""
+      val startInitFuture = sshSession ? RunSshCommand(CommandId.generate(), configuration.id, s"./${versionsDir(containerId)}/${version.number}/init start $easyRiderUrl $authentication")
       val saveVersionFuture = sshSession ? RunSshCommand(CommandId.generate(), configuration.id, "echo '" + version.number + "' > " + containerDir(containerId) + "/running.version")
       for {
         startInit <- startInitFuture
@@ -60,5 +63,5 @@ class SshNodeAgent(eventBus: ActorRef, sshSessionFactory: (NodeConfiguration) =>
 }
 
 object SshNodeAgent {
-  def apply(eventBus: ActorRef, sshSessionFactory: (NodeConfiguration) => Props)() = Props(classOf[SshNodeAgent], eventBus, sshSessionFactory)
+  def apply(eventBus: ActorRef, easyRiderUrl: URL, sshSessionFactory: (NodeConfiguration) => Props)() = Props(classOf[SshNodeAgent], eventBus, easyRiderUrl, sshSessionFactory)
 }

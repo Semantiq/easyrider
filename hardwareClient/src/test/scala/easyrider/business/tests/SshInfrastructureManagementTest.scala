@@ -12,10 +12,10 @@ import easyrider.Infrastructure._
 import easyrider.Repository.Version
 import easyrider.SshInfrastructure.NodeConfiguration
 import easyrider._
-import easyrider.business.EasyriderTest
+import easyrider.business.EasyRiderTest
 import org.apache.commons.io.FileUtils
 
-class SshInfrastructureManagementTest extends EasyriderTest(ActorSystem("test")) {
+class SshInfrastructureManagementTest extends EasyRiderTest(ActorSystem("test")) {
   "EasyRider" should "allow to add ssh host" in withEasyrider { easyrider =>
     val client = TestProbe()
     val api = easyrider.actorSystem.actorOf(easyrider.core.apiFactory(client.ref))
