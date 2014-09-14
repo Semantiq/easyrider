@@ -22,8 +22,12 @@ object Implicits {
   implicit def class2eventType(x: Class[_]) = EventType(ComponentId.core, x.getName)
 }
 
-case class Failure(commandId: CommandId, message: String, exception: Option[Exception]) {
+case class Failure(commandId: CommandId, message: String, exception: Option[Throwable]) {
   def isSystemFailure = exception.isDefined
+}
+
+trait Success {
+  def commandId: CommandId
 }
 
 sealed trait Command {
@@ -126,8 +130,11 @@ object SshInfrastructure {
   case class CreateNode(commandId: CommandId, nodeConfiguration: NodeConfiguration) extends SshInfrastructureCommand
   case class UpdateNode(commandId: CommandId, nodeConfiguration: NodeConfiguration) extends SshInfrastructureCommand
   case class RemoveNode(commandId: CommandId, nodeId: NodeId, keepData: Boolean = true) extends SshInfrastructureCommand
+  case class RunSshCommand(commandId: CommandId, nodeId: NodeId, command: String) extends SshInfrastructureCommand
 
-  case class NodeConfigurationUpdatedEvent(eventDetails: EventDetails, nodeConfiguration: NodeConfiguration) extends Event
+  case class NodeConfigurationUpdatedEvent(eventDetails: EventDetails, nodeConfiguration: NodeConfiguration,
+                                           captureOutput: Boolean = false) extends Event
+  case class RunSshCommandSuccess(commandId: CommandId, output: Option[String])
 }
 
 object Api {

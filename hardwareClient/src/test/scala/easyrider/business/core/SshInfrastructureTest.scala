@@ -8,6 +8,6 @@ class SshInfrastructureTest extends TestKit(ActorSystem()) with FlatSpecLike wit
   "SshAgentLessInfrastructure" should "return list of all nodes" in {
     val eventBus = TestProbe()
     val repository = TestProbe()
-    val infrastructure = system.actorOf(SshInfrastructure(eventBus.ref, SshNodeAgent(eventBus.ref, SshNodeDeployer(eventBus.ref, repository.ref))))
+    val infrastructure = system.actorOf(SshInfrastructure(eventBus.ref, SshNodeAgent(eventBus.ref, SshSession(eventBus.ref, repository.ref))))
   }
 }
