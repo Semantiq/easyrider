@@ -1,0 +1,11 @@
+#!/bin/sh
+
+case $1 in
+    start) echo "Starting ..."
+    ;;
+    stop) echo "Stopping ..."
+    ;;
+esac
+
+# port=8082
+# while true; do { echo -e 'HTTP/1.1 200 OK\r\n'; echo "Hello world $VERSION"; } | nc -l $port; done
