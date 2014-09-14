@@ -46,7 +46,7 @@ class SshNodeDeployer(eventBus: ActorRef, repository: ActorRef, configuration: N
       notifyOnError { () =>
         SshNodeAgent.runSshCommand(configuration, s"rm -r $packageFolder/${command.version.number}")
         SshNodeAgent.runSshCommand(configuration, s"mkdir -p $packageFolder/${command.version.number}")
-        SshNodeAgent.runSshCommand(configuration, s"/usr/bin/tar -jxf $packageFolder/$packageFile -C $packageFolder/${command.version.number}")
+        SshNodeAgent.runSshCommand(configuration, s"tar -jxf $packageFolder/$packageFile -C $packageFolder/${command.version.number}")
         eventBus ! VersionDeploymentProgressEvent(EventDetails(EventId.generate(), eventKey, Seq(command.commandId)), command.version, DeploymentCompleted)
       }
   }
