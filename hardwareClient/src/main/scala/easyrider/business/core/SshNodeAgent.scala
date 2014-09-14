@@ -50,7 +50,8 @@ class SshNodeAgent(eventBus: ActorRef, easyRiderUrl: URL, sshSessionFactory: (No
       }
     case StopContainer(commandId, containerId, immediate) =>
       sshSession ? RunSshCommand(CommandId.generate(), configuration.id, "cat " + containerDir(containerId) + "/running.version") flatMap {
-        case RunSshCommandSuccess(_, Some(runningVersionNumber)) =>
+        case RunSshCommandSuccess(_, Some(output)) =>
+          val runningVersionNumber = output.trim()
           eventBus ! ContainerStateChangedEvent(EventDetails(EventId.generate(), containerId.eventKey, Seq(commandId)), ContainerStopping(Version(containerId.stageId.applicationId, runningVersionNumber.trim)))
           sshSession ? RunSshCommand(CommandId.generate(), configuration.id, "./" + versionsDir(containerId) + "/" + runningVersionNumber + "/init stop")
       } onSuccess {
