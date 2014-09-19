@@ -41,7 +41,7 @@ class SshNodeAgent(eventBus: ActorRef, easyRiderUrl: URL, sshSessionFactory: (No
       val packageFolder = versionsDir(containerId)
       eventBus ! VersionDeploymentProgressEvent(EventDetails(EventId.generate(), eventKey, Seq(commandId)), version, DeploymentInProgress)
       sshSession ? SftpUploadCommand(CommandId.generate(), version, packageFolder, packageFile) flatMap {
-        case _: SftpUploadCommandSuccess => sshSession ? RunSshCommand(CommandId.generate(), configuration.id, s"rm -r $packageFile/$packageFile")
+        case _: SftpUploadCommandSuccess => sshSession ? RunSshCommand(CommandId.generate(), configuration.id, s"rm -r $packageFolder/${version.number}")
       } flatMap {
         case _: RunSshCommandSuccess => sshSession ? RunSshCommand(CommandId.generate(), configuration.id, s"mkdir -p $packageFolder/${version.number}")
       } flatMap {
