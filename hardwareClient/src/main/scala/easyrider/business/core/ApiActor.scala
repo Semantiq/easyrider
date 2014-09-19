@@ -6,7 +6,8 @@ import easyrider.Components.ComponentCommand
 import easyrider.Events.EventBusCommand
 import easyrider.Infrastructure.{ContainerCommand, DeployVersion}
 import easyrider.Repository.StartUpload
-import easyrider.SshInfrastructure.SshInfrastructureCommand
+import easyrider.business.ssh.SshInfrastructure
+import SshInfrastructure.SshInfrastructureCommand
 import easyrider._
 
 class ApiActor(bus: ActorRef, applicationManager: ActorRef, componentManager: ActorRef, sshInfrastructure: ActorRef,

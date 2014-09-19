@@ -1,0 +1,1 @@
+Configure supervision, so that a malformed state leads to shutdown.

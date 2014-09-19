@@ -1,20 +1,18 @@
-package easyrider.business.core
+package easyrider.business.ssh
 
 import akka.actor.{Actor, ActorRef, Props}
 import akka.event.LoggingReceive
+import akka.pattern.{ask, pipe}
 import akka.util.Timeout
-import easyrider.{CommandId, QueryId, ComponentId}
-import easyrider.Events.{GetSnapshotResponse, GetSnapshot}
+import easyrider.Events.{GetSnapshot, GetSnapshotResponse}
+import easyrider.Implicits._
 import easyrider.Infrastructure._
-import easyrider.SshInfrastructure.{NodeConfigurationUpdatedEvent, CreateNode}
+import SshInfrastructure.{CreateNode, NodeConfigurationUpdatedEvent}
+import easyrider.{CommandId, ComponentId, QueryId}
 
 import scala.concurrent.duration._
-import akka.pattern.ask
-import akka.pattern.pipe
 
-import easyrider.Implicits._
-
-class SshInfrastructure(eventBus: ActorRef, sshNodeAgent: () => Props) extends Actor {
+class SshInfrastructureProvider(eventBus: ActorRef, sshNodeAgent: () => Props) extends Actor {
   var nodes = Map[NodeId, ActorRef]()
 
   implicit val timeout = Timeout(3 seconds)
@@ -54,6 +52,6 @@ class SshInfrastructure(eventBus: ActorRef, sshNodeAgent: () => Props) extends A
   override def receive = initializing
 }
 
-object SshInfrastructure {
-  def apply(eventBus: ActorRef, sshNodeAgent: () => Props) = Props(classOf[SshInfrastructure], eventBus, sshNodeAgent)
+object SshInfrastructureProvider {
+  def apply(eventBus: ActorRef, sshNodeAgent: () => Props) = Props(classOf[SshInfrastructureProvider], eventBus, sshNodeAgent)
 }

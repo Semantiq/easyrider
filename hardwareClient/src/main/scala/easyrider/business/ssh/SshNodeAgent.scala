@@ -1,4 +1,4 @@
-package easyrider.business.core
+package easyrider.business.ssh
 
 import java.net.URL
 import java.util.concurrent.TimeUnit
@@ -10,7 +10,7 @@ import akka.util.Timeout
 import easyrider.Applications.ContainerId
 import easyrider.Infrastructure._
 import easyrider.Repository.Version
-import easyrider.SshInfrastructure._
+import SshInfrastructure._
 import easyrider._
 
 class SshNodeAgent(eventBus: ActorRef, easyRiderUrl: URL, sshSessionFactory: (NodeConfiguration) => Props) extends Actor with SshNodeDirectoryLayout with ActorLogging {

@@ -30,7 +30,7 @@ trait Success {
   def commandId: CommandId
 }
 
-sealed trait Command {
+trait Command {
   def commandId: CommandId
   def failure(message: String) = Failure(commandId, message, None)
   def systemFailure(message: String, exception: Exception) = Failure(commandId, message, Some(exception))
@@ -81,7 +81,7 @@ case class EventKey(key: String*) {
 case class EventDetails(eventId: EventId, eventKey: EventKey, causedBy: Seq[Cause], removal: Boolean = false,
                          publicationTime: DateTime = DateTime.now())
 
-sealed trait Event {
+trait Event {
   def eventDetails: EventDetails
 }
 
@@ -127,21 +127,6 @@ object Infrastructure {
   case class ApplicationStartedEvent(eventDetails: EventDetails) extends Event
   case class ApplicationStoppingEvent(eventDetails: EventDetails, progress: Option[String]) extends Event
   case class ApplicationStoppedEvent(eventDetails: EventDetails) extends Event
-}
-
-object SshInfrastructure {
-  case class NodeConfiguration(id: NodeId, host: String, port: Int, login: String, password: String)
-  trait SshInfrastructureCommand extends Command
-  case class CreateNode(commandId: CommandId, nodeConfiguration: NodeConfiguration) extends SshInfrastructureCommand
-  case class UpdateNode(commandId: CommandId, nodeConfiguration: NodeConfiguration) extends SshInfrastructureCommand
-  case class RemoveNode(commandId: CommandId, nodeId: NodeId, keepData: Boolean = true) extends SshInfrastructureCommand
-  case class RunSshCommand(commandId: CommandId, nodeId: NodeId, command: String) extends SshInfrastructureCommand
-  case class SftpUploadCommand(commandId: CommandId, version: Version, targetFolder: String, targetFileName: String) extends SshInfrastructureCommand
-
-  case class NodeConfigurationUpdatedEvent(eventDetails: EventDetails, nodeConfiguration: NodeConfiguration,
-                                           captureOutput: Boolean = false) extends Event
-  case class RunSshCommandSuccess(commandId: CommandId, output: Option[String]) extends Success
-  case class SftpUploadCommandSuccess(commandId: CommandId) extends Success
 }
 
 object Api {

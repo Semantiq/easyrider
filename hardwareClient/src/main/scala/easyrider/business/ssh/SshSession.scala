@@ -1,4 +1,4 @@
-package easyrider.business.core
+package easyrider.business.ssh
 
 import java.io.OutputStream
 import java.util.concurrent.TimeUnit
@@ -8,7 +8,7 @@ import akka.event.LoggingReceive
 import akka.util.Timeout
 import com.jcraft.jsch.{ChannelExec, ChannelSftp, JSch, Session}
 import easyrider.Repository.{Ack, StartDownload, UploadChunk, UploadCompleted}
-import easyrider.SshInfrastructure._
+import SshInfrastructure._
 import easyrider._
 import org.apache.commons.io.IOUtils
 
