@@ -6,3 +6,4 @@ target
 *~
 hardwareClient/src/main/resources/static/*
 hardwareClient/src/main/web/node_modules/*
+js-api/node_modules
