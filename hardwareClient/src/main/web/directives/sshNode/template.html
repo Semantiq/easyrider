@@ -1,19 +1,8 @@
-<div class="panel panel-primary">
-    <div class="panel-heading">
+<div class="panel panel-default">
+    <card-heading state="state.state">
         <div class="btn-toolbar pull-right">
-            <button class="btn btn-danger btn-xs">Remove node</button>
+            <button class="btn btn-danger">Remove node</button>
         </div>
-        {{configuration.nodeConfiguration.id.id}}
-    </div>
-    <div class="panel-body">
-        <dl class="dl-horizontal">
-            <dt>Host</dt>
-            <dd>{{configuration.nodeConfiguration.host}}</dd>
-            <dt>Port</dt>
-            <dd>{{configuration.nodeConfiguration.port}}</dd>
-            <dt>Login</dt>
-            <dd>{{configuration.nodeConfiguration.login}}</dd>
-        </dl>
-        <badge state="state.state"></badge>
-    </div>
+        <h1>{{configuration.nodeConfiguration.id.id}} <small>{{configuration.nodeConfiguration.login}}@{{configuration.nodeConfiguration.host}}{{configuration.nodeConfiguration.port!=22?(':'+configuration.nodeConfiguration.port):''}}</small></h1>
+    </card-heading>
 </div>
