@@ -131,6 +131,11 @@ app.service("Api", ["Connection", function(Connection) {
 					if(!any && !event.eventDetails.removal) {
 						s.snapshot.push(event);
 					}
+					if (!s.tail) {
+					    s.tail = [];
+					}
+					s.tail.push(event);
+					alert("tail: " + s.tail);
 				}
 			}
 		};
