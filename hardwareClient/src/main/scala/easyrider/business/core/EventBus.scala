@@ -16,9 +16,12 @@ class EventBus(easyriderData: File) extends Actor {
   import easyrider.Events._
   private implicit val formats = Serialization.formats(FullTypeHints(List(classOf[AnyRef]))) ++ JodaTimeSerializers.all
 
-  private case class Subscription(eventType: EventType, eventKey: EventKey, receiver: ActorRef, subscriptionId: String)
+  private case class Subscription(eventType: EventType, eventKey: EventKey, receiver: ActorRef, subscriptionId: String) {
+    def matches(event: Event) = eventType == class2eventType(event.getClass) && eventKey.contains(event.eventDetails.eventKey)
+  }
   private var snapshots = load()
   private var subscriptions = Set[Subscription]()
+  private var eventLog = Seq[Event]()
 
   override def receive: Receive = LoggingReceive {
     case event: Event =>
@@ -30,9 +33,10 @@ class EventBus(easyriderData: File) extends Actor {
       }
       snapshots += (class2eventType(event.getClass) -> updated)
       subscriptions
-        .filter(s => s.eventType == class2eventType(event.getClass) && s.eventKey.contains(event.eventDetails.eventKey))
+        .filter(s => s.matches(event))
         .foreach(s => s.receiver ! event)
       save(snapshots)
+      eventLog +:= event
     case Terminated(subscriber) =>
       subscriptions = subscriptions.filter(s => s.receiver != subscriber)
     case command: EventBusCommand => command match {
@@ -49,6 +53,11 @@ class EventBus(easyriderData: File) extends Actor {
     }
     case GetSnapshot(queryId, eventType) =>
       sender() ! GetSnapshotResponse(queryId, snapshots.getOrElse(eventType, Map()).values.toSeq)
+    case GetReplay(queryId, subscriptionIds, since) =>
+      val filter = subscriptions.filter(s => subscriptionIds.contains(s.subscriptionId))
+      val withinTime = eventLog.dropWhile(e => e.eventDetails.publicationTime isBefore since)
+      val matching = withinTime.filter(e => filter.exists(f => f.matches(e)))
+      sender() ! GetReplayResponse(queryId, matching)
   }
 
   private def snapshotFile = new File(easyriderData, "snapshot.json")

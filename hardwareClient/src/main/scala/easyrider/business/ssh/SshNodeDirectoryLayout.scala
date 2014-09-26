@@ -1,4 +1,4 @@
-package easyrider.business.core
+package easyrider.business.ssh
 
 import easyrider.Applications.ContainerId
 

@@ -10,7 +10,8 @@ import easyrider.Events.{Subscribe, Subscribed}
 import easyrider.Implicits._
 import easyrider.Infrastructure._
 import easyrider.Repository.Version
-import easyrider.SshInfrastructure.NodeConfiguration
+import easyrider.business.ssh.SshInfrastructure
+import SshInfrastructure.NodeConfiguration
 import easyrider._
 import easyrider.business.EasyRiderTest
 import org.apache.commons.io.FileUtils
