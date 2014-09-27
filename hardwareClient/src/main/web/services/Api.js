@@ -31,6 +31,7 @@ app.service("Api", ["Connection", function(Connection) {
 	}
 
 	var subscriptionsRequested = [];
+	var replaysRequested = [];
 	var sendAfterAuthentication = [];
 
 	function Subscription(subscriptionId) {
@@ -42,9 +43,14 @@ app.service("Api", ["Connection", function(Connection) {
 	var subscriptions = {};
 
 	me.subscribe = function(eventType, eventKey) {
-	    if(!Connection.on[eventType])
+	    if(!Connection.on[eventType]) {
 	        defineEvent(eventType);
-		var subscriptionId = nextId();
+	    }
+	    // TODO: this will not prevent duplicated subscriptions if they are nested
+		var subscriptionId = eventType + "::" + eventKey.join("::");
+        if (subscriptions[subscriptionId]) {
+            return subscriptions[subscriptionId];
+        }
 		var subscription = {
 			jsonClass: "easyrider.Events$Subscribe",
 			commandId: {
@@ -65,8 +71,22 @@ app.service("Api", ["Connection", function(Connection) {
 				key: eventKey.push ? eventKey : eventKey.split(" ")
 			}
 		};
-		if(me.isAuthenticated)
+		var replayQueryId = nextId();
+		var replay = {
+            jsonClass: "easyrider.Events$GetReplay",
+            queryId: {
+                jsonClass: "easyrider.QueryId",
+                id: replayQueryId
+            },
+            subscriptions: [ subscriptionId ],
+            since: "2000-01-01T00:00:00.000Z"
+		};
+		if(me.isAuthenticated) {
+		    replaysRequested[replayQueryId] = subscription;
+		    console.log("replaysRequested: " + angular.toJson(replaysRequested));
 			Connection.send(subscription);
+			Connection.send(replay);
+		}
 		subscriptionsRequested.push(subscription);
 		var s = new Subscription(subscriptionId);
 		subscriptions[subscriptionId] = s;
@@ -104,6 +124,12 @@ app.service("Api", ["Connection", function(Connection) {
 			s.snapshot.push(msg.snapshot[i]);
 		}
 	};
+	Connection.on["easyrider.Events$GetReplayResponse"] = function(msg) {
+        var s = replaysRequested[msg.queryId.id];
+        console.log(angular.toJson(replaysRequested) + ": " + angular.toJson(s.tail) + " <- " + angular.toJson(msg));
+        s.tail = msg.events;
+        delete replaysRequested[msg.queryId.id];
+	};
 	function handleFailure(msg) {
 		alert(msg.message);
 	}
@@ -135,7 +161,6 @@ app.service("Api", ["Connection", function(Connection) {
 					    s.tail = [];
 					}
 					s.tail.push(event);
-					alert("tail: " + s.tail);
 				}
 			}
 		};

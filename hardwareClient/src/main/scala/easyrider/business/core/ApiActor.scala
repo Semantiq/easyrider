@@ -3,7 +3,7 @@ package easyrider.business.core
 import akka.actor._
 import easyrider.Applications.ApplicationCommand
 import easyrider.Components.ComponentCommand
-import easyrider.Events.EventBusCommand
+import easyrider.Events.{GetReplay, EventBusCommand}
 import easyrider.Infrastructure.{ContainerCommand, DeployVersion}
 import easyrider.Repository.StartUpload
 import easyrider.business.ssh.SshInfrastructure
@@ -37,6 +37,8 @@ class ApiActor(bus: ActorRef, applicationManager: ActorRef, componentManager: Ac
     case c: Command =>
       bus ! CommandSentEvent(EventDetails(EventId.generate(), EventKey(), Seq(c.commandId)), c, authenticated)
       processCommand(c)
+    case r: GetReplay =>
+      bus ! r
     case q: Query =>
       ???
     case r: Result =>

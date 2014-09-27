@@ -7,7 +7,7 @@ app.directive("eventLog", function() {
 			eventTypes: "="
 		},
 		controller: ["$scope", "EventLog", function($scope, EventLog) {
-		    $scope.events = EventLog.events;
+		    $scope.events = EventLog.subscription.tail;
 		}]
 	};
 });
