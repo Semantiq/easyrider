@@ -19,16 +19,7 @@
   .button-size(@padding-base-vertical; @padding-base-horizontal; @font-size-base; @line-height-base; @border-radius-base);
   .user-select(none);
 
-  &,
-  &:active,
-  &.active {
-    &:focus {
-      .tab-focus();
-    }
-  }
-
-  &:hover,
-  &:focus {
+  &:hover {
     color: @btn-default-color;
     text-decoration: none;
   }
@@ -97,20 +88,17 @@
   }
   &,
   &:hover,
-  &:focus,
   &:active {
     border-color: transparent;
   }
-  &:hover,
-  &:focus {
+  &:hover {
     color: @link-hover-color;
     text-decoration: underline;
     background-color: transparent;
   }
   &[disabled],
   fieldset[disabled] & {
-    &:hover,
-    &:focus {
+    &:hover {
       color: @btn-link-disabled-color;
       text-decoration: none;
     }
