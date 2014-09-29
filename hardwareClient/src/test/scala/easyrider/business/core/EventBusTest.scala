@@ -2,17 +2,17 @@ package easyrider.business.core
 
 import java.io.File
 
-import akka.actor.ActorSystem
+import akka.actor.{ActorSystem, PoisonPill, Terminated}
 import akka.testkit.{TestKit, TestProbe}
-import easyrider.Applications.{ApplicationId, Application, ApplicationUpdatedEvent}
+import easyrider.Applications.{Application, ApplicationId, ApplicationUpdatedEvent}
 import easyrider.Events._
-import easyrider.Infrastructure.{NodeId, NodeCreated, NodeUpdatedEvent}
+import easyrider.Implicits._
+import easyrider.Infrastructure.{NodeCreated, NodeId, NodeUpdatedEvent}
 import easyrider._
 import easyrider.business.core
 import org.apache.commons.io.FileUtils
 import org.joda.time.DateTime
 import org.scalatest._
-import easyrider.Implicits._
 
 class EventBusTest() extends TestKit(ActorSystem()) with FlatSpecLike with Matchers {
   "EventBus" should "send events to subscribers" in {
@@ -66,9 +66,25 @@ class EventBusTest() extends TestKit(ActorSystem()) with FlatSpecLike with Match
     replay.events.size should be (2)
   }
 
+  it should "recover events from file" in {
+    val directory = emptyDirectory
+    val bus0 = system.actorOf(core.EventBus(directory))
+    val client = TestProbe()
+    client.send(bus0, ApplicationUpdatedEvent(EventDetails(EventId("3"), EventKey("app"), Seq(CommandId("3"))), Application(ApplicationId("app"), Seq())))
+    client.watch(bus0)
+    client.send(bus0, PoisonPill)
+    client.expectMsgClass(classOf[Terminated])
+    val bus1 = system.actorOf(core.EventBus(directory))
+    client.send(bus1, Subscribe(CommandId.generate(), "app-events", classOf[ApplicationUpdatedEvent], EventKey()))
+    client.send(bus1, GetReplay(QueryId.generate(), Seq("app-events"), DateTime.now().minusMinutes(1)))
+    client.expectMsgClass(classOf[Subscribed[_]])
+    client.expectMsgClass(classOf[GetReplayResponse]).events should have size 1
+  }
+
   private def emptyDirectory: File = {
     val dir = new File("target/easyrider")
     FileUtils.deleteDirectory(dir)
+    dir.mkdirs()
     dir
   }
 

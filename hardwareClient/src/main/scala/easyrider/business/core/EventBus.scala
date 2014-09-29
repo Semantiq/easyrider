@@ -2,7 +2,7 @@ package easyrider.business.core
 
 import java.io.File
 
-import akka.actor.{Actor, ActorRef, Props, Terminated}
+import akka.actor._
 import akka.event.LoggingReceive
 import easyrider.Implicits._
 import easyrider.{Event, EventKey, EventType}
@@ -12,16 +12,16 @@ import org.json4s.ext.JodaTimeSerializers
 import org.json4s.native.Serialization
 import org.json4s.native.Serialization.{read, writePretty}
 
-class EventBus(easyriderData: File) extends Actor {
+class EventBus(easyRiderData: File) extends Actor with ActorLogging {
   import easyrider.Events._
   private implicit val formats = Serialization.formats(FullTypeHints(List(classOf[AnyRef]))) ++ JodaTimeSerializers.all
 
   private case class Subscription(eventType: EventType, eventKey: EventKey, receiver: ActorRef, subscriptionId: String) {
     def matches(event: Event) = eventType == class2eventType(event.getClass) && eventKey.contains(event.eventDetails.eventKey)
   }
-  private var snapshots = load()
+  private var snapshots = loadSnapshot()
   private var subscriptions = Set[Subscription]()
-  private var eventLog = Seq[Event]()
+  private var eventLog = loadEventLog()
 
   override def receive: Receive = LoggingReceive {
     case event: Event =>
@@ -37,6 +37,7 @@ class EventBus(easyriderData: File) extends Actor {
         .foreach(s => s.receiver ! event)
       save(snapshots)
       eventLog +:= event
+      save(eventLog)
     case Terminated(subscriber) =>
       subscriptions = subscriptions.filter(s => s.receiver != subscriber)
     case command: EventBusCommand => command match {
@@ -60,14 +61,19 @@ class EventBus(easyriderData: File) extends Actor {
       sender() ! GetReplayResponse(queryId, matching)
   }
 
-  private def snapshotFile = new File(easyriderData, "snapshot.json")
+  private def snapshotFile = new File(easyRiderData, "snapshot.json")
+  private def eventLogFile = new File(easyRiderData, "eventLogFile.json")
 
   private def save(snapshots: Map[EventType, Map[EventKey, Event]]) = {
     val events = snapshots.values.flatMap(_.values)
     FileUtils.write(snapshotFile, writePretty(events))
   }
 
-  private def load(): Map[EventType, Map[EventKey, Event]] = {
+  private def save(eventLog: Seq[Event]) {
+    FileUtils.write(eventLogFile, writePretty(eventLog))
+  }
+
+  private def loadSnapshot(): Map[EventType, Map[EventKey, Event]] = {
     if (snapshotFile.exists()) {
       val string = FileUtils.readFileToString(snapshotFile)
       val events = read[Seq[Event]](string)
@@ -77,11 +83,22 @@ class EventBus(easyriderData: File) extends Actor {
         })
       }
     } else {
+      log.info("Could not find snapshot file ({}). Starting with empty snapshots", snapshotFile)
       Map()
+    }
+  }
+
+  private def loadEventLog(): Seq[Event] = {
+    if (eventLogFile.exists()) {
+      val string = FileUtils.readFileToString(snapshotFile)
+      read[Seq[Event]](string)
+    } else {
+      log.info("Could not find event log file ({}). Starting with empty event log", eventLogFile)
+      Seq()
     }
   }
 }
 
 object EventBus {
-  def apply(easyriderData: File) = Props(classOf[EventBus], easyriderData)
+  def apply(easyRiderData: File) = Props(classOf[EventBus], easyRiderData)
 }
