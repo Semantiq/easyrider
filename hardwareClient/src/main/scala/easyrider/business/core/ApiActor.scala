@@ -35,7 +35,7 @@ class ApiActor(bus: ActorRef, applicationManager: ActorRef, componentManager: Ac
       else
         bus ! e
     case c: Command =>
-      bus ! CommandSentEvent(EventDetails(EventId.generate(), EventKey(), Seq(c.commandId)), c, authenticated)
+      bus ! CommandSentEvent(EventDetails(EventId.generate(), EventKey(), Seq(c.commandDetails.commandId)), c, authenticated)
       processCommand(c)
     case r: GetReplay =>
       bus ! r

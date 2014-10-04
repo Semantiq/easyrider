@@ -7,7 +7,7 @@ import akka.pattern.ask
 import akka.util.Timeout
 import easyrider.Api.AuthenticateUser
 import easyrider.Applications.ApplicationId
-import easyrider.CommandId
+import easyrider.{TraceMode, CommandDetails, CommandId}
 import easyrider.Repository._
 import easyrider.business.http.WebServerWorker.MessageFormatError
 import org.json4s._
@@ -71,7 +71,7 @@ class WebServerWorker(connection: ActorRef, apiFactory: ActorRef => Props, impli
                      val api = context.actorOf(apiFactory(self))
                      api ! AuthenticateUser()
                      val commandId = CommandId.generate()
-                     val upload = api ? StartUpload(commandId, Version(ApplicationId(name.entity.asString), version.entity.asString))
+                     val upload = api ? StartUpload(CommandDetails(commandId, TraceMode()), Version(ApplicationId(name.entity.asString), version.entity.asString))
                      upload.onSuccess {
                        case Upload(target) =>
                          context.stop(api)

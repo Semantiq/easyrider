@@ -8,7 +8,7 @@ import easyrider.Events.{GetSnapshot, GetSnapshotResponse}
 import easyrider.Implicits._
 import easyrider.Infrastructure._
 import SshInfrastructure.{CreateNode, NodeConfigurationUpdatedEvent}
-import easyrider.{CommandId, ComponentId, QueryId}
+import easyrider._
 
 import scala.concurrent.duration._
 
@@ -23,7 +23,7 @@ class SshInfrastructureProvider(eventBus: ActorRef, sshNodeAgent: () => Props) e
     case GetSnapshotResponse(_, events: Seq[NodeConfigurationUpdatedEvent]) =>
       nodes = events.map { event =>
         val agent = context.actorOf(sshNodeAgent(), event.nodeConfiguration.id.id)
-        agent ! CreateNode(CommandId.generate(), event.nodeConfiguration)
+        agent ! CreateNode(CommandDetails(CommandId.generate(), TraceMode()), event.nodeConfiguration)
         event.nodeConfiguration.id -> agent
       }.toMap
       context.become(running)

@@ -53,9 +53,15 @@ app.service("Api", ["Connection", function(Connection) {
         }
 		var subscription = {
 			jsonClass: "easyrider.Events$Subscribe",
-			commandId: {
-				jsonClass: "easyrider.CommandId",
-				id: nextId()
+			commandDetails: {
+                jsonClass: "easyrider.CommandDetails",
+                commandId: {
+                    jsonClass: "easyrider.CommandId",
+                    id: nextId()
+                },
+                traceMode: {
+                    jsonClass: "easyrider.TraceMode"
+                }
 			},
 			subscriptionId: subscriptionId,
 			eventType: {
@@ -98,7 +104,16 @@ app.service("Api", ["Connection", function(Connection) {
 
 	me.command = function(jsonClass, command) {
 		command.jsonClass = jsonClass;
-		command.commandId = { id: nextId() };
+		command.commandDetails = {
+            jsonClass: "easyrider.CommandDetails",
+		    commandId: {
+		        jsonClass: "easyrider.CommandId",
+		        id: nextId()
+		    },
+		    traceMode: {
+		        jsonClass: "easyrider.TraceMode"
+		    }
+		};
 		if(me.isAuthenticated)
 			Connection.send(command);
 		else

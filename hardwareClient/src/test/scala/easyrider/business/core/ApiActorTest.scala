@@ -7,7 +7,7 @@ import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import easyrider.Api.{Authentication, AuthenticateUser}
 import easyrider.Applications._
 import easyrider.Infrastructure.{NodeId, NodeCreated, NodeUpdatedEvent}
-import easyrider.{CommandId, EventDetails, EventId, EventKey}
+import easyrider._
 import org.scalatest.{FlatSpecLike, Matchers}
 
 // TODO: Better name required
@@ -41,7 +41,7 @@ class ApiActorTest() extends TestKit(ActorSystem()) with FlatSpecLike with Match
   }
   it should "add application and indicate it by event" in {
     val (applicationManager, bus, client, api) = setup()
-    val command: ApplicationCommand = CreateApplication(CommandId.generate(), Application(ApplicationId("app"), Seq()))
+    val command: ApplicationCommand = CreateApplication(CommandDetails(CommandId.generate(), TraceMode()), Application(ApplicationId("app"), Seq()))
     client.send(api, AuthenticateUser())
 
     client.send(api, command)

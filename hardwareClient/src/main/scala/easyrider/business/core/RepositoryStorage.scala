@@ -13,8 +13,8 @@ class RepositoryStorage(val easyriderData: File,
   repositoryDir.mkdirs()
 
   override def receive = LoggingReceive {
-    case StartUpload(commandId, version) =>
-      val upload = context.actorOf(uploadFactory(commandId, version, repositoryDir))
+    case StartUpload(commandDetails, version) =>
+      val upload = context.actorOf(uploadFactory(commandDetails.commandId, version, repositoryDir))
       sender() ! Upload(upload)
     case StartDownload(version) =>
       context.actorOf(downloadFactory(version, sender()))

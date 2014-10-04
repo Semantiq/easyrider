@@ -45,52 +45,52 @@ class ApplicationManager(eventBus: ActorRef, infrastructure: ActorRef) extends A
   }
 
   def running: Receive = {
-    case command @ CreateApplication(commandId, application) => application match {
+    case command @ CreateApplication(commandDetails, application) => application match {
       case ExistingApplication(_) => sender ! command.failure(s"Application ${application.id.id} already exists")
       case _ =>
         applications += (application.id -> application)
-        eventBus ! ApplicationUpdatedEvent(EventDetails(EventId.generate(), EventKey(application.id.id), Seq(commandId)), application)
+        eventBus ! ApplicationUpdatedEvent(EventDetails(EventId.generate(), EventKey(application.id.id), Seq(commandDetails.commandId)), application)
     }
-    case command @ RemoveApplication(commandId, applicationId) => applicationId match {
+    case command @ RemoveApplication(commandDetails, applicationId) => applicationId match {
       case NonExistingApplication(_) => sender ! command.failure(s"Application ${applicationId.id} does not exist")
       case ApplicationWithStages(_) => sender ! command.failure(s"Remove all stages from ${applicationId.id} first")
       case ExistingApplication(application) =>
         applications -= applicationId
-        eventBus ! ApplicationUpdatedEvent(EventDetails(EventId.generate(), application.id.eventKey, Seq(commandId), removal = true), application)
+        eventBus ! ApplicationUpdatedEvent(EventDetails(EventId.generate(), application.id.eventKey, Seq(commandDetails.commandId), removal = true), application)
     }
-    case command @ UpdateApplication(commandId, application) => application match {
+    case command @ UpdateApplication(commandDetails, application) => application match {
       case NonExistingApplication(_) => sender ! command.failure(s"Application ${application.id} does not exist")
       case _ =>
         applications += (application.id -> application)
-        eventBus ! ApplicationUpdatedEvent(EventDetails(EventId.generate(), application.id.eventKey, Seq(commandId)), application)
+        eventBus ! ApplicationUpdatedEvent(EventDetails(EventId.generate(), application.id.eventKey, Seq(commandDetails.commandId)), application)
     }
-    case command @ CreateStage(commandId, stage) => stage match {
+    case command @ CreateStage(commandDetails, stage) => stage match {
       case NonExistingApplication(_) => sender ! command.failure(s"Application ${stage.id.applicationId.id} does not exist")
       case ExistingStage(_) => sender ! command.failure(s"Stage ${stage.id.id} for application ${stage.id.applicationId.id} is already defined")
       case _ =>
         stages += (stage.id -> stage)
-        eventBus ! StageUpdatedEvent(EventDetails(EventId.generate(), stage.id.eventKey, Seq(commandId)), stage)
+        eventBus ! StageUpdatedEvent(EventDetails(EventId.generate(), stage.id.eventKey, Seq(commandDetails.commandId)), stage)
     }
-    case command @ RemoveStage(commandId, stageId) => stageId match {
+    case command @ RemoveStage(commandDetails, stageId) => stageId match {
       case NonExistingStage(_) => sender ! command.failure(s"Stage ${stageId.id} of application ${stageId.applicationId.id} does not exist")
       case ExistingStage(stage) =>
         stages -= stageId
-        eventBus ! StageUpdatedEvent(EventDetails(EventId.generate(), stage.id.eventKey, Seq(commandId), removal = true), stage)
+        eventBus ! StageUpdatedEvent(EventDetails(EventId.generate(), stage.id.eventKey, Seq(commandDetails.commandId), removal = true), stage)
     }
-    case command @ CreateContainerConfiguration(commandId, container) => container match {
+    case command @ CreateContainerConfiguration(commandDetails, container) => container match {
       case ExistingContainer(_) => sender ! command.failure(s"Container ${container.id.id} in application ${container.id.stageId.applicationId.id} stage ${container.id.stageId.id} already exists")
       case NonExistingStage(_) => sender ! command.failure(s"Stage ${container.id.stageId.id} of application ${container.id.stageId.applicationId.id} does not exist")
       case _ =>
         // TODO: can this be corelated with original command? what if it fails?
-        infrastructure.forward(CreateContainer(CommandId.generate(), container.nodeId, container.id))
+        infrastructure.forward(CreateContainer(CommandDetails(CommandId.generate(), TraceMode()), container.nodeId, container.id))
         containers += (container.id -> container)
-        eventBus ! ContainerConfigurationUpdatedEvent(EventDetails(EventId.generate(), container.id.eventKey, Seq(commandId)), container)
+        eventBus ! ContainerConfigurationUpdatedEvent(EventDetails(EventId.generate(), container.id.eventKey, Seq(commandDetails.commandId)), container)
     }
-    case command @ UpdateContainerConfiguration(commandId, container) => container match {
+    case command @ UpdateContainerConfiguration(commandDetails, container) => container match {
       case NonExistingContainer(_) => sender ! command.failure(s"Container ${container.id.id} does not exist in application ${container.id.stageId.applicationId.id} stage ${container.id.stageId.id}")
       case _ =>
         containers += (container.id -> container)
-        eventBus ! ContainerConfigurationUpdatedEvent(EventDetails(EventId.generate(), container.id.eventKey, Seq(commandId)), container)
+        eventBus ! ContainerConfigurationUpdatedEvent(EventDetails(EventId.generate(), container.id.eventKey, Seq(commandDetails.commandId)), container)
     }
     case command: ContainerCommand =>
       containers.get(command.containerId) match {

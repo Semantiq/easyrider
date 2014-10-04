@@ -33,7 +33,7 @@ class SshSession(eventBus: ActorRef, repository: ActorRef, configuration: NodeCo
           becomeWarm(session)
           unstashAll()
         case Failure(exception) =>
-          sender() ! easyrider.Failure(any.commandId, "Can't connect to SSH", Some(exception))
+          sender() ! easyrider.Failure(any.commandDetails.commandId, "Can't connect to SSH", Some(exception))
       }
   }
 
@@ -45,7 +45,7 @@ class SshSession(eventBus: ActorRef, repository: ActorRef, configuration: NodeCo
       val output = channel.put(command.targetFileName)
       repository ! StartDownload(command.version)
       becomeUploading(session, channel, output, command, sender())
-    case RunSshCommand(commandId, nodeId, command) =>
+    case RunSshCommand(commandDetails, nodeId, command) =>
       log.debug("Sending command to {}: {}", configuration.id.id.asInstanceOf[Any], command)
       val shell = session.openChannel("exec").asInstanceOf[ChannelExec]
       shell.setCommand(command)
@@ -59,7 +59,7 @@ class SshSession(eventBus: ActorRef, repository: ActorRef, configuration: NodeCo
       log.debug("Command output: {}", output)
       log.debug("Command error: {}", outputErr)
       log.debug("Command exit code: {}", exitStatus)
-      sender ! RunSshCommandSuccess(commandId, Some(output))
+      sender ! RunSshCommandSuccess(commandDetails.commandId, Some(output))
 
     case ReceiveTimeout =>
       Try(session.disconnect()) match {
@@ -74,7 +74,7 @@ class SshSession(eventBus: ActorRef, repository: ActorRef, configuration: NodeCo
       sender() ! Ack
       IOUtils.copy(data.iterator.asInputStream, output)
     case UploadCompleted() =>
-      requestor ! SftpUploadCommandSuccess(command.commandId)
+      requestor ! SftpUploadCommandSuccess(command.commandDetails.commandId)
       output.close()
       channel.disconnect()
       becomeWarm(session)

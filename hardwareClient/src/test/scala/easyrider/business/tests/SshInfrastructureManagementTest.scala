@@ -24,10 +24,10 @@ class SshInfrastructureManagementTest extends EasyRiderTest(ActorSystem("test"))
     client.send(api, AuthenticateUser())
     client.expectMsgClass(classOf[Authentication])
 
-    client.send(api, Subscribe(CommandId.generate(), "nodeEvents", classOf[NodeUpdatedEvent], EventKey()))
+    client.send(api, Subscribe(CommandDetails(CommandId.generate(), TraceMode()), "nodeEvents", classOf[NodeUpdatedEvent], EventKey()))
     client.expectMsgClass(classOf[Subscribed[_]])
 
-    client.send(api, SshInfrastructure.CreateNode(CommandId.generate(), NodeConfiguration(NodeId("nodeA"), "localhost", 22, "test", "test")))
+    client.send(api, SshInfrastructure.CreateNode(CommandDetails(CommandId.generate(), TraceMode()), NodeConfiguration(NodeId("nodeA"), "localhost", 22, "test", "test")))
     client.expectMsgClass(classOf[NodeUpdatedEvent])
   }
 
@@ -44,28 +44,28 @@ class SshInfrastructureManagementTest extends EasyRiderTest(ActorSystem("test"))
     client.send(api, AuthenticateUser())
     client.expectMsgClass(classOf[Authentication])
 
-    client.send(api, Subscribe(CommandId.generate(), "deploymentEvents", classOf[VersionDeploymentProgressEvent], EventKey()))
+    client.send(api, Subscribe(CommandDetails(CommandId.generate(), TraceMode()), "deploymentEvents", classOf[VersionDeploymentProgressEvent], EventKey()))
     client.expectMsgClass(classOf[Subscribed[_]])
-    client.send(api, Subscribe(CommandId.generate(), "containerState", classOf[ContainerStateChangedEvent], EventKey()))
+    client.send(api, Subscribe(CommandDetails(CommandId.generate(), TraceMode()), "containerState", classOf[ContainerStateChangedEvent], EventKey()))
     client.expectMsgClass(classOf[Subscribed[_]])
 
-    client.send(api, SshInfrastructure.CreateNode(CommandId.generate(), NodeConfiguration(NodeId("nodeA"), "localhost", 22, "test", "test")))
-    client.send(api, Applications.CreateApplication(CommandId.generate(), Application(ApplicationId("app"), Seq())))
-    client.send(api, Applications.CreateStage(CommandId.generate(), Stage(StageId(ApplicationId("app"), "qa"), Seq())))
-    client.send(api, Applications.CreateContainerConfiguration(CommandId.generate(), ContainerConfiguration(ContainerId(StageId(ApplicationId("app"), "qa"), "0"), NodeId("nodeA"), Seq())))
+    client.send(api, SshInfrastructure.CreateNode(CommandDetails(CommandId.generate(), TraceMode()), NodeConfiguration(NodeId("nodeA"), "localhost", 22, "test", "test")))
+    client.send(api, Applications.CreateApplication(CommandDetails(CommandId.generate(), TraceMode()), Application(ApplicationId("app"), Seq())))
+    client.send(api, Applications.CreateStage(CommandDetails(CommandId.generate(), TraceMode()), Stage(StageId(ApplicationId("app"), "qa"), Seq())))
+    client.send(api, Applications.CreateContainerConfiguration(CommandDetails(CommandId.generate(), TraceMode()), ContainerConfiguration(ContainerId(StageId(ApplicationId("app"), "qa"), "0"), NodeId("nodeA"), Seq())))
 
     client.expectMsgClass(classOf[ContainerStateChangedEvent]).state should be (ContainerCreated)
 
-    client.send(api, Infrastructure.DeployVersion(CommandId.generate(), ContainerId(StageId(ApplicationId("app"), "qa"), "0"), Version(ApplicationId("app"), "1.0.0")))
+    client.send(api, Infrastructure.DeployVersion(CommandDetails(CommandId.generate(), TraceMode()), ContainerId(StageId(ApplicationId("app"), "qa"), "0"), Version(ApplicationId("app"), "1.0.0")))
 
     client.expectMsgClass(classOf[VersionDeploymentProgressEvent]).state should be (DeploymentInProgress)
     client.expectMsgClass(classOf[VersionDeploymentProgressEvent]).state should be (DeploymentCompleted)
 
-    client.send(api, Infrastructure.StartContainer(CommandId.generate(), ContainerId(StageId(ApplicationId("app"), "qa"), "0"), Version(ApplicationId("app"), "1.0.0")))
+    client.send(api, Infrastructure.StartContainer(CommandDetails(CommandId.generate(), TraceMode()), ContainerId(StageId(ApplicationId("app"), "qa"), "0"), Version(ApplicationId("app"), "1.0.0")))
 
     client.expectMsgClass(classOf[ContainerStateChangedEvent]).state should be (ContainerRunning(Version(ApplicationId("app"), "1.0.0")))
 
-    client.send(api, Infrastructure.StopContainer(CommandId.generate(), ContainerId(StageId(ApplicationId("app"), "qa"), "0")))
+    client.send(api, Infrastructure.StopContainer(CommandDetails(CommandId.generate(), TraceMode()), ContainerId(StageId(ApplicationId("app"), "qa"), "0")))
 
     client.expectMsgClass(classOf[ContainerStateChangedEvent]).state should be (ContainerStopping(Version(ApplicationId("app"), "1.0.0")))
     client.expectMsgClass(classOf[ContainerStateChangedEvent]).state should be (ContainerCreated)

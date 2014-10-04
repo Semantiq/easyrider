@@ -7,11 +7,9 @@ import akka.util.ByteString
 import easyrider.Applications.{ApplicationId, ContainerId}
 import easyrider.Infrastructure.NodeId
 import easyrider.Repository.Version
-import easyrider.business.core.EventBus
 import org.joda.time.DateTime
 
-sealed trait Target
-case class ComponentId(id: String) extends Target
+case class ComponentId(id: String)
 object ComponentId {
   val core = ComponentId("core")
 }
@@ -30,10 +28,14 @@ trait Success {
   def commandId: CommandId
 }
 
+case class TraceMode(progress: Boolean = false, confirmation: Boolean = true, consequences: Boolean = false)
+case class CommandDetails(commandId: CommandId, trace: TraceMode)
+
 trait Command {
-  def commandId: CommandId
-  def failure(message: String) = Failure(commandId, message, None)
-  def systemFailure(message: String, exception: Exception) = Failure(commandId, message, Some(exception))
+
+  def commandDetails: CommandDetails
+  def failure(message: String) = Failure(commandDetails.commandId, message, None)
+  def systemFailure(message: String, exception: Exception) = Failure(commandDetails.commandId, message, Some(exception))
 }
 
 object Components {
@@ -42,7 +44,7 @@ object Components {
     def eventKey = EventKey(componentId.id, extensionId.id)
   }
 
-  case class ComponentCommand(commandId: CommandId, componentId: ComponentId, payload: Map[String, String]) extends Command
+  case class ComponentCommand(commandDetails: CommandDetails, componentId: ComponentId, payload: Map[String, String]) extends Command
   case class ComponentEvent(eventDetails: EventDetails, payload: Map[String, String]) extends Event
   case class ConsoleExtensionAvailableEvent(eventDetails: EventDetails, extension: ConsoleExtension) extends Event
 }
@@ -104,13 +106,13 @@ object Infrastructure {
   case class DeploymentFailed(reason: String) extends DeploymentState
 
   trait InfrastructureCommand extends Command
-  case class CreateContainer(commandId: CommandId, nodeId: NodeId, containerId: ContainerId) extends InfrastructureCommand
+  case class CreateContainer(commandDetails: CommandDetails, nodeId: NodeId, containerId: ContainerId) extends InfrastructureCommand
   trait ContainerCommand extends InfrastructureCommand {
     def containerId: ContainerId
   }
-  case class DeployVersion(commandId: CommandId, containerId: ContainerId, version: Version) extends ContainerCommand
-  case class StartContainer(commandId: CommandId, containerId: ContainerId, version: Version) extends ContainerCommand
-  case class StopContainer(commandId: CommandId, containerId: ContainerId, immediate: Boolean = false) extends ContainerCommand
+  case class DeployVersion(commandDetails: CommandDetails, containerId: ContainerId, version: Version) extends ContainerCommand
+  case class StartContainer(commandDetails: CommandDetails, containerId: ContainerId, version: Version) extends ContainerCommand
+  case class StopContainer(commandDetails: CommandDetails, containerId: ContainerId, immediate: Boolean = false) extends ContainerCommand
   case class AddressedContainerCommand(nodeId: NodeId, containerCommand: ContainerCommand)
 
   case class FindNodes(queryId: QueryId) extends Query
@@ -140,18 +142,16 @@ object Api {
 
 object Events {
   trait EventBusCommand extends Command with Query {
-    def queryId = QueryId("query-" + commandId.id)
+    def queryId = QueryId("query-" + commandDetails.commandId.id)
   }
-  case class Subscribe(commandId: CommandId, subscriptionId: String, eventType: EventType, eventKey: EventKey) extends EventBusCommand
-  case class UnSubscribe(commandId: CommandId, subscriptionId: String) extends EventBusCommand
+  case class Subscribe(commandDetails: CommandDetails, subscriptionId: String, eventType: EventType, eventKey: EventKey) extends EventBusCommand
+  case class UnSubscribe(commandDetails: CommandDetails, subscriptionId: String) extends EventBusCommand
   case class Subscribed[T](queryId: QueryId, subscriptionId: String, eventType: EventType, snapshot: Seq[T]) extends Result
   case class UnSubscribed(queryId: QueryId, subscriptionId: String) extends Result
   case class GetSnapshot(queryId: QueryId, eventType: EventType) extends Query
   case class GetSnapshotResponse[T](queryId: QueryId, snapshot: Seq[T]) extends Result
   case class GetReplay(queryId: QueryId, subscriptions: Seq[String], since: DateTime) extends Query
   case class GetReplayResponse(queryId: QueryId, events: Seq[Event]) extends Result
-
-  val id = ComponentId(classOf[EventBus].getName)
 }
 
 object Repository {
@@ -165,7 +165,7 @@ object Repository {
   case class VersionLabelsAddedEvent(eventDetails: EventDetails, version: Version, newLabels: Seq[Label],
                                      labels: Seq[Label]) extends RepositoryEvent
 
-  case class StartUpload(commandId: CommandId, version: Version) extends Command
+  case class StartUpload(commandDetails: CommandDetails, version: Version) extends Command
   case class StartDownload(version: Version)
   case class Upload(upload: ActorRef)
   case class UploadChunk(bytes: ByteString)
@@ -197,14 +197,14 @@ object Applications {
   }
   case class ContainerConfiguration(id: ContainerId, nodeId: NodeId, properties: Seq[Property])
   trait ApplicationCommand extends Command
-  case class CreateApplication(commandId: CommandId, application: Application) extends ApplicationCommand
-  case class RemoveApplication(commandId: CommandId, applicationId: ApplicationId) extends ApplicationCommand
-  case class UpdateApplication(commandId: CommandId, application: Application) extends ApplicationCommand
-  case class CreateStage(commandId: CommandId, stage: Stage) extends ApplicationCommand
-  case class UpdateStage(commandId: CommandId, stage: Stage) extends ApplicationCommand
-  case class RemoveStage(commandId: CommandId, stageId: StageId) extends ApplicationCommand
-  case class CreateContainerConfiguration(commandId: CommandId, container: ContainerConfiguration) extends ApplicationCommand
-  case class UpdateContainerConfiguration(commandId: CommandId, container: ContainerConfiguration) extends ApplicationCommand
+  case class CreateApplication(commandDetails: CommandDetails, application: Application) extends ApplicationCommand
+  case class RemoveApplication(commandDetails: CommandDetails, applicationId: ApplicationId) extends ApplicationCommand
+  case class UpdateApplication(commandDetails: CommandDetails, application: Application) extends ApplicationCommand
+  case class CreateStage(commandDetails: CommandDetails, stage: Stage) extends ApplicationCommand
+  case class UpdateStage(commandDetails: CommandDetails, stage: Stage) extends ApplicationCommand
+  case class RemoveStage(commandDetails: CommandDetails, stageId: StageId) extends ApplicationCommand
+  case class CreateContainerConfiguration(commandDetails: CommandDetails, container: ContainerConfiguration) extends ApplicationCommand
+  case class UpdateContainerConfiguration(commandDetails: CommandDetails, container: ContainerConfiguration) extends ApplicationCommand
 
   trait ApplicationEvent extends Event
   case class ApplicationUpdatedEvent(eventDetails: EventDetails, application: Application) extends ApplicationEvent
