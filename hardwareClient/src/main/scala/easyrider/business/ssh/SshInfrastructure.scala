@@ -1,5 +1,6 @@
 package easyrider.business.ssh
 
+import easyrider.Commands.Success
 import easyrider.Repository.Version
 import easyrider._
 import easyrider.Infrastructure.NodeId

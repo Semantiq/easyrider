@@ -33,7 +33,7 @@ class SshSession(eventBus: ActorRef, repository: ActorRef, configuration: NodeCo
           becomeWarm(session)
           unstashAll()
         case Failure(exception) =>
-          sender() ! easyrider.Failure(any.commandDetails.commandId, "Can't connect to SSH", Some(exception))
+          sender() ! easyrider.Commands.Failure(any.commandDetails.commandId, "Can't connect to SSH", Some(exception))
       }
   }
 

@@ -8,6 +8,7 @@ import akka.event.LoggingReceive
 import akka.pattern._
 import akka.util.Timeout
 import easyrider.Applications.ContainerId
+import easyrider.Commands.Failure
 import easyrider.Infrastructure._
 import easyrider.Repository.Version
 import SshInfrastructure._

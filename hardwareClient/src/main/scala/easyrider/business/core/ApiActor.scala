@@ -2,6 +2,7 @@ package easyrider.business.core
 
 import akka.actor._
 import easyrider.Applications.ApplicationCommand
+import easyrider.Commands.Failure
 import easyrider.Components.ComponentCommand
 import easyrider.Events.{GetReplay, EventBusCommand}
 import easyrider.Infrastructure.{ContainerCommand, DeployVersion}
@@ -35,7 +36,7 @@ class ApiActor(bus: ActorRef, applicationManager: ActorRef, componentManager: Ac
       else
         bus ! e
     case c: Command =>
-      bus ! CommandSentEvent(EventDetails(EventId.generate(), EventKey(), Seq(c.commandDetails.commandId)), c, authenticated)
+      bus ! CommandSentEvent(EventDetails(EventId.generate(), EventKey(), Seq(c.commandDetails.commandId)), c, Some(authenticated))
       processCommand(c)
     case r: GetReplay =>
       bus ! r

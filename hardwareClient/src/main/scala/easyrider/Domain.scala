@@ -5,6 +5,7 @@ import java.util.UUID
 import akka.actor.ActorRef
 import akka.util.ByteString
 import easyrider.Applications.{ApplicationId, ContainerId}
+import easyrider.Commands.Failure
 import easyrider.Infrastructure.NodeId
 import easyrider.Repository.Version
 import org.joda.time.DateTime
@@ -20,22 +21,24 @@ object Implicits {
   implicit def class2eventType(x: Class[_]) = EventType(ComponentId.core, x.getName)
 }
 
-case class Failure(commandId: CommandId, message: String, exception: Option[Throwable]) {
-  def isSystemFailure = exception.isDefined
-}
-
-trait Success {
-  def commandId: CommandId
-}
-
 case class TraceMode(progress: Boolean = false, confirmation: Boolean = true, consequences: Boolean = false)
 case class CommandDetails(commandId: CommandId, trace: TraceMode)
 
 trait Command {
-
   def commandDetails: CommandDetails
   def failure(message: String) = Failure(commandDetails.commandId, message, None)
   def systemFailure(message: String, exception: Exception) = Failure(commandDetails.commandId, message, Some(exception))
+}
+
+object Commands {
+  case class RegisterProvider(commandClass: Class[_ <: Command])
+  trait CommandExecution {
+    def commandId: CommandId
+  }
+  trait Success extends CommandExecution
+  case class Failure(commandId: CommandId, message: String, exception: Option[Throwable]) {
+    def isSystemFailure = exception.isDefined
+  }
 }
 
 object Components {
@@ -137,7 +140,7 @@ object Api {
   case class AuthenticateComponent(componentId: ComponentId) extends Authenticate
   case class Authentication()
   
-  case class CommandSentEvent(eventDetails: EventDetails, command: Command, authentication: Authentication) extends Event
+  case class CommandSentEvent(eventDetails: EventDetails, command: Command, authentication: Option[Authentication] = None) extends Event
 }
 
 object Events {

@@ -148,7 +148,7 @@ app.service("Api", ["Connection", function(Connection) {
 	function handleFailure(msg) {
 		alert(msg.message);
 	}
-	Connection.on["easyrider.Failure"] = handleFailure;
+	Connection.on["easyrider.Commands.Failure"] = handleFailure;
 	Connection.on["easyrider.business.http.WebServerWorker$MessageFormatError"] = handleFailure;
 
 	function defineEvent(className) {
