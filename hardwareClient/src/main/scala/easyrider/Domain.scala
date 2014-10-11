@@ -5,7 +5,7 @@ import java.util.UUID
 import akka.actor.ActorRef
 import akka.util.ByteString
 import easyrider.Applications.{ApplicationId, ContainerId}
-import easyrider.Commands.{CommandProgress, Success, Failure}
+import easyrider.Commands.{CommandExecution, CommandProgress, Success, Failure}
 import easyrider.Infrastructure.NodeId
 import easyrider.Repository.Version
 import org.joda.time.DateTime
@@ -15,7 +15,10 @@ object ComponentId {
   val core = ComponentId("core")
 }
 
-case class EventType(sender: ComponentId, name: String)
+case class EventType(sender: ComponentId, name: String) {
+  private val clazz = Class.forName(name)
+  def matches(other: EventType) = sender == other.sender && clazz.isAssignableFrom(other.clazz)
+}
 
 object Implicits {
   implicit def class2eventType(x: Class[_]) = EventType(ComponentId.core, x.getName)
@@ -139,7 +142,7 @@ object Api {
   case class AuthenticateComponent(componentId: ComponentId) extends Authenticate
   case class Authentication()
   
-  case class CommandSentEvent(eventDetails: EventDetails, command: Command, authentication: Option[Authentication] = None) extends Event
+  case class CommandSentEvent(eventDetails: EventDetails, command: Command, authentication: Option[Authentication] = None) extends CommandExecution
 }
 
 object Events {
@@ -156,8 +159,9 @@ object Events {
   case class GetReplayResponse(queryId: QueryId, events: Seq[Event]) extends Result
 
   // new flavour of subscriptions
-  case class SubscribeToCommandTrail(commandDetails: CommandDetails, commandId: CommandId, trace: Seq[Class[_ <: Event]]) extends Command
-  case class EventDelivered(eventDetails: EventDetails, event: Event) extends CommandProgress
+  case class SubscribeToCommandTrail(commandDetails: CommandDetails, commandId: CommandId, trace: Seq[Class[_ <: Event]]) extends EventBusCommand
+  case class EventDelivered(eventDetails: EventDetails, event: Event) extends Event
+  case class EventDeliveryComplete(eventDetails: EventDetails) extends Event
 }
 
 object Repository {

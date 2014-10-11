@@ -6,7 +6,7 @@ import akka.actor.{ActorSystem, PoisonPill, Terminated}
 import akka.testkit.{TestKit, TestProbe}
 import easyrider.Api.CommandSentEvent
 import easyrider.Applications.{Application, ApplicationId, ApplicationUpdatedEvent}
-import easyrider.Commands.CommandExecution
+import easyrider.Commands.{Success, CommandExecution}
 import easyrider.Events._
 import easyrider.Implicits._
 import easyrider.Infrastructure.{NodeCreated, NodeId, NodeUpdatedEvent}
@@ -84,16 +84,27 @@ class EventBusTest() extends TestKit(ActorSystem()) with FlatSpecLike with Match
   }
 
   it should "subscribe to command trail" in {
-    pending
     val bus = system.actorOf(core.EventBus(emptyDirectory))
     val client = TestProbe()
 
     client.send(bus, SubscribeToCommandTrail(CommandDetails(CommandId("2"), TraceMode()), CommandId("1"), Seq(classOf[CommandExecution])))
 
     bus ! CommandSentEvent(EventDetails(EventId.generate(), EventKey(), Seq(CommandId("1"))), DummyCommand(CommandDetails(CommandId.generate(), TraceMode())))
-    val eventDelivered: EventDelivered = client.expectMsgClass(classOf[EventDelivered])
-    eventDelivered.eventDetails.causedBy should be (Seq(CommandId("2")))
-    eventDelivered.event should be (classOf[CommandSentEvent])
+    val commandSentNotification = client.expectMsgClass(classOf[EventDelivered])
+    commandSentNotification.eventDetails.causedBy should be (Seq(CommandId("2")))
+    commandSentNotification.event.eventDetails.causedBy should be (Seq(CommandId("1")))
+
+    bus ! DummyProgress(EventDetails(EventId.generate(), EventKey(), Seq(CommandId("1"))))
+    val progressNotification = client.expectMsgClass(classOf[EventDelivered])
+    progressNotification.eventDetails.causedBy should be (Seq(CommandId("2")))
+    progressNotification.event.eventDetails.causedBy should be (Seq(CommandId("1")))
+
+    bus ! DummyProgress(EventDetails(EventId.generate(), EventKey(), Seq(CommandId("otherCommandId"))))
+    client.expectNoMsg()
+
+    bus ! DummySuccess(EventDetails(EventId.generate(), EventKey(), Seq(CommandId("1"))))
+    client.expectMsgClass(classOf[EventDelivered])
+    client.expectMsgClass(classOf[EventDeliveryComplete])
   }
 
   private def emptyDirectory: File = {
@@ -104,6 +115,8 @@ class EventBusTest() extends TestKit(ActorSystem()) with FlatSpecLike with Match
   }
 
   case class DummyCommand(commandDetails: CommandDetails) extends Command
+  case class DummyProgress(eventDetails: EventDetails) extends CommandExecution
+  case class DummySuccess(eventDetails: EventDetails) extends Success
   val dummySubscribe = Subscribe(CommandDetails(CommandId.generate(), TraceMode()), "all", classOf[NodeUpdatedEvent], EventKey())
   val dummyEvent = NodeUpdatedEvent(EventDetails(EventId("1"), EventKey(), Seq()), NodeId("nodeId"), NodeCreated)
 }

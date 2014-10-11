@@ -17,7 +17,7 @@ class EventBus(easyRiderData: File) extends Actor with ActorLogging {
   private implicit val formats = Serialization.formats(FullTypeHints(List(classOf[AnyRef]))) ++ JodaTimeSerializers.all
 
   private case class Subscription(eventType: EventType, eventKey: EventKey, receiver: ActorRef, subscriptionId: String) {
-    def matches(event: Event) = eventType == class2eventType(event.getClass) && eventKey.contains(event.eventDetails.eventKey)
+    def matches(event: Event) = eventType.matches(class2eventType(event.getClass)) && eventKey.contains(event.eventDetails.eventKey)
   }
   private var snapshots = loadSnapshot()
   private var subscriptions = Set[Subscription]()
@@ -48,6 +48,11 @@ class EventBus(easyRiderData: File) extends Actor with ActorLogging {
         sender() ! Subscribed(command.queryId, subscriptionId, eventType, snapshot)
         subscriptions += Subscription(eventType, eventKey, sender(), subscriptionId)
         context.watch(sender())
+      case command @ SubscribeToCommandTrail(commandDetails, _, trace) =>
+        val tracer = context.actorOf(CommandTracer(sender(), command))
+        for (eventType <- trace) {
+          subscriptions += Subscription(eventType, EventKey(), tracer, commandDetails.commandId.id + "_" + eventType.getSimpleName)
+        }
       case command @ UnSubscribe(commandId, subscriptionId) =>
         sender() ! UnSubscribed(command.queryId, subscriptionId)
         subscriptions = subscriptions.filter(s => s.subscriptionId != subscriptionId)
