@@ -16,6 +16,6 @@ object SshInfrastructure {
 
   case class NodeConfigurationUpdatedEvent(eventDetails: EventDetails, nodeConfiguration: NodeConfiguration,
                                            captureOutput: Boolean = false) extends Event
-  case class RunSshCommandSuccess(commandId: CommandId, output: Option[String]) extends Success
-  case class SftpUploadCommandSuccess(commandId: CommandId) extends Success
+  case class RunSshCommandSuccess(eventDetails: EventDetails, output: Option[String]) extends Success
+  case class SftpUploadCommandSuccess(eventDetails: EventDetails) extends Success
 }

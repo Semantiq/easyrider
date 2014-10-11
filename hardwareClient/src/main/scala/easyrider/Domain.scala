@@ -5,7 +5,7 @@ import java.util.UUID
 import akka.actor.ActorRef
 import akka.util.ByteString
 import easyrider.Applications.{ApplicationId, ContainerId}
-import easyrider.Commands.Failure
+import easyrider.Commands.{CommandProgress, Success, Failure}
 import easyrider.Infrastructure.NodeId
 import easyrider.Repository.Version
 import org.joda.time.DateTime
@@ -26,19 +26,18 @@ case class CommandDetails(commandId: CommandId, trace: TraceMode)
 
 trait Command {
   def commandDetails: CommandDetails
-  def failure(message: String) = Failure(commandDetails.commandId, message, None)
-  def systemFailure(message: String, exception: Exception) = Failure(commandDetails.commandId, message, Some(exception))
+  def failure(message: String) = Failure(EventDetails(EventId.generate(), EventKey(commandDetails.commandId.id), Seq(commandDetails.commandId)), message, None)
+  def failure(message: String, exception: Throwable) = Failure(EventDetails(EventId.generate(), EventKey(commandDetails.commandId.id), Seq(commandDetails.commandId)), message, Some(exception))
 }
 
 object Commands {
   case class RegisterProvider(commandClass: Class[_ <: Command])
-  trait CommandExecution {
-    def commandId: CommandId
-  }
+  trait CommandExecution extends Event
   trait Success extends CommandExecution
-  case class Failure(commandId: CommandId, message: String, exception: Option[Throwable]) {
+  case class Failure(eventDetails: EventDetails, message: String, exception: Option[Throwable]) extends CommandExecution {
     def isSystemFailure = exception.isDefined
   }
+  trait CommandProgress extends CommandExecution
 }
 
 object Components {
@@ -155,6 +154,10 @@ object Events {
   case class GetSnapshotResponse[T](queryId: QueryId, snapshot: Seq[T]) extends Result
   case class GetReplay(queryId: QueryId, subscriptions: Seq[String], since: DateTime) extends Query
   case class GetReplayResponse(queryId: QueryId, events: Seq[Event]) extends Result
+
+  // new flavour of subscriptions
+  case class SubscribeToCommandTrail(commandDetails: CommandDetails, commandId: CommandId, trace: Seq[Class[_ <: Event]]) extends Command
+  case class EventDelivered(eventDetails: EventDetails, event: Event) extends CommandProgress
 }
 
 object Repository {

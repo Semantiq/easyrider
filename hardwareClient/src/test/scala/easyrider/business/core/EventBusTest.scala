@@ -4,7 +4,9 @@ import java.io.File
 
 import akka.actor.{ActorSystem, PoisonPill, Terminated}
 import akka.testkit.{TestKit, TestProbe}
+import easyrider.Api.CommandSentEvent
 import easyrider.Applications.{Application, ApplicationId, ApplicationUpdatedEvent}
+import easyrider.Commands.CommandExecution
 import easyrider.Events._
 import easyrider.Implicits._
 import easyrider.Infrastructure.{NodeCreated, NodeId, NodeUpdatedEvent}
@@ -81,6 +83,19 @@ class EventBusTest() extends TestKit(ActorSystem()) with FlatSpecLike with Match
     client.expectMsgClass(classOf[GetReplayResponse]).events should have size 1
   }
 
+  it should "subscribe to command trail" in {
+    pending
+    val bus = system.actorOf(core.EventBus(emptyDirectory))
+    val client = TestProbe()
+
+    client.send(bus, SubscribeToCommandTrail(CommandDetails(CommandId("2"), TraceMode()), CommandId("1"), Seq(classOf[CommandExecution])))
+
+    bus ! CommandSentEvent(EventDetails(EventId.generate(), EventKey(), Seq(CommandId("1"))), DummyCommand(CommandDetails(CommandId.generate(), TraceMode())))
+    val eventDelivered: EventDelivered = client.expectMsgClass(classOf[EventDelivered])
+    eventDelivered.eventDetails.causedBy should be (Seq(CommandId("2")))
+    eventDelivered.event should be (classOf[CommandSentEvent])
+  }
+
   private def emptyDirectory: File = {
     val dir = new File("target/easyrider")
     FileUtils.deleteDirectory(dir)
@@ -88,6 +103,7 @@ class EventBusTest() extends TestKit(ActorSystem()) with FlatSpecLike with Match
     dir
   }
 
+  case class DummyCommand(commandDetails: CommandDetails) extends Command
   val dummySubscribe = Subscribe(CommandDetails(CommandId.generate(), TraceMode()), "all", classOf[NodeUpdatedEvent], EventKey())
   val dummyEvent = NodeUpdatedEvent(EventDetails(EventId("1"), EventKey(), Seq()), NodeId("nodeId"), NodeCreated)
 }

@@ -29,7 +29,7 @@ class ApplicationManagerTest extends TestKit(ActorSystem()) with FlatSpecLike wi
     apps ! CreateApplication(CommandDetails(CommandId("1"), TraceMode()), Application(applicationId, Seq()))
     apps ! CreateStage(CommandDetails(CommandId("2"), TraceMode()), Stage(stageId, Seq()))
     apps ! RemoveApplication(CommandDetails(CommandId("3"), TraceMode()), applicationId)
-    expectMsgClass(classOf[Failure]).commandId should be (CommandId("3"))
+    expectMsgClass(classOf[Failure]).eventDetails.causedBy should contain (CommandId("3"))
     apps ! RemoveStage(CommandDetails(CommandId.generate(), TraceMode()), stageId)
     apps ! RemoveApplication(CommandDetails(CommandId.generate(), TraceMode()), applicationId)
     expectNoMsg()

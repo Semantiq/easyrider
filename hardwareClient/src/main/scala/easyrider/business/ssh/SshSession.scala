@@ -33,7 +33,7 @@ class SshSession(eventBus: ActorRef, repository: ActorRef, configuration: NodeCo
           becomeWarm(session)
           unstashAll()
         case Failure(exception) =>
-          sender() ! easyrider.Commands.Failure(any.commandDetails.commandId, "Can't connect to SSH", Some(exception))
+          sender() ! any.failure("Can't connect to SSH", exception)
       }
   }
 
@@ -59,7 +59,7 @@ class SshSession(eventBus: ActorRef, repository: ActorRef, configuration: NodeCo
       log.debug("Command output: {}", output)
       log.debug("Command error: {}", outputErr)
       log.debug("Command exit code: {}", exitStatus)
-      sender ! RunSshCommandSuccess(commandDetails.commandId, Some(output))
+      sender ! RunSshCommandSuccess(EventDetails(EventId.generate(), EventKey(commandDetails.commandId.id), Seq(commandDetails.commandId)), Some(output))
 
     case ReceiveTimeout =>
       Try(session.disconnect()) match {
@@ -74,7 +74,7 @@ class SshSession(eventBus: ActorRef, repository: ActorRef, configuration: NodeCo
       sender() ! Ack
       IOUtils.copy(data.iterator.asInputStream, output)
     case UploadCompleted() =>
-      requestor ! SftpUploadCommandSuccess(command.commandDetails.commandId)
+      requestor ! SftpUploadCommandSuccess(EventDetails(EventId.generate(), EventKey(command.commandDetails.commandId.id), Seq(command.commandDetails.commandId)))
       output.close()
       channel.disconnect()
       becomeWarm(session)
