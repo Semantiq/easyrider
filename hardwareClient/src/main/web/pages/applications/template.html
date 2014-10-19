@@ -14,6 +14,30 @@
 	</button>
 </div>
 
+<div class="container-fluid">
+	<div class="row">
+		<div class="col-md-4">
+			Apps
+			<div class="list-group">
+				<a href="#" ng-repeat="app in entries[0]" class="list-group-item" ng-class="{ active: isSelected(0, $index) && isColumnSelected(0), disabled: isSelected(0, $index) && !isColumnSelected(0) }">App: {{app.application.id.id}} {{$index}}</a>
+			</div>
+		</div>
+		<div class="col-md-4">
+			Stages
+			<div class="list-group">
+				<a href="#" ng-repeat="stage in entries[1]" class="list-group-item" ng-class="{ active: isSelected(1, $index) && isColumnSelected(1), disabled: isSelected(1, $index) && !isColumnSelected(1) }">Stage: {{stage.stage.id.id}} {{$index}}</a>
+			</div>
+		</div>
+		<div class="col-md-4">
+			Containers
+			<div class="list-group">
+				<a href="#" ng-repeat="containerConfiguration in entries[2]" class="list-group-item" ng-class="{ active: isSelected(2, $index) && isColumnSelected(2), disabled: isSelected(2, $index) && !isColumnSelected(2) }">Container: {{containerConfiguration.container.id.id}} {{$index}}</a>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!--
 <div class="panel panel-primary" ng-repeat="app in Applications.list">
 	<div class="panel-heading">
 		<div class="btn-toolbar pull-right">
@@ -37,3 +61,4 @@
 		</span>
 	</div>
 </div>
+-->
