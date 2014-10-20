@@ -1,7 +1,7 @@
 Hello!
 <div class="container-fluid">
 	<div class="row">
-		{{ columns | json }}
+		Columns: {{ columns | json }}
 		<div ng-repeat="column in columns">
 			{{column.label}}
 		</div>

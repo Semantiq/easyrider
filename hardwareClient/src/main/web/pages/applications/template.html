@@ -15,7 +15,9 @@
 </div>
 
 <navigator>
-	<navigator-column label="Applications"></navigator-column>
+	<navigator-column label="Applications" entries="getApplications(parent)">
+		App: {{entry | json}}
+	</navigator-column>
 	<navigator-column label="Stages"></navigator-column>
 	<navigator-columnn label="Containers"></navigator-columnn>
 </navigator>

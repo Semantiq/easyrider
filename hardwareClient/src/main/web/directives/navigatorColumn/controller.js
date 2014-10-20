@@ -4,11 +4,14 @@ app.directive("navigatorColumn", function() {
  		restrict: "E",
  		templateUrl: "/directives/navigatorColumn/template.html",
  		scope: {
- 		    label: "@"
+ 		    label: "@",
+ 		    entries: "&"
         },
         require: '^navigator',
         link: function(scope, elem, attrs, navigator) {
             navigator.addColumn(scope);
-        }
+        },
+        controller: ["$scope", function($scope) {
+        }]
     };
 });

@@ -5,9 +5,10 @@ app.directive("navigator", function() {
 		templateUrl: "/directives/navigator/template.html",
 		scope: { },
 		controller: ["$scope", "hotkeys", function($scope, hotkeys) {
-            var columns = $scope.columns = [ "default" ];
+            var columns = $scope.columns = [ ];
             this.addColumn = function(column) {
                 columns.push(column);
+                column.list = column.entries({parent: null});
             };
 		}]
 	};

@@ -16,6 +16,9 @@ app.config(["$routeProvider", function($routeProvider) {
 		    $scope.isColumnSelected = function(columnIndex) {
                 return $scope.selectedColumnIndex == columnIndex;
 		    };
+		    $scope.getApplications = function(any) {
+		        return Applications.list;
+		    };
 		    hotkeys.bindTo($scope).add({
                 combo: "left",
                 description: "Navigate left",
