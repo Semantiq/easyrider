@@ -15,35 +15,16 @@
 </div>
 
 <navigator>
-	<navigator-column label="Applications" entries="getApplications(parent)">
-		App: {{entry | json}}
+	<navigator-column label="Applications" entries="getApplications(parent)" details="showApplication(entry)">
+		App: {{entry.application.id.id}}
 	</navigator-column>
-	<navigator-column label="Stages"></navigator-column>
-	<navigator-columnn label="Containers"></navigator-columnn>
+	<navigator-column label="Stages" entries="getStages(parent)">
+		Stage: {{entry.stage.id.id}}
+	</navigator-column>
+	<navigator-column label="Containers" entries="getContainers(parent)">
+		Container: {{entry.container.id.id}}
+	</navigator-column>
 </navigator>
-
-<div class="container-fluid">
-	<div class="row">
-		<div class="col-md-4">
-			Apps
-			<div class="list-group">
-				<a href="#" ng-repeat="app in entries[0]" class="list-group-item" ng-class="{ active: isSelected(0, $index) && isColumnSelected(0), disabled: isSelected(0, $index) && !isColumnSelected(0) }">App: {{app.application.id.id}} {{$index}}</a>
-			</div>
-		</div>
-		<div class="col-md-4">
-			Stages
-			<div class="list-group">
-				<a href="#" ng-repeat="stage in entries[1]" class="list-group-item" ng-class="{ active: isSelected(1, $index) && isColumnSelected(1), disabled: isSelected(1, $index) && !isColumnSelected(1) }">Stage: {{stage.stage.id.id}} {{$index}}</a>
-			</div>
-		</div>
-		<div class="col-md-4">
-			Containers
-			<div class="list-group">
-				<a href="#" ng-repeat="containerConfiguration in entries[2]" class="list-group-item" ng-class="{ active: isSelected(2, $index) && isColumnSelected(2), disabled: isSelected(2, $index) && !isColumnSelected(2) }">Container: {{containerConfiguration.container.id.id}} {{$index}}</a>
-			</div>
-		</div>
-	</div>
-</div>
 
 <!--
 <div class="panel panel-primary" ng-repeat="app in Applications.list">
