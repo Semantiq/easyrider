@@ -6,7 +6,8 @@ app.directive("navigatorColumn", function() {
  		scope: {
  		    label: "@",
  		    entries: "&",
- 		    details: "&"
+ 		    details: "&",
+ 		    add: "&"
         },
         require: '^navigator',
         link: function(scope, elem, attrs, navigator) {

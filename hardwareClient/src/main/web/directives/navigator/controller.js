@@ -76,6 +76,18 @@ app.directive("navigator", function() {
                     var entry = selectedColumn.list[selectedColumn.selectedRowIndex];
                     selectedColumn.details({entry: entry});
                 }
+            }).add({
+                combo: "ctrl+n",
+                description: "Add item",
+                callback: function() {
+                    var selectedColumn = $scope.columns[$scope.selectedColumnIndex];
+                    var parent = null;
+                    if ($scope.selectedColumnIndex > 0) {
+                        var parentColumn = $scope.columns[$scope.selectedColumnIndex - 1];
+                        parent = parentColumn.list[parentColumn.selectedRowIndex];
+                    }
+                    selectedColumn.add({parent: parent});
+                }
             });
 		}]
 	};

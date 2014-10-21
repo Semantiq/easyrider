@@ -15,10 +15,10 @@
 </div>
 
 <navigator>
-	<navigator-column label="Applications" entries="getApplications(parent)" details="showApplication(entry)">
+	<navigator-column label="Applications" entries="getApplications(parent)" details="showApplication(entry)" add="addApplication(parent)">
 		App: {{entry.application.id.id}}
 	</navigator-column>
-	<navigator-column label="Stages" entries="getStages(parent)">
+	<navigator-column label="Stages" entries="getStages(parent)" add="newStage(parent)">
 		Stage: {{entry.stage.id.id}}
 	</navigator-column>
 	<navigator-column label="Containers" entries="getContainers(parent)">
