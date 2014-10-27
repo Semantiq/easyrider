@@ -2,7 +2,8 @@
 	{{label}}
 	<div class="list-group">
 		<a href="#" ng-repeat="entry in list" class="list-group-item"
-		   ng-class="{ active: active && selectedRowIndex == $index, disabled: !active && selectedRowIndex == $index }">
+		   ng-class="{ active: active && selectedRowIndex == $index, disabled: !active && selectedRowIndex == $index }"
+		   ng-click="select($index)">
 			<div transcope></div>
 		</a>
 	</div>

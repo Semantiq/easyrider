@@ -13,6 +13,14 @@ app.directive("navigator", function() {
                 } else {
                     column.list = [];
                 }
+                column.index = columns.length;
+                column.select = function(index) {
+                    column.selectedRowIndex = index;
+                    $scope.columns[$scope.selectedColumnIndex].active = false;
+                    column.active = true;
+                    $scope.selectedColumnIndex = column.index;
+                    $scope.onMove();
+                };
                 column.selectedRowIndex = 0;
                 columns.push(column);
             };
