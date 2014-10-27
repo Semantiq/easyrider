@@ -14,6 +14,9 @@ app.config(["$routeProvider", function($routeProvider) {
 		    $scope.showApplication = function(application) {
                 $location.path("/application/" + application.application.id.id);
 		    };
+		    $scope.showStage = function(stage) {
+                $location.path("/application/" + stage.stage.id.applicationId.id + "/stage/" + stage.stage.id.id);
+		    };
 			$scope.Applications = Applications;
 			$scope.Stages = Stages;
 			$scope.Versions = Versions;

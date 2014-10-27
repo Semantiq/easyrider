@@ -18,7 +18,7 @@
 	<navigator-column label="Applications" entries="getApplications(parent)" details="showApplication(entry)" add="addApplication(parent)">
 		App: {{entry.application.id.id}}
 	</navigator-column>
-	<navigator-column label="Stages" entries="getStages(parent)" add="newStage(parent)">
+	<navigator-column label="Stages" entries="getStages(parent)" details="showStage(entry)" add="newStage(parent)">
 		Stage: {{entry.stage.id.id}}
 	</navigator-column>
 	<navigator-column label="Containers" entries="getContainers(parent)">
