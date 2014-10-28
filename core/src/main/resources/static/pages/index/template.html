@@ -1,0 +1,8 @@
+<div class="row-fluid">
+	<div class="col-md-12">
+		<input type="search" class="form-control" ng-model="Search.query" ng-change="Search.process()" />
+		<hr />
+		<pre>{{Search.typeahead|json}}</pre>
+		<pre>{{Search.results|json}}</pre>
+	</div>
+</div>

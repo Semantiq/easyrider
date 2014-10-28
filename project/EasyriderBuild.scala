@@ -31,19 +31,21 @@ object EasyriderBuild extends Build {
       "com.typesafe.akka" %% "akka-testkit" % akkaVersion % "test")
   )
 
-  lazy val root = Project(
-    id = "root",
-    base = file("hardwareClient"),
-    settings = Project.defaultSettings ++ Revolver.settings ++ settings ++ super.settings)
-  //Project(id = "easyrider", base = file("."), settings = Project.defaultSettings) aggregate (hardwareClient)
+  lazy val api = Project(
+    id = "api",
+    base = file("api"),
+    settings = Project.defaultSettings ++ Revolver.settings ++ settings ++ super.settings
+  )
 
-  /*lazy val hardware = Project(
-    id = "hardware",
-    base = file("hardware"),
-    settings = Project.defaultSettings ++ settings ++ super.settings) dependsOn(hardwareClient)*/
+  lazy val core = Project(
+    id = "core",
+    base = file("core"),
+    settings = Project.defaultSettings ++ Revolver.settings ++ settings ++ super.settings) dependsOn api
 
-  /*lazy val business = Project(
-    id = "business",
-    base = file("business"),
-    settings = Project.defaultSettings ++ settings ++ super.settings)*/
+  lazy val ssh = Project(
+    id = "ssh",
+    base = file("ssh"),
+    settings = Project.defaultSettings ++ Revolver.settings ++ settings ++ super.settings) dependsOn api
+
+  Project(id = "easyrider", base = file("."), settings = Project.defaultSettings) aggregate (api, core, ssh)
 }
