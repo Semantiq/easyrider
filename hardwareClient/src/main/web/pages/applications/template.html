@@ -23,6 +23,8 @@
 	</navigator-column>
 	<navigator-column label="Containers" entries="getContainers(parent)">
 		Container: {{entry.container.id.id}}
+			<badge state="entry.status()" label="entry.status().version.number"></badge>
+		</div>
 	</navigator-column>
 </navigator>
 

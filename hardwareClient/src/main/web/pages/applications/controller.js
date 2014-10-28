@@ -1,7 +1,8 @@
 app.config(["$routeProvider", function($routeProvider) {
 	$routeProvider.when("/applications", {
 		templateUrl: "/pages/applications/template.html",
-		controller: ["$scope", "Applications", "Command", "Stages", "ContainersConfiguration", "Versions", "hotkeys", "$location", function($scope, Applications, Command, Stages, ContainersConfiguration, Versions, hotkeys, $location) {
+		controller: ["$scope", "Applications", "Command", "Stages", "ContainersConfiguration", "ContainersState", "Versions", "hotkeys", "$location", function($scope, Applications, Command, Stages, ContainersConfiguration, ContainersState, Versions, hotkeys, $location) {
+		    $scope.ContainersState = ContainersState;
 		    $scope.getApplications = function(any) {
 		        return Applications.list;
 		    };
@@ -9,7 +10,11 @@ app.config(["$routeProvider", function($routeProvider) {
                 return Stages.stagesOfApplication(application.application.id);
 		    };
 		    $scope.getContainers = function(stage) {
-		        return ContainersConfiguration.containersInStage(stage.stage.id);
+		        return angular.forEach(ContainersConfiguration.containersInStage(stage.stage.id), function(container) {
+                    container.status = function() {
+                        return ContainersState.containerStatus(container.container.id);
+                    };
+		        });
 		    };
 		    $scope.showApplication = function(application) {
                 $location.path("/application/" + application.application.id.id);
