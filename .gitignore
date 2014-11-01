@@ -4,6 +4,7 @@ target
 .idea
 .idea_modules
 *~
-hardwareClient/src/main/resources/static/*
-hardwareClient/src/main/web/node_modules/*
-js-api/node_modules
+core/src/main/resources/static/*
+core/src/main/web/node_modules/*
+ssh/src/main/resources/static/*
+ssh/src/main/web/node_modules/*
