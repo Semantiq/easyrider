@@ -89,7 +89,7 @@ class WebServerWorker(connection: ActorRef, apiFactory: ActorRef => Props, impli
            }
          }
       } ~
-      getFromResourceDirectory("static") ~ getFromResource("static/index.html")
+      getFromResourceDirectory("static") ~ getFromResource("static/index.html") // TODO: run index through template engine
     }
   }
 }

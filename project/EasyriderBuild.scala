@@ -37,15 +37,15 @@ object EasyriderBuild extends Build {
     settings = Project.defaultSettings ++ Revolver.settings ++ settings ++ super.settings
   )
 
-  lazy val core = Project(
-    id = "core",
-    base = file("core"),
-    settings = Project.defaultSettings ++ Revolver.settings ++ settings ++ super.settings) dependsOn api
-
   lazy val ssh = Project(
     id = "ssh",
     base = file("ssh"),
     settings = Project.defaultSettings ++ Revolver.settings ++ settings ++ super.settings) dependsOn api
 
-  Project(id = "easyrider", base = file("."), settings = Project.defaultSettings) aggregate (api, core, ssh)
+  lazy val core = Project(
+    id = "core",
+    base = file("core"),
+    settings = Project.defaultSettings ++ Revolver.settings ++ settings ++ super.settings) dependsOn (api, ssh)
+
+  Project(id = "easyrider", base = file("."), settings = Project.defaultSettings) dependsOn (api, core, ssh)
 }
