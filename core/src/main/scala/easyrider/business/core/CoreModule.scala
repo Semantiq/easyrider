@@ -15,5 +15,8 @@ class CoreModule(easyRiderData: File, easyRiderUrl: URL, actorSystem: ActorSyste
   val infrastructure = actorSystem.actorOf(SshInfrastructureProvider(eventBus, SshNodeAgent(eventBus, easyRiderUrl, sshSessionFactory)), "SshInfrastructure")
   val applicationManager = actorSystem.actorOf(ApplicationManager(eventBus, infrastructure), "ApplicationManager")
   val componentManager = actorSystem.actorOf(ComponentManager(), "ComponentManager")
-  val apiFactory = ApiActor(eventBus, applicationManager, componentManager, infrastructure, repositoryStorage) _
+  val commandCenter = actorSystem.actorOf(CommandCenter(eventBus), "CommandCenter")
+  val releaseFactory = OrchestratedDeployment(eventBus, commandCenter) _
+  val orchestrator = actorSystem.actorOf(Orchestrator(releaseFactory), "Orchestrator")
+  val apiFactory = ApiActor(eventBus, applicationManager, componentManager, infrastructure, repositoryStorage, orchestrator) _
 }

@@ -5,6 +5,7 @@
 				Add container
 			</button>
 			<button class="btn btn-danger btn-xs" ng-click="removeStage(stage.stage.id)">Remove stage</button>
+			<button class="btn btn-primary btn-xs" ng-click="releaseVersionToStage(stage.stage.id)">Release version</button>
 		</div>
 		<a href="/application/{{stage.stage.id.applicationId.id}}/stage/{{stage.stage.id.id}}">
 			{{stage.stage.id.applicationId.id}} @ {{stage.stage.id.id}}

@@ -4,7 +4,7 @@ import java.util.UUID
 
 import akka.actor.ActorRef
 import akka.util.ByteString
-import easyrider.Applications.{ApplicationId, ContainerId}
+import easyrider.Applications.{StageId, ApplicationId, ContainerId}
 import easyrider.Commands.{CommandExecution, CommandProgress, Success, Failure}
 import easyrider.Infrastructure.NodeId
 import easyrider.Repository.Version
@@ -136,6 +136,18 @@ object Infrastructure {
   case class ApplicationStoppedEvent(eventDetails: EventDetails) extends Event
 }
 
+object Orchestrator {
+  sealed trait ReleaseStatus
+  case class ReleaseInProgress(comment: String, version: Version) extends ReleaseStatus
+  case class ReleaseSuccessful(version: Version) extends ReleaseStatus
+
+  trait OrchestrationCommand extends Command
+  case class ReleaseVersionToStage(commandDetails: CommandDetails, stageId: StageId, version: Version) extends OrchestrationCommand
+
+  trait OrchestratorEvent extends Event
+  case class ReleaseEvent(eventDetails: EventDetails, releaseStatus: ReleaseStatus) extends OrchestratorEvent
+}
+
 object Api {
   trait Authenticate
   case class AuthenticateUser() extends Authenticate
@@ -184,9 +196,6 @@ object Repository {
 }
 
 case class VersionRecommendedEvent()
-case class ReleaseProgressEvent()
-case class ReleaseSuccessful()
-case class ReleaseFailed()
 
 object Applications {
   case class Property(namespace: String, name: String, value: String)

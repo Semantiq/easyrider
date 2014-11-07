@@ -6,13 +6,14 @@ import easyrider.Commands.Failure
 import easyrider.Components.ComponentCommand
 import easyrider.Events.{GetReplay, EventBusCommand}
 import easyrider.Infrastructure.{ContainerCommand, DeployVersion}
+import easyrider.Orchestrator.OrchestrationCommand
 import easyrider.Repository.StartUpload
 import easyrider.business.ssh.SshInfrastructure
 import SshInfrastructure.SshInfrastructureCommand
 import easyrider._
 
 class ApiActor(bus: ActorRef, applicationManager: ActorRef, componentManager: ActorRef, sshInfrastructure: ActorRef,
-               repositoryStorage: ActorRef, client: ActorRef) extends Actor {
+               repositoryStorage: ActorRef, client: ActorRef, orchestrator: ActorRef) extends Actor {
   import easyrider.Api._
 
   def receive = {
@@ -61,6 +62,8 @@ class ApiActor(bus: ActorRef, applicationManager: ActorRef, componentManager: Ac
       client ! c
     case c: ContainerCommand =>
       applicationManager ! c
+    case c: OrchestrationCommand =>
+      orchestrator ! c
     case c: SshInfrastructureCommand =>
       sshInfrastructure ! c
   }
@@ -68,6 +71,6 @@ class ApiActor(bus: ActorRef, applicationManager: ActorRef, componentManager: Ac
 
 object ApiActor {
   def apply(bus: ActorRef, applicationManager: ActorRef, componentManager: ActorRef, sshInfrastructure: ActorRef,
-            repositoryStorage: ActorRef)(client: ActorRef) = Props(classOf[ApiActor], bus, applicationManager,
-            componentManager, sshInfrastructure, repositoryStorage, client)
+            repositoryStorage: ActorRef, orchestrator: ActorRef)(client: ActorRef) = Props(classOf[ApiActor], bus, applicationManager,
+            componentManager, sshInfrastructure, repositoryStorage, client, orchestrator)
 }

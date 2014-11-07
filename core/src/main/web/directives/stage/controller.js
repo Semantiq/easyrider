@@ -5,7 +5,8 @@ app.directive("stage", function() {
 			stage: '='
 		},
 		templateUrl: "/directives/stage/template.html",
-		controller: ["$scope", 'ContainersConfiguration', 'ContainersState', 'DeployedVersions', 'Stages', 'Command', function($scope, ContainersConfiguration, ContainersState, DeployedVersions, Stages, Command) {
+		controller: ["$scope", 'ContainersConfiguration', 'ContainersState', 'DeployedVersions', 'Stages', 'Command', 'Orchestrator',
+		        function($scope, ContainersConfiguration, ContainersState, DeployedVersions, Stages, Command, Orchestrator) {
 			$scope.ContainersConfiguration = ContainersConfiguration;
 			$scope.ContainersState = ContainersState;
 			$scope.DeployedVersions = DeployedVersions;
@@ -19,7 +20,9 @@ app.directive("stage", function() {
 			$scope.addContainer = function(stageId) {
 				Command.show(ContainersConfiguration.addContainerConfigurationTemplate(stageId));
 			};
-
+            $scope.releaseVersionToStage = function(stageId) {
+                Command.show(Orchestrator.releaseVersionTemplate(stageId))
+            };
 			$scope.deployVersion = function(containerUpdatedEvent) {
 				Command.show(ContainersConfiguration.deployVersionTemplate(containerUpdatedEvent.container.id));
 			};
