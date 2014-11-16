@@ -5,9 +5,9 @@ import akka.event.LoggingReceive
 import easyrider.Applications.{ContainerId, ContainerConfiguration, ContainerConfigurationUpdatedEvent}
 import easyrider.Events.{Subscribe, Subscribed}
 import easyrider.Implicits._
-import easyrider.Infrastructure.{DeploymentState, ContainerStateChangedEvent, DeployVersion, VersionDeploymentProgressEvent}
-import easyrider.Orchestrator.ReleaseVersionToStage
-import easyrider.{CommandDetails, CommandId, TraceMode}
+import easyrider.Infrastructure._
+import easyrider.Orchestrator.{ReleaseEvent, ReleaseSuccessful, ReleaseVersionToStage}
+import easyrider._
 
 class OrchestratedDeployment(eventBus: ActorRef, commandCenter: ActorRef, command: ReleaseVersionToStage) extends Actor with ActorLogging {
   override def preStart() = {
@@ -43,14 +43,37 @@ class OrchestratedDeployment(eventBus: ActorRef, commandCenter: ActorRef, comman
   }
   def becomeDeploying(containers: Seq[ContainerConfiguration]) = {
     log.info("Initiating deployment")
-    for (container <- containers) {
-      commandCenter ! DeployVersion(CommandDetails(CommandId.generate(), TraceMode()), container.id, command.version)
+    val deploymentCommands = for (container <- containers) yield {
+      val commandId = CommandId.generate()
+      commandCenter ! DeployVersion(CommandDetails(commandId, TraceMode()), container.id, command.version)
+      commandId
     }
-    context.become(deploying(containers, Map()))
+    context.become(deploying(containers, deploymentCommands.toSet))
   }
-  def deploying(containers: Seq[ContainerConfiguration], deployments: Map[ContainerId, DeploymentState]) = LoggingReceive {
+  def deploying(containers: Seq[ContainerConfiguration], deployments: Set[CommandId]) = LoggingReceive {
     case deployment: VersionDeploymentProgressEvent =>
+      tryBecomeReleasing(containers, deployments - deployment.eventDetails.causedBy.head.asInstanceOf[CommandId])
       println("deployment: " + deployment)
+  }
+  def tryBecomeReleasing(containers: Seq[ContainerConfiguration], deployments: Set[CommandId]) {
+    if (deployments.isEmpty) {
+      becomeReleasing(containers)
+    } else {
+      context.become(deploying(containers, deployments))
+    }
+  }
+  def becomeReleasing(containers: Seq[ContainerConfiguration]) {
+    if (containers.nonEmpty) {
+      commandCenter ! StartContainer(CommandDetails(CommandId.generate(), TraceMode()), containers.head.id, command.version)
+      context.become(waitingForContainerStart(containers.head.id, containers.tail))
+    } else {
+      eventBus ! ReleaseEvent(EventDetails(EventId.generate(), command.stageId.eventKey, Seq(command.commandDetails.commandId)), ReleaseSuccessful(command.version))
+      context.stop(self)
+    }
+  }
+  def waitingForContainerStart(container: ContainerId, containers: Seq[ContainerConfiguration]) = LoggingReceive {
+    case ContainerStateChangedEvent(eventDetails, ContainerRunning(version)) =>
+      becomeReleasing(containers)
   }
 }
 
