@@ -78,6 +78,7 @@ class SshSession(eventBus: ActorRef, repository: ActorRef, configuration: NodeCo
       output.close()
       channel.disconnect()
       becomeWarm(session)
+    case _ => stash()
   }
 
   def becomeCold() {
@@ -86,6 +87,7 @@ class SshSession(eventBus: ActorRef, repository: ActorRef, configuration: NodeCo
   }
 
   def becomeWarm(session: Session) {
+    unstashAll()
     context.setReceiveTimeout(disconnectTimeout)
     context.become(warm(session))
   }
