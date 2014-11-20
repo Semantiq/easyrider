@@ -13,6 +13,7 @@ object EasyriderBuild extends Build {
       "ch.qos.logback" % "logback-classic" % "1.0.0" % "runtime",
       "org.json4s" %% "json4s-native" % "3.2.10",
       "org.json4s" %% "json4s-ext" % "3.2.10",
+      "org.reactivestreams" % "reactive-streams" % "0.4.0",
 
       /*
       git clone https://github.com/mateuszj/spray-websocket.git
