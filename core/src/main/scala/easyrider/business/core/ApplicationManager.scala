@@ -9,6 +9,7 @@ import easyrider.Implicits._
 import easyrider.Infrastructure.{AddressedContainerCommand, ContainerCommand, CreateContainer}
 import easyrider._
 import easyrider.business.core.ApplicationManager.RestoredConfiguration
+import easyrider.business.ssh.SshInfrastructure.CommandAndSubscribe
 
 import scala.concurrent.duration._
 
@@ -92,9 +93,14 @@ class ApplicationManager(eventBus: ActorRef, infrastructure: ActorRef) extends A
         containers += (container.id -> container)
         eventBus ! ContainerConfigurationUpdatedEvent(EventDetails(EventId.generate(), container.id.eventKey, Seq(commandDetails.commandId)), container)
     }
+    case CommandAndSubscribe(command: ContainerCommand, subscriber) =>
+      containers.get(command.containerId) match {
+        case Some(container) => infrastructure.forward(AddressedContainerCommand(container.nodeId, command, Some(subscriber)))
+        case None => sender ! command.failure(s"Container ${command.containerId.containerName} does not exist")
+      }
     case command: ContainerCommand =>
       containers.get(command.containerId) match {
-        case Some(container) => infrastructure.forward(AddressedContainerCommand(container.nodeId, command))
+        case Some(container) => infrastructure.forward(AddressedContainerCommand(container.nodeId, command, None))
         case None => sender ! command.failure(s"Container ${command.containerId.containerName} does not exist")
       }
   }

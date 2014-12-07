@@ -13,6 +13,7 @@ import easyrider.Infrastructure._
 import easyrider.Repository.Version
 import SshInfrastructure._
 import easyrider._
+import org.reactivestreams.Subscriber
 
 class SshNodeAgent(eventBus: ActorRef, easyRiderUrl: URL, sshSessionFactory: (NodeConfiguration) => Props) extends Actor with SshNodeDirectoryLayout with ActorLogging {
   implicit val timeout = Timeout(60, TimeUnit.SECONDS)
@@ -21,15 +22,21 @@ class SshNodeAgent(eventBus: ActorRef, easyRiderUrl: URL, sshSessionFactory: (No
 
   def unConfigured = LoggingReceive {
     case CreateNode(commandDetails, configuration) =>
-      eventBus ! NodeUpdatedEvent(EventDetails(EventId.generate(), EventKey(configuration.id.id), Seq()), configuration.id, CreatingNode)
+      context.parent ! NodeUpdatedEvent(EventDetails(EventId.generate(), EventKey(configuration.id.id), Seq()), configuration.id, CreatingNode)
       eventBus ! NodeConfigurationUpdatedEvent(EventDetails(EventId.generate(), EventKey(configuration.id.id), Seq(commandDetails.commandId)), configuration)
       val sshSession = context.actorOf(sshSessionFactory(configuration), "sshSession")
       sshSession ! RunSshCommand(CommandDetails(CommandId.generate(), TraceMode()), configuration.id, "mkdir -p easyrider")
-      eventBus ! NodeUpdatedEvent(EventDetails(EventId.generate(), EventKey(configuration.id.id), Seq()), configuration.id, NodeCreated)
+      context.parent ! NodeUpdatedEvent(EventDetails(EventId.generate(), EventKey(configuration.id.id), Seq()), configuration.id, NodeCreated)
       context.become(configured(configuration, sshSession))
   }
 
   def configured(configuration: NodeConfiguration, sshSession: ActorRef) = LoggingReceive {
+    case CommandAndSubscribe(CreateContainer(commandDetails, _, containerId), subscriber: Subscriber[ContainerStateChangedEvent]) =>
+      def eventDetails = EventDetails(EventId.generate(), containerId.eventKey, Seq(commandDetails.commandId))
+      sshSession ? RunSshCommand(CommandDetails(CommandId.generate(), TraceMode()), configuration.id, "mkdir -p " + versionsDir(containerId)) onSuccess {
+        case RunSshCommandSuccess(_, _) => subscriber.onNext(ContainerStateChangedEvent(eventDetails, ContainerCreated))
+        case Failure(_, message, _) => eventBus ! ContainerStateChangedEvent(eventDetails, ContainerCreationFailed)
+      }
     case CreateContainer(commandDetails, _, containerId) =>
       def eventDetails = EventDetails(EventId.generate(), containerId.eventKey, Seq(commandDetails.commandId))
       sshSession ? RunSshCommand(CommandDetails(CommandId.generate(), TraceMode()), configuration.id, "mkdir -p " + versionsDir(containerId)) onSuccess {

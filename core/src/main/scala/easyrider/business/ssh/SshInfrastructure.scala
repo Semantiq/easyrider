@@ -1,9 +1,10 @@
 package easyrider.business.ssh
 
 import easyrider.Commands.Success
+import easyrider.Infrastructure.NodeId
 import easyrider.Repository.Version
 import easyrider._
-import easyrider.Infrastructure.NodeId
+import org.reactivestreams.Subscriber
 
 object SshInfrastructure {
   case class NodeConfiguration(id: NodeId, host: String, port: Int, login: String, password: String)
@@ -18,4 +19,6 @@ object SshInfrastructure {
                                            captureOutput: Boolean = false) extends Event
   case class RunSshCommandSuccess(eventDetails: EventDetails, output: Option[String]) extends Success
   case class SftpUploadCommandSuccess(eventDetails: EventDetails) extends Success
+
+  case class CommandAndSubscribe(command: Command, subscriber: Subscriber[_])
 }

@@ -4,11 +4,14 @@ import java.util.UUID
 
 import akka.actor.ActorRef
 import akka.util.ByteString
-import easyrider.Applications.{StageId, ApplicationId, ContainerId}
-import easyrider.Commands.{CommandExecution, CommandProgress, Success, Failure}
+import easyrider.Applications.{ContainerConfigurationUpdatedEvent, ApplicationId, ContainerId, StageId}
+import easyrider.Commands.{CommandExecution, Failure}
 import easyrider.Infrastructure.NodeId
 import easyrider.Repository.Version
 import org.joda.time.DateTime
+import org.reactivestreams.{Subscription, Subscriber}
+
+import scala.concurrent.Future
 
 case class ComponentId(id: String)
 object ComponentId {
@@ -92,7 +95,35 @@ trait Event {
   def eventDetails: EventDetails
 }
 
+case class SubscriptionId(id: String)
+object SubscriptionId {
+  def generate() = SubscriptionId(UUID.randomUUID().toString)
+}
+case class RequestMore(id: SubscriptionId, n: Long)
+case class Cancel(id: SubscriptionId)
+
 object Infrastructure {
+  trait InfrastructureInterface {
+    def nodes(changeListener: Subscriber[NodeUpdatedEvent]): Future[Seq[NodeUpdatedEvent]]
+    def containerConfigurations: Future[Seq[ContainerConfigurationUpdatedEvent]]
+    def containerStates: Future[Seq[ContainerStateChangedEvent]]
+    def createContainer(command: CreateContainer)(progressListener: Subscriber[ContainerStateChangedEvent])
+    // def destroyContainer
+    def deployVersion(command: DeployVersion)(progressListener: Subscriber[VersionDeploymentProgressEvent])
+    // def unDeployVersion
+    def startContainer(command: StartContainer)(progressListener: Subscriber[ContainerStateChangedEvent])
+    def stopContainer(command: StopContainer)(progressListener: Subscriber[ContainerStateChangedEvent])
+  }
+
+  case class NodeUpdatedSubscription(id: SubscriptionId, subscriptionManager: ActorRef) extends Subscription {
+    override def request(n: Long) {
+      subscriptionManager ! RequestMore(id, n)
+    }
+    override def cancel() {
+      subscriptionManager ! Cancel(id)
+    }
+  }
+
   case class NodeId(id: String) {
     require(id.matches("""^[a-zA-Z0-9_]+$"""), "Node id can contain only letters and underscores")
   }
@@ -118,7 +149,7 @@ object Infrastructure {
   case class DeployVersion(commandDetails: CommandDetails, containerId: ContainerId, version: Version) extends ContainerCommand
   case class StartContainer(commandDetails: CommandDetails, containerId: ContainerId, version: Version) extends ContainerCommand
   case class StopContainer(commandDetails: CommandDetails, containerId: ContainerId, immediate: Boolean = false) extends ContainerCommand
-  case class AddressedContainerCommand(nodeId: NodeId, containerCommand: ContainerCommand)
+  case class AddressedContainerCommand(nodeId: NodeId, containerCommand: ContainerCommand, subscriber: Option[Subscriber[_]])
 
   case class FindNodes(queryId: QueryId) extends Query
   case class FindNodesResult(sender: ComponentId, queryId: QueryId, nodes: Seq[NodeId]) extends Result
