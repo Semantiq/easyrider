@@ -4,6 +4,7 @@ import akka.actor.{Stash, Actor, ActorRef, Props}
 import akka.pattern.ask
 import akka.pattern.pipe
 import akka.util.Timeout
+import easyrider.Configuration.{EffectiveConfiguration, DeployConfiguration}
 import easyrider.Events.{GetSnapshot, GetSnapshotResponse}
 import easyrider.Implicits._
 import easyrider.Infrastructure.{AddressedContainerCommand, ContainerCommand, CreateContainer}
@@ -81,9 +82,10 @@ class ApplicationManager(eventBus: ActorRef, infrastructure: ActorRef) extends A
       case ExistingContainer(_) => sender ! command.failure(s"Container ${container.id.id} in application ${container.id.stageId.applicationId.id} stage ${container.id.stageId.id} already exists")
       case NonExistingStage(_) => sender ! command.failure(s"Stage ${container.id.stageId.id} of application ${container.id.stageId.applicationId.id} does not exist")
       case _ =>
-        // TODO: can this be corelated with original command? what if it fails?
+        // TODO: can this be correlated with original command? what if it fails?
         infrastructure.forward(CreateContainer(CommandDetails(CommandId.generate(), TraceMode()), container.nodeId, container.id))
         containers += (container.id -> container)
+        infrastructure ! AddressedContainerCommand(container.nodeId, DeployConfiguration(CommandDetails(CommandId.generate(), TraceMode()), container.id, getEffectiveConfiguration(container.id).get))
         eventBus ! ContainerConfigurationUpdatedEvent(EventDetails(EventId.generate(), container.id.eventKey, Seq(commandDetails.commandId)), container)
     }
     case command @ UpdateContainerConfiguration(commandDetails, container) => container match {
@@ -97,6 +99,15 @@ class ApplicationManager(eventBus: ActorRef, infrastructure: ActorRef) extends A
         case Some(container) => infrastructure.forward(AddressedContainerCommand(container.nodeId, command))
         case None => sender ! command.failure(s"Container ${command.containerId.containerName} does not exist")
       }
+  }
+
+  def getEffectiveConfiguration(containerId: ContainerId): Option[EffectiveConfiguration] = {
+    def resolveProperties(properties: Seq[Property]) = properties.map(p => p.name -> p.value).toMap
+    for (
+      container <- containers.get(containerId);
+      stage <- stages.get(containerId.stageId);
+      app <- applications.get(containerId.stageId.applicationId)
+    ) yield EffectiveConfiguration(resolveProperties(app.properties) ++ resolveProperties(stage.properties) ++ resolveProperties(container.properties))
   }
 
   override def receive = initializing

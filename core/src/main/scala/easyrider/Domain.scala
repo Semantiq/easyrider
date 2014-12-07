@@ -4,9 +4,9 @@ import java.util.UUID
 
 import akka.actor.ActorRef
 import akka.util.ByteString
-import easyrider.Applications.{StageId, ApplicationId, ContainerId}
-import easyrider.Commands.{CommandExecution, CommandProgress, Success, Failure}
-import easyrider.Infrastructure.NodeId
+import easyrider.Applications.{ApplicationId, ContainerId, StageId}
+import easyrider.Commands.{CommandExecution, Failure}
+import easyrider.Infrastructure.{ContainerCommand, NodeId}
 import easyrider.Repository.Version
 import org.joda.time.DateTime
 
@@ -233,6 +233,11 @@ object Applications {
 
   trait ContainerEvent extends Event
   case class ContainerConfigurationUpdatedEvent(eventDetails: EventDetails, container: ContainerConfiguration) extends ContainerEvent
+}
+
+object Configuration {
+  case class EffectiveConfiguration(entries: Map[String, String])
+  case class DeployConfiguration(commandDetails: CommandDetails, containerId: ContainerId, configuration: EffectiveConfiguration) extends ContainerCommand
 }
 
 trait ResourceEvent

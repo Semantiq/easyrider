@@ -4,14 +4,16 @@ import akka.actor.ActorSystem
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import easyrider.Applications._
 import easyrider.Commands.Failure
+import easyrider.Configuration.{EffectiveConfiguration, DeployConfiguration}
 import easyrider.Events.{GetSnapshot, GetSnapshotResponse}
 import easyrider.Implicits.class2eventType
+import easyrider.Infrastructure.{CreateContainer, AddressedContainerCommand, NodeId}
 import easyrider._
 import org.scalatest.{FlatSpecLike, Matchers}
 
 class ApplicationManagerTest extends TestKit(ActorSystem()) with FlatSpecLike with Matchers with ImplicitSender {
   "ApplicationManager" should "allow to add and remove apps" in {
-    val (eventBus, apps) = setup()
+    val (eventBus, _, apps) = setup()
 
     apps ! CreateApplication(CommandDetails(CommandId.generate(), TraceMode()), Application(applicationId, Seq()))
 
@@ -24,7 +26,7 @@ class ApplicationManagerTest extends TestKit(ActorSystem()) with FlatSpecLike wi
   }
 
   it should "not allow to remove application with stages" in {
-    val (_, apps) = setup()
+    val (_, _, apps) = setup()
 
     apps ! CreateApplication(CommandDetails(CommandId("1"), TraceMode()), Application(applicationId, Seq()))
     apps ! CreateStage(CommandDetails(CommandId("2"), TraceMode()), Stage(stageId, Seq()))
@@ -35,8 +37,24 @@ class ApplicationManagerTest extends TestKit(ActorSystem()) with FlatSpecLike wi
     expectNoMsg()
   }
 
+  it should "deploy effective configuration to new containers" in {
+    val (_, infrastructure, apps) = setup()
+
+    apps ! CreateApplication(CommandDetails(CommandId("1"), TraceMode()), Application(applicationId, Seq(Property("literal.string", "appProperty", "appValue"))))
+    apps ! CreateStage(CommandDetails(CommandId("2"), TraceMode()), Stage(stageId, Seq(
+      Property("literal.string", "stageProperty", "stageValue"),
+      Property("literal.string", "containerProperty", "defaultValue"))))
+    apps ! CreateContainerConfiguration(CommandDetails(CommandId("3"), TraceMode()), ContainerConfiguration(containerId, NodeId("nodeA"), Seq(
+      Property("literal.string", "containerProperty", "containerValue"))))
+
+    infrastructure.expectMsgClass(classOf[CreateContainer])
+    val command = infrastructure.expectMsgClass(classOf[AddressedContainerCommand]).containerCommand.asInstanceOf[DeployConfiguration]
+    command.configuration should be (EffectiveConfiguration(Map("appProperty" -> "appValue", "stageProperty" -> "stageValue", "containerProperty" -> "containerValue")))
+  }
+
   private def applicationId = ApplicationId("testApp")
   private def stageId = StageId(applicationId, "qa")
+  private def containerId = ContainerId(stageId, "0")
   private def setup() = {
     val eventBus = TestProbe()
     val infrastructure = TestProbe()
@@ -47,6 +65,6 @@ class ApplicationManagerTest extends TestKit(ActorSystem()) with FlatSpecLike wi
     eventBus.reply(GetSnapshotResponse(QueryId("any"), Seq()))
     eventBus.expectMsgClass(classOf[GetSnapshot]).eventType should be(class2eventType(classOf[ContainerConfigurationUpdatedEvent]))
     eventBus.reply(GetSnapshotResponse(QueryId("any"), Seq()))
-    (eventBus, apps)
+    (eventBus, infrastructure, apps)
   }
 }
