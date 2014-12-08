@@ -60,7 +60,16 @@ class SshSession(eventBus: ActorRef, repository: ActorRef, configuration: NodeCo
       log.debug("Command error: {}", outputErr)
       log.debug("Command exit code: {}", exitStatus)
       sender ! RunSshCommandSuccess(EventDetails(EventId.generate(), EventKey(commandDetails.commandId.id), Seq(commandDetails.commandId)), Some(output))
-
+    case SftpUpdateFile(commandDetails, nodeId, path, filename, content) =>
+      log.debug("Writing {} bytes to {}/{}", content.length, path, filename)
+      val channel = session.openChannel("sftp").asInstanceOf[ChannelSftp]
+      channel.connect()
+      channel.cd(path)
+      val output = channel.put(filename)
+      IOUtils.copy(content.iterator.asInputStream, output)
+      output.close()
+      sender ! SftpUpdateFileSuccess(EventDetails(EventId.generate(), EventKey(commandDetails.commandId.id), Seq(commandDetails.commandId)))
+      channel.disconnect()
     case ReceiveTimeout =>
       Try(session.disconnect()) match {
         case Failure(exception) => log.error(exception, "Couldn't disconnect from SSH: {}", configuration.id.id)

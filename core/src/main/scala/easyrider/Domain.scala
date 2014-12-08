@@ -4,7 +4,7 @@ import java.util.UUID
 
 import akka.actor.ActorRef
 import akka.util.ByteString
-import easyrider.Applications.{ApplicationId, ContainerId, StageId}
+import easyrider.Applications.{ContainerEvent, ApplicationId, ContainerId, StageId}
 import easyrider.Commands.{CommandExecution, Failure}
 import easyrider.Infrastructure.{ContainerCommand, NodeId}
 import easyrider.Repository.Version
@@ -238,6 +238,7 @@ object Applications {
 object Configuration {
   case class EffectiveConfiguration(entries: Map[String, String])
   case class DeployConfiguration(commandDetails: CommandDetails, containerId: ContainerId, configuration: EffectiveConfiguration) extends ContainerCommand
+  case class ConfigurationDeploymentComplete(eventDetails: EventDetails, containerId: ContainerId, configuration: EffectiveConfiguration) extends ContainerEvent
 }
 
 trait ResourceEvent
