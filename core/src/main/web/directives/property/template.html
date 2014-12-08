@@ -1,0 +1,8 @@
+<div ng-show="!editing" ng-click="editing = true">
+	<span>{{property.name}}</span> -> <span>{{property.value}}</span>
+</div>
+<form ng-show="editing" ng-submit="editing = false">
+	<input type="text" ng-model="property.name" placeholder="Name">
+	<input type="text" ng-model="property.value" placeholder="Value">
+	<button class="btn" type="submit">Save</button>
+</form>
