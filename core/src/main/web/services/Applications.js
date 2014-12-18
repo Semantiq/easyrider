@@ -1,12 +1,33 @@
 app.service('Applications', ['Api', "Validators", "Utils", function(Api, Validators, Utils) {
 	var me = this;
 
-	me.subscription = Api.subscribe("easyrider.Applications$ApplicationUpdatedEvent", []);
+    me.callbacks = [];
+	me.subscription = Api.subscribe("easyrider.Applications$ApplicationUpdatedEvent", [], function() {
+	    console.log("Applications changed: " + angular.toJson(me.list));
+        for (var i in me.callbacks) {
+            me.callbacks[i](me.list);
+        }
+	});
+	me.onChange = function(callback) {
+        me.callbacks.push(callback);
+	};
 	me.list = me.subscription.snapshot;
 
 	me.addApplicationTemplate = function() {
 		return {
 			jsonClass: "easyrider.Applications$CreateApplication",
+			application: {
+				id: {
+					id: ""
+				},
+				properties: [ ]
+			}
+		};
+	};
+	me.updateApplicationTemplate = function(application) {
+		return {
+			jsonClass: "easyrider.Applications$UpdateApplication",
+			//application: application
 			application: {
 				id: {
 					id: ""

@@ -34,15 +34,16 @@ app.service("Api", ["Connection", function(Connection) {
 	var replaysRequested = [];
 	var sendAfterAuthentication = [];
 
-	function Subscription(subscriptionId) {
+	function Subscription(subscriptionId, callback) {
 		this.subscriptionId = subscriptionId;
 		this.subscribed = false;
 		this.snapshot = [];
+		this.callback = callback;
 	}
 
 	var subscriptions = {};
 
-	me.subscribe = function(eventType, eventKey) {
+	me.subscribe = function(eventType, eventKey, callback) {
 	    if(!Connection.on[eventType]) {
 	        defineEvent(eventType);
 	    }
@@ -89,12 +90,12 @@ app.service("Api", ["Connection", function(Connection) {
 		};
 		if(me.isAuthenticated) {
 		    replaysRequested[replayQueryId] = subscription;
-		    console.log("replaysRequested: " + angular.toJson(replaysRequested));
+		    //console.log("replaysRequested: " + angular.toJson(replaysRequested));
 			Connection.send(subscription);
 			Connection.send(replay);
 		}
 		subscriptionsRequested.push(subscription);
-		var s = new Subscription(subscriptionId);
+		var s = new Subscription(subscriptionId, callback);
 		subscriptions[subscriptionId] = s;
 		s.eventKey = subscription.eventKey;
 		s.eventType = subscription.eventType;
@@ -138,10 +139,13 @@ app.service("Api", ["Connection", function(Connection) {
 		for(var i in msg.snapshot) {
 			s.snapshot.push(msg.snapshot[i]);
 		}
+		if (s.callback) {
+		    s.callback();
+		}
 	};
 	Connection.on["easyrider.Events$GetReplayResponse"] = function(msg) {
         var s = replaysRequested[msg.queryId.id];
-        console.log(angular.toJson(replaysRequested) + ": " + angular.toJson(s.tail) + " <- " + angular.toJson(msg));
+        //console.log(angular.toJson(replaysRequested) + ": " + angular.toJson(s.tail) + " <- " + angular.toJson(msg));
         s.tail = msg.events;
         delete replaysRequested[msg.queryId.id];
 	};
@@ -176,6 +180,9 @@ app.service("Api", ["Connection", function(Connection) {
 					    s.tail = [];
 					}
 					s.tail.push(event);
+					if (s.callback) {
+					    s.callback();
+					}
 				}
 			}
 		};
