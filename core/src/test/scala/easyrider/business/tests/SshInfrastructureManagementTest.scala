@@ -6,6 +6,7 @@ import akka.actor.ActorSystem
 import akka.testkit.TestProbe
 import easyrider.Api.{AuthenticateUser, Authentication}
 import easyrider.Applications._
+import easyrider.Configuration.ConfigurationDeploymentComplete
 import easyrider.Events.{Subscribe, Subscribed}
 import easyrider.Implicits._
 import easyrider.Infrastructure._
@@ -69,5 +70,36 @@ class SshInfrastructureManagementTest extends EasyRiderTest(ActorSystem("test"))
 
     client.expectMsgClass(classOf[ContainerStateChangedEvent]).state should be (ContainerStopping(Version(ApplicationId("app"), "1.0.0")))
     client.expectMsgClass(classOf[ContainerStateChangedEvent]).state should be (ContainerCreated)
+  }
+
+  it should "deploy effective configuration" in withEasyrider { easyrider =>
+    val client = TestProbe()
+    val api = easyrider.actorSystem.actorOf(easyrider.core.apiFactory(client.ref))
+
+    client.send(api, AuthenticateUser())
+    client.expectMsgClass(classOf[Authentication])
+
+    client.send(api, Subscribe(CommandDetails(CommandId.generate(), TraceMode()), "configurationDeployment", classOf[ConfigurationDeploymentComplete], EventKey()))
+    client.expectMsgClass(classOf[Subscribed[_]])
+
+    client.send(api, SshInfrastructure.CreateNode(CommandDetails(CommandId.generate(), TraceMode()), NodeConfiguration(NodeId("nodeA"), "localhost", 22, "test", "test")))
+    client.send(api, Applications.CreateApplication(CommandDetails(CommandId.generate(), TraceMode()), Application(ApplicationId("app"), Seq(
+      Property("literal.string", "feature.emails", "true")
+    ))))
+    client.send(api, Applications.CreateStage(CommandDetails(CommandId.generate(), TraceMode()), Stage(StageId(ApplicationId("app"), "qa"), Seq(
+      Property("literal.string", "db.url", "db://qa")
+    ))))
+    client.send(api, Applications.CreateStage(CommandDetails(CommandId.generate(), TraceMode()), Stage(StageId(ApplicationId("app"), "prod"), Seq(
+      Property("literal.string", "db.url", "db://prod")
+    ))))
+    client.send(api, Applications.CreateContainerConfiguration(CommandDetails(CommandId.generate(), TraceMode()), ContainerConfiguration(ContainerId(StageId(ApplicationId("app"), "qa"), "0"), NodeId("nodeA"), Seq(
+      Property("literal.string", "instance.name", "A")
+    ))))
+    client.send(api, Applications.CreateContainerConfiguration(CommandDetails(CommandId.generate(), TraceMode()), ContainerConfiguration(ContainerId(StageId(ApplicationId("app"), "prod"), "0"), NodeId("nodeA"), Seq(
+      Property("literal.string", "instance.name", "A")
+    ))))
+
+    client.expectMsgClass(classOf[ConfigurationDeploymentComplete])
+    client.expectMsgClass(classOf[ConfigurationDeploymentComplete])
   }
 }
