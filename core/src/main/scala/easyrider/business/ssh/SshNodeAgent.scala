@@ -25,7 +25,7 @@ class SshNodeAgent(eventBus: ActorRef, easyRiderUrl: URL, sshSessionFactory: (No
       eventBus ! NodeUpdatedEvent(EventDetails(EventId.generate(), EventKey(configuration.id.id), Seq()), configuration.id, CreatingNode)
       eventBus ! NodeConfigurationUpdatedEvent(EventDetails(EventId.generate(), EventKey(configuration.id.id), Seq(commandDetails.commandId)), configuration)
       val sshSession = context.actorOf(sshSessionFactory(configuration), "sshSession")
-      sshSession ! RunSshCommand(CommandDetails(CommandId.generate(), TraceMode()), configuration.id, "mkdir -p easyrider")
+      sshSession ! RunSshCommand(CommandDetails(), configuration.id, "mkdir -p easyrider")
       eventBus ! NodeUpdatedEvent(EventDetails(EventId.generate(), EventKey(configuration.id.id), Seq()), configuration.id, NodeCreated)
       context.become(configured(configuration, sshSession))
   }
@@ -33,7 +33,7 @@ class SshNodeAgent(eventBus: ActorRef, easyRiderUrl: URL, sshSessionFactory: (No
   def configured(configuration: NodeConfiguration, sshSession: ActorRef) = LoggingReceive {
     case CreateContainer(commandDetails, _, containerId) =>
       def eventDetails = EventDetails(EventId.generate(), containerId.eventKey, Seq(commandDetails.commandId))
-      sshSession ? RunSshCommand(CommandDetails(CommandId.generate(), TraceMode()), configuration.id, "mkdir -p " + versionsDir(containerId)) onSuccess {
+      sshSession ? RunSshCommand(CommandDetails(), configuration.id, "mkdir -p " + versionsDir(containerId)) onSuccess {
         case RunSshCommandSuccess(_, _) => eventBus ! ContainerStateChangedEvent(eventDetails, ContainerCreated)
         case Failure(_, message, _) => eventBus ! ContainerStateChangedEvent(eventDetails, ContainerCreationFailed)
       }
@@ -42,12 +42,12 @@ class SshNodeAgent(eventBus: ActorRef, easyRiderUrl: URL, sshSessionFactory: (No
       val packageFile = version.number + ".tar.bz2"
       val packageFolder = versionsDir(containerId)
       eventBus ! VersionDeploymentProgressEvent(EventDetails(EventId.generate(), eventKey, Seq(commandDetails.commandId)), version, DeploymentInProgress)
-      sshSession ? SftpUploadCommand(CommandDetails(CommandId.generate(), TraceMode()), version, packageFolder, packageFile) flatMap {
-        case _: SftpUploadCommandSuccess => sshSession ? RunSshCommand(CommandDetails(CommandId.generate(), TraceMode()), configuration.id, s"rm -r $packageFolder/${version.number}")
+      sshSession ? SftpUploadCommand(CommandDetails(), version, packageFolder, packageFile) flatMap {
+        case _: SftpUploadCommandSuccess => sshSession ? RunSshCommand(CommandDetails(), configuration.id, s"rm -r $packageFolder/${version.number}")
       } flatMap {
-        case _: RunSshCommandSuccess => sshSession ? RunSshCommand(CommandDetails(CommandId.generate(), TraceMode()), configuration.id, s"mkdir -p $packageFolder/${version.number}")
+        case _: RunSshCommandSuccess => sshSession ? RunSshCommand(CommandDetails(), configuration.id, s"mkdir -p $packageFolder/${version.number}")
       } flatMap {
-        case _: RunSshCommandSuccess => sshSession ? RunSshCommand(CommandDetails(CommandId.generate(), TraceMode()), configuration.id, s"tar -jxf $packageFolder/$packageFile -C $packageFolder/${version.number}")
+        case _: RunSshCommandSuccess => sshSession ? RunSshCommand(CommandDetails(), configuration.id, s"tar -jxf $packageFolder/$packageFile -C $packageFolder/${version.number}")
       } onSuccess {
         case _: RunSshCommandSuccess => eventBus ! VersionDeploymentProgressEvent(EventDetails(EventId.generate(), eventKey, Seq(commandDetails.commandId)), version, DeploymentCompleted)
       }

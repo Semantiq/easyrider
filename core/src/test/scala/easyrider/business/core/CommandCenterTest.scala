@@ -14,7 +14,7 @@ class CommandCenterTest extends TestKit(ActorSystem()) with FlatSpecLike with Ma
   "CommandCentre" should "allow providers to register and execute commands" in {
     val (eventBus, commandCenter, provider) = setup()
 
-    commandCenter ! DummyCommand(CommandDetails(CommandId("1"), TraceMode()))
+    commandCenter ! DummyCommand(CommandDetails(CommandId("1")))
 
     provider.expectMsgClass(classOf[DummyCommand])
     eventBus.expectMsgClass(classOf[CommandSentEvent])

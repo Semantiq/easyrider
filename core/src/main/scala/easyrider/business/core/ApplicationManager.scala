@@ -83,9 +83,9 @@ class ApplicationManager(eventBus: ActorRef, infrastructure: ActorRef) extends A
       case NonExistingStage(_) => sender ! command.failure(s"Stage ${container.id.stageId.id} of application ${container.id.stageId.applicationId.id} does not exist")
       case _ =>
         // TODO: can this be correlated with original command? what if it fails?
-        infrastructure.forward(CreateContainer(CommandDetails(CommandId.generate(), TraceMode()), container.nodeId, container.id))
+        infrastructure.forward(CreateContainer(CommandDetails(), container.nodeId, container.id))
         containers += (container.id -> container)
-        infrastructure ! AddressedContainerCommand(container.nodeId, DeployConfiguration(CommandDetails(CommandId.generate(), TraceMode()), container.id, getEffectiveConfiguration(container.id).get))
+        infrastructure ! AddressedContainerCommand(container.nodeId, DeployConfiguration(CommandDetails(), container.id, getEffectiveConfiguration(container.id).get))
         eventBus ! ContainerConfigurationUpdatedEvent(EventDetails(EventId.generate(), container.id.eventKey, Seq(commandDetails.commandId)), container)
     }
     case command @ UpdateContainerConfiguration(commandDetails, container) => container match {

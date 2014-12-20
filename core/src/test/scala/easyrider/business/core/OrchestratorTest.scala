@@ -15,7 +15,7 @@ class OrchestratorTest extends TestKit(ActorSystem()) with FlatSpecLike with Mat
   "Orchestrator" should "perform rolling release" in {
     val (orchestrator, eventBus, commandCenter) = setup()
 
-    orchestrator ! ReleaseVersionToStage(CommandDetails(CommandId.generate(), TraceMode()), StageId(ApplicationId("app"), "dev"), Version(ApplicationId("app"), "1.0.0"))
+    orchestrator ! ReleaseVersionToStage(CommandDetails(), StageId(ApplicationId("app"), "dev"), Version(ApplicationId("app"), "1.0.0"))
 
     val subscribe = eventBus.expectMsgClass(classOf[Subscribe])
     subscribe.eventType should be(class2eventType(classOf[ContainerConfigurationUpdatedEvent]))

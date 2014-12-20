@@ -41,7 +41,7 @@ class ApiActorTest() extends TestKit(ActorSystem()) with FlatSpecLike with Match
   }
   it should "add application and indicate it by event" in {
     val (applicationManager, bus, client, api) = setup()
-    val command: ApplicationCommand = CreateApplication(CommandDetails(CommandId.generate(), TraceMode()), Application(ApplicationId("app"), Seq()))
+    val command: ApplicationCommand = CreateApplication(CommandDetails(), Application(ApplicationId("app"), Seq()))
     client.send(api, AuthenticateUser())
 
     client.send(api, command)

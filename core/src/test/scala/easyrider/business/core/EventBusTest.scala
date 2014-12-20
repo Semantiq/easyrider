@@ -39,7 +39,7 @@ class EventBusTest() extends TestKit(ActorSystem()) with FlatSpecLike with Match
     subscriber.expectMsgClass(classOf[Subscribed[_]])
     publisher.send(bus, dummyEvent)
     subscriber.expectMsgClass(classOf[NodeUpdatedEvent])
-    subscriber.send(bus, UnSubscribe(CommandDetails(CommandId.generate(), TraceMode()), dummySubscribe.subscriptionId))
+    subscriber.send(bus, UnSubscribe(CommandDetails(), dummySubscribe.subscriptionId))
     subscriber.expectMsgClass(classOf[UnSubscribed])
     publisher.send(bus, dummyEvent)
     subscriber.expectNoMsg()
@@ -50,7 +50,7 @@ class EventBusTest() extends TestKit(ActorSystem()) with FlatSpecLike with Match
     val client = TestProbe()
     client.send(bus, NodeUpdatedEvent(EventDetails(EventId("1"), EventKey("node0"), Seq(CommandId("1"))), NodeId("node0"), NodeCreated))
     client.send(bus, NodeUpdatedEvent(EventDetails(EventId("2"), EventKey("node0"), Seq(CommandId("2")), removal = true), NodeId("node0"), NodeCreated))
-    client.send(bus, Subscribe(CommandDetails(CommandId.generate(), TraceMode()), "node-events", classOf[NodeUpdatedEvent], EventKey()))
+    client.send(bus, Subscribe(CommandDetails(), "node-events", classOf[NodeUpdatedEvent], EventKey()))
     val subscribed = client.expectMsgClass(classOf[Subscribed[_]])
     subscribed.snapshot should be ('empty)
   }
@@ -61,7 +61,7 @@ class EventBusTest() extends TestKit(ActorSystem()) with FlatSpecLike with Match
     client.send(bus, NodeUpdatedEvent(EventDetails(EventId("1"), EventKey("node0"), Seq(CommandId("1"))), NodeId("node0"), NodeCreated))
     client.send(bus, NodeUpdatedEvent(EventDetails(EventId("2"), EventKey("node0"), Seq(CommandId("2")), removal = true), NodeId("node0"), NodeCreated))
     client.send(bus, ApplicationUpdatedEvent(EventDetails(EventId("3"), EventKey("app"), Seq(CommandId("3"))), Application(ApplicationId("app"), Seq())))
-    client.send(bus, Subscribe(CommandDetails(CommandId.generate(), TraceMode()), "node-events", classOf[NodeUpdatedEvent], EventKey()))
+    client.send(bus, Subscribe(CommandDetails(), "node-events", classOf[NodeUpdatedEvent], EventKey()))
     client.expectMsgClass(classOf[Subscribed[_]])
     client.send(bus, GetReplay(QueryId.generate(), Seq("node-events"), DateTime.now().minusMinutes(1)))
     val replay = client.expectMsgClass(classOf[GetReplayResponse])
@@ -77,7 +77,7 @@ class EventBusTest() extends TestKit(ActorSystem()) with FlatSpecLike with Match
     client.send(bus0, PoisonPill)
     client.expectMsgClass(classOf[Terminated])
     val bus1 = system.actorOf(core.EventBus(directory))
-    client.send(bus1, Subscribe(CommandDetails(CommandId.generate(), TraceMode()), "app-events", classOf[ApplicationUpdatedEvent], EventKey()))
+    client.send(bus1, Subscribe(CommandDetails(), "app-events", classOf[ApplicationUpdatedEvent], EventKey()))
     client.send(bus1, GetReplay(QueryId.generate(), Seq("app-events"), DateTime.now().minusMinutes(1)))
     client.expectMsgClass(classOf[Subscribed[_]])
     client.expectMsgClass(classOf[GetReplayResponse]).events should have size 1
@@ -87,9 +87,9 @@ class EventBusTest() extends TestKit(ActorSystem()) with FlatSpecLike with Match
     val bus = system.actorOf(core.EventBus(emptyDirectory))
     val client = TestProbe()
 
-    client.send(bus, SubscribeToCommandTrail(CommandDetails(CommandId("2"), TraceMode()), CommandId("1"), Seq(classOf[CommandExecution])))
+    client.send(bus, SubscribeToCommandTrail(CommandDetails(CommandId("2")), CommandId("1"), Seq(classOf[CommandExecution])))
 
-    bus ! CommandSentEvent(EventDetails(EventId.generate(), EventKey(), Seq(CommandId("1"))), DummyCommand(CommandDetails(CommandId.generate(), TraceMode())))
+    bus ! CommandSentEvent(EventDetails(EventId.generate(), EventKey(), Seq(CommandId("1"))), DummyCommand(CommandDetails()))
     val commandSentNotification = client.expectMsgClass(classOf[EventDelivered])
     commandSentNotification.eventDetails.causedBy should be (Seq(CommandId("2")))
     commandSentNotification.event.eventDetails.causedBy should be (Seq(CommandId("1")))
@@ -117,6 +117,6 @@ class EventBusTest() extends TestKit(ActorSystem()) with FlatSpecLike with Match
   case class DummyCommand(commandDetails: CommandDetails) extends Command
   case class DummyProgress(eventDetails: EventDetails) extends CommandExecution
   case class DummySuccess(eventDetails: EventDetails) extends Success
-  val dummySubscribe = Subscribe(CommandDetails(CommandId.generate(), TraceMode()), "all", classOf[NodeUpdatedEvent], EventKey())
+  val dummySubscribe = Subscribe(CommandDetails(), "all", classOf[NodeUpdatedEvent], EventKey())
   val dummyEvent = NodeUpdatedEvent(EventDetails(EventId("1"), EventKey(), Seq()), NodeId("nodeId"), NodeCreated)
 }

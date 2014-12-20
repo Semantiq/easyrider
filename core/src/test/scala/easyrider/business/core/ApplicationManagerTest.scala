@@ -15,11 +15,11 @@ class ApplicationManagerTest extends TestKit(ActorSystem()) with FlatSpecLike wi
   "ApplicationManager" should "allow to add and remove apps" in {
     val (eventBus, _, apps) = setup()
 
-    apps ! CreateApplication(CommandDetails(CommandId.generate(), TraceMode()), Application(applicationId, Seq()))
+    apps ! CreateApplication(CommandDetails(), Application(applicationId, Seq()))
 
     eventBus.expectMsgClass(classOf[ApplicationUpdatedEvent])
 
-    apps ! RemoveApplication(CommandDetails(CommandId.generate(), TraceMode()), applicationId)
+    apps ! RemoveApplication(CommandDetails(), applicationId)
     val event = eventBus.expectMsgClass(classOf[ApplicationUpdatedEvent])
 
     event.eventDetails shouldBe 'removal
@@ -28,23 +28,23 @@ class ApplicationManagerTest extends TestKit(ActorSystem()) with FlatSpecLike wi
   it should "not allow to remove application with stages" in {
     val (_, _, apps) = setup()
 
-    apps ! CreateApplication(CommandDetails(CommandId("1"), TraceMode()), Application(applicationId, Seq()))
-    apps ! CreateStage(CommandDetails(CommandId("2"), TraceMode()), Stage(stageId, Seq()))
-    apps ! RemoveApplication(CommandDetails(CommandId("3"), TraceMode()), applicationId)
+    apps ! CreateApplication(CommandDetails(CommandId("1")), Application(applicationId, Seq()))
+    apps ! CreateStage(CommandDetails(CommandId("2")), Stage(stageId, Seq()))
+    apps ! RemoveApplication(CommandDetails(CommandId("3")), applicationId)
     expectMsgClass(classOf[Failure]).eventDetails.causedBy should contain (CommandId("3"))
-    apps ! RemoveStage(CommandDetails(CommandId.generate(), TraceMode()), stageId)
-    apps ! RemoveApplication(CommandDetails(CommandId.generate(), TraceMode()), applicationId)
+    apps ! RemoveStage(CommandDetails(), stageId)
+    apps ! RemoveApplication(CommandDetails(), applicationId)
     expectNoMsg()
   }
 
   it should "deploy effective configuration to new containers" in {
     val (_, infrastructure, apps) = setup()
 
-    apps ! CreateApplication(CommandDetails(CommandId("1"), TraceMode()), Application(applicationId, Seq(Property("literal.string", "appProperty", "appValue"))))
-    apps ! CreateStage(CommandDetails(CommandId("2"), TraceMode()), Stage(stageId, Seq(
+    apps ! CreateApplication(CommandDetails(CommandId("1")), Application(applicationId, Seq(Property("literal.string", "appProperty", "appValue"))))
+    apps ! CreateStage(CommandDetails(CommandId("2")), Stage(stageId, Seq(
       Property("literal.string", "stageProperty", "stageValue"),
       Property("literal.string", "containerProperty", "defaultValue"))))
-    apps ! CreateContainerConfiguration(CommandDetails(CommandId("3"), TraceMode()), ContainerConfiguration(containerId, NodeId("nodeA"), Seq(
+    apps ! CreateContainerConfiguration(CommandDetails(CommandId("3")), ContainerConfiguration(containerId, NodeId("nodeA"), Seq(
       Property("literal.string", "containerProperty", "containerValue"))))
 
     infrastructure.expectMsgClass(classOf[CreateContainer])

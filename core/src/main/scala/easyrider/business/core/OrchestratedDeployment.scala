@@ -11,9 +11,9 @@ import easyrider._
 
 class OrchestratedDeployment(eventBus: ActorRef, commandCenter: ActorRef, command: ReleaseVersionToStage) extends Actor with ActorLogging {
   override def preStart() = {
-    eventBus ! Subscribe(CommandDetails(CommandId.generate(), TraceMode()), "orchestrator-containerconfiguration-" + command.commandDetails.commandId.id, classOf[ContainerConfigurationUpdatedEvent], command.stageId.eventKey)
-    eventBus ! Subscribe(CommandDetails(CommandId.generate(), TraceMode()), "orchestrator-versiondeployment-" + command.commandDetails.commandId.id, classOf[VersionDeploymentProgressEvent], command.stageId.eventKey)
-    eventBus ! Subscribe(CommandDetails(CommandId.generate(), TraceMode()), "orchestrator-containerstate-" + command.commandDetails.commandId.id, classOf[ContainerStateChangedEvent], command.stageId.eventKey)
+    eventBus ! Subscribe(CommandDetails(), "orchestrator-containerconfiguration-" + command.commandDetails.commandId.id, classOf[ContainerConfigurationUpdatedEvent], command.stageId.eventKey)
+    eventBus ! Subscribe(CommandDetails(), "orchestrator-versiondeployment-" + command.commandDetails.commandId.id, classOf[VersionDeploymentProgressEvent], command.stageId.eventKey)
+    eventBus ! Subscribe(CommandDetails(), "orchestrator-containerstate-" + command.commandDetails.commandId.id, classOf[ContainerStateChangedEvent], command.stageId.eventKey)
   }
 
   def receive = initializing(None, None, None)
@@ -45,7 +45,7 @@ class OrchestratedDeployment(eventBus: ActorRef, commandCenter: ActorRef, comman
     log.info("Initiating deployment")
     val deploymentCommands = for (container <- containers) yield {
       val commandId = CommandId.generate()
-      commandCenter ! DeployVersion(CommandDetails(commandId, TraceMode()), container.id, command.version)
+      commandCenter ! DeployVersion(CommandDetails(), container.id, command.version)
       commandId
     }
     context.become(deploying(containers, deploymentCommands.toSet))
@@ -64,7 +64,7 @@ class OrchestratedDeployment(eventBus: ActorRef, commandCenter: ActorRef, comman
   }
   def becomeReleasing(containers: Seq[ContainerConfiguration]) {
     if (containers.nonEmpty) {
-      commandCenter ! StartContainer(CommandDetails(CommandId.generate(), TraceMode()), containers.head.id, command.version)
+      commandCenter ! StartContainer(CommandDetails(), containers.head.id, command.version)
       context.become(waitingForContainerStart(containers.head.id, containers.tail))
     } else {
       eventBus ! ReleaseEvent(EventDetails(EventId.generate(), command.stageId.eventKey, Seq(command.commandDetails.commandId)), ReleaseSuccessful(command.version))

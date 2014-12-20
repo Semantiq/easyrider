@@ -23,7 +23,7 @@ class SshInfrastructureProvider(eventBus: ActorRef, sshNodeAgent: () => Props) e
     case GetSnapshotResponse(_, events: Seq[NodeConfigurationUpdatedEvent]) =>
       nodes = events.map { event =>
         val agent = context.actorOf(sshNodeAgent(), event.nodeConfiguration.id.id)
-        agent ! CreateNode(CommandDetails(CommandId.generate(), TraceMode()), event.nodeConfiguration)
+        agent ! CreateNode(CommandDetails(), event.nodeConfiguration)
         event.nodeConfiguration.id -> agent
       }.toMap
       context.become(running)

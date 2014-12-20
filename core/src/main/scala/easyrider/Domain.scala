@@ -25,7 +25,7 @@ object Implicits {
 }
 
 case class TraceMode(progress: Boolean = false, confirmation: Boolean = true, consequences: Boolean = false)
-case class CommandDetails(commandId: CommandId, trace: TraceMode)
+case class CommandDetails(commandId: CommandId = CommandId.generate(), trace: TraceMode = TraceMode())
 
 trait Command {
   def commandDetails: CommandDetails
