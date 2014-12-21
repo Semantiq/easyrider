@@ -27,7 +27,7 @@ app.service('Applications', ['Api', "Validators", "Utils", function(Api, Validat
 	me.updateApplicationTemplate = function(application) {
 		return {
 			jsonClass: "easyrider.Applications$UpdateApplication",
-			application: application
+			application: application.application
 		};
 	};
 	me.removeApplicationTemplate = function(applicationId) {
