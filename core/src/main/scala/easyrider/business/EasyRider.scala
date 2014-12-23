@@ -5,7 +5,7 @@ import java.net.URL
 import java.util.ServiceLoader
 
 import akka.actor.ActorSystem
-import easyrider.PageProvider
+import easyrider.{PluginFactory, PageProvider}
 import easyrider.business.core.CoreModule
 import easyrider.business.http.HttpModule
 
@@ -17,4 +17,10 @@ class EasyRider(port: Int, easyRiderData: File) {
   val core = new CoreModule(easyRiderData, easyRiderUrl, actorSystem)
   val pages = ServiceLoader.load(classOf[PageProvider]).iterator().toSeq
   val http = new HttpModule(actorSystem, core.apiFactory, port, pages)
+  val plugins = ServiceLoader.load(classOf[PluginFactory]).iterator().toSeq
+  println("pages: " + pages)
+  println("plugins: " + plugins)
+  plugins.foreach { p =>
+    actorSystem.actorOf(PluginHolder(core.eventBus, core.applicationManager)(p.props), p.getClass.getSimpleName)
+  }
 }

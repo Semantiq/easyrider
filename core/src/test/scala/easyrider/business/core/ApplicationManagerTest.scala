@@ -4,10 +4,9 @@ import akka.actor.ActorSystem
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import easyrider.Applications._
 import easyrider.Commands.Failure
-import easyrider.Configuration.{EffectiveConfiguration, DeployConfiguration}
 import easyrider.Events.{GetSnapshot, GetSnapshotResponse}
 import easyrider.Implicits.class2eventType
-import easyrider.Infrastructure.{CreateContainer, AddressedContainerCommand, NodeId}
+import easyrider.Infrastructure.{CreateContainer, NodeId}
 import easyrider._
 import org.scalatest.{FlatSpecLike, Matchers}
 
@@ -38,7 +37,7 @@ class ApplicationManagerTest extends TestKit(ActorSystem()) with FlatSpecLike wi
   }
 
   it should "deploy effective configuration to new containers" in {
-    val (_, infrastructure, apps) = setup()
+    val (eventBus, infrastructure, apps) = setup()
 
     apps ! CreateApplication(CommandDetails(CommandId("1")), Application(applicationId, Seq(Property("literal.string", "appProperty", "appValue"))))
     apps ! CreateStage(CommandDetails(CommandId("2")), Stage(stageId, Seq(
@@ -48,8 +47,11 @@ class ApplicationManagerTest extends TestKit(ActorSystem()) with FlatSpecLike wi
       Property("literal.string", "containerProperty", "containerValue"))))
 
     infrastructure.expectMsgClass(classOf[CreateContainer])
-    val command = infrastructure.expectMsgClass(classOf[AddressedContainerCommand]).containerCommand.asInstanceOf[DeployConfiguration]
-    command.configuration should be (EffectiveConfiguration(Map("appProperty" -> "appValue", "stageProperty" -> "stageValue", "containerProperty" -> "containerValue")))
+    eventBus.expectMsgClass(classOf[ApplicationUpdatedEvent])
+    eventBus.expectMsgClass(classOf[StageUpdatedEvent])
+    eventBus.expectMsgClass(classOf[ContainerConfigurationUpdatedEvent])
+    val event = eventBus.expectMsgClass(classOf[EffectiveConfigurationChanged])
+    event.effectiveConfiguration.entries.size should be (3)
   }
 
   private def applicationId = ApplicationId("testApp")

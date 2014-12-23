@@ -2,11 +2,11 @@ package easyrider
 
 import java.util.UUID
 
-import akka.actor.ActorRef
+import akka.actor.{Props, ActorRef}
 import akka.util.ByteString
-import easyrider.Applications.{ContainerEvent, ApplicationId, ContainerId, StageId}
+import easyrider.Applications._
 import easyrider.Commands.{CommandExecution, Failure}
-import easyrider.Infrastructure.{ContainerCommand, NodeId}
+import easyrider.Infrastructure.NodeId
 import easyrider.Repository.Version
 import org.joda.time.DateTime
 
@@ -116,8 +116,10 @@ object Infrastructure {
     def containerId: ContainerId
   }
   case class DeployVersion(commandDetails: CommandDetails, containerId: ContainerId, version: Version) extends ContainerCommand
+  case class DeployConfigurationFile(commandDetails: CommandDetails, containerId: ContainerId, path: String, fileName: String, contents: ByteString) extends ContainerCommand
   case class StartContainer(commandDetails: CommandDetails, containerId: ContainerId, version: Version) extends ContainerCommand
   case class StopContainer(commandDetails: CommandDetails, containerId: ContainerId, immediate: Boolean = false) extends ContainerCommand
+  // TODO: move out of API, as this does not need to be publicly available
   case class AddressedContainerCommand(nodeId: NodeId, containerCommand: ContainerCommand)
 
   case class FindNodes(queryId: QueryId) extends Query
@@ -130,6 +132,7 @@ object Infrastructure {
   case class ContainerCreatedEvent(eventDetails: EventDetails) extends InfrastructureEvent
   case class ContainerCreationError(eventDetails: EventDetails)
 
+  case class DeployConfigurationFileComplete(eventDetails: EventDetails, containerId: ContainerId) extends ContainerEvent
   case class ApplicationStartingEvent(eventDetails: EventDetails, progress: Option[String]) extends Event
   case class ApplicationStartedEvent(eventDetails: EventDetails) extends Event
   case class ApplicationStoppingEvent(eventDetails: EventDetails, progress: Option[String]) extends Event
@@ -199,6 +202,8 @@ case class VersionRecommendedEvent()
 
 object Applications {
   case class Property(namespace: String, name: String, value: String)
+  case class EffectiveConfiguration(entries: Map[String, String])
+
   case class ApplicationId(id: String) {
     require(id.matches("""^[a-zA-Z0-9_]+$"""), "Application id can contain only letters and underscores")
     def eventKey = EventKey(id)
@@ -227,6 +232,7 @@ object Applications {
 
   trait ApplicationEvent extends Event
   case class ApplicationUpdatedEvent(eventDetails: EventDetails, application: Application) extends ApplicationEvent
+  case class EffectiveConfigurationChanged(eventDetails: EventDetails, containerId: ContainerId, effectiveConfiguration: EffectiveConfiguration) extends ApplicationEvent
 
   trait StageEvent extends Event
   case class StageUpdatedEvent(eventDetails: EventDetails, stage: Stage) extends StageEvent
@@ -236,9 +242,11 @@ object Applications {
 }
 
 object Configuration {
-  case class EffectiveConfiguration(entries: Map[String, String])
-  case class DeployConfiguration(commandDetails: CommandDetails, containerId: ContainerId, configuration: EffectiveConfiguration) extends ContainerCommand
-  case class ConfigurationDeploymentComplete(eventDetails: EventDetails, containerId: ContainerId, configuration: EffectiveConfiguration) extends ContainerEvent
+  case class RenderedConfiguration(path: String, content: ByteString)
+}
+
+trait PluginFactory {
+  def props: Props
 }
 
 trait ResourceEvent

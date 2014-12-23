@@ -1,10 +1,8 @@
 package easyrider.business.core
 
-import akka.actor.{Stash, Actor, ActorRef, Props}
-import akka.pattern.ask
-import akka.pattern.pipe
+import akka.actor.{Actor, ActorRef, Props, Stash}
+import akka.pattern.{ask, pipe}
 import akka.util.Timeout
-import easyrider.Configuration.{EffectiveConfiguration, DeployConfiguration}
 import easyrider.Events.{GetSnapshot, GetSnapshotResponse}
 import easyrider.Implicits._
 import easyrider.Infrastructure.{AddressedContainerCommand, ContainerCommand, CreateContainer}
@@ -85,8 +83,8 @@ class ApplicationManager(eventBus: ActorRef, infrastructure: ActorRef) extends A
         // TODO: can this be correlated with original command? what if it fails?
         infrastructure.forward(CreateContainer(CommandDetails(), container.nodeId, container.id))
         containers += (container.id -> container)
-        infrastructure ! AddressedContainerCommand(container.nodeId, DeployConfiguration(CommandDetails(), container.id, getEffectiveConfiguration(container.id).get))
         eventBus ! ContainerConfigurationUpdatedEvent(EventDetails(EventId.generate(), container.id.eventKey, Seq(commandDetails.commandId)), container)
+        eventBus ! EffectiveConfigurationChanged(EventDetails(EventId.generate(), container.id.eventKey, Seq(commandDetails.commandId)), container.id, getEffectiveConfiguration(container.id).get)
     }
     case command @ UpdateContainerConfiguration(commandDetails, container) => container match {
       case NonExistingContainer(_) => sender ! command.failure(s"Container ${container.id.id} does not exist in application ${container.id.stageId.applicationId.id} stage ${container.id.stageId.id}")

@@ -6,7 +6,6 @@ import akka.actor.ActorSystem
 import akka.testkit.TestProbe
 import easyrider.Api.{AuthenticateUser, Authentication}
 import easyrider.Applications._
-import easyrider.Configuration.ConfigurationDeploymentComplete
 import easyrider.Events.{Subscribe, Subscribed}
 import easyrider.Implicits._
 import easyrider.Infrastructure._
@@ -79,7 +78,7 @@ class SshInfrastructureManagementTest extends EasyRiderTest(ActorSystem("test"))
     client.send(api, AuthenticateUser())
     client.expectMsgClass(classOf[Authentication])
 
-    client.send(api, Subscribe(CommandDetails(), "configurationDeployment", classOf[ConfigurationDeploymentComplete], EventKey()))
+    client.send(api, Subscribe(CommandDetails(), "configurationDeployment", classOf[DeployConfigurationFileComplete], EventKey()))
     client.expectMsgClass(classOf[Subscribed[_]])
 
     client.send(api, SshInfrastructure.CreateNode(CommandDetails(), NodeConfiguration(NodeId("nodeA"), "localhost", 22, "test", "test")))
@@ -93,13 +92,13 @@ class SshInfrastructureManagementTest extends EasyRiderTest(ActorSystem("test"))
       Property("literal.string", "db.url", "db://prod")
     ))))
     client.send(api, Applications.CreateContainerConfiguration(CommandDetails(), ContainerConfiguration(ContainerId(StageId(ApplicationId("app"), "qa"), "0"), NodeId("nodeA"), Seq(
-      Property("literal.string", "instance.name", "A")
+      Property("literal.string", "instance.name", "qa-a")
     ))))
     client.send(api, Applications.CreateContainerConfiguration(CommandDetails(), ContainerConfiguration(ContainerId(StageId(ApplicationId("app"), "prod"), "0"), NodeId("nodeA"), Seq(
-      Property("literal.string", "instance.name", "A")
+      Property("literal.string", "instance.name", "prod-a")
     ))))
 
-    client.expectMsgClass(classOf[ConfigurationDeploymentComplete])
-    client.expectMsgClass(classOf[ConfigurationDeploymentComplete])
+    client.expectMsgClass(classOf[DeployConfigurationFileComplete])
+    client.expectMsgClass(classOf[DeployConfigurationFileComplete])
   }
 }

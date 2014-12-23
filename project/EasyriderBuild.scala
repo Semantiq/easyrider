@@ -42,10 +42,15 @@ object EasyriderBuild extends Build {
     base = file("ssh"),
     settings = Project.defaultSettings ++ Revolver.settings ++ settings ++ super.settings) dependsOn api
 
+  lazy val builtin = Project(
+    id = "builtin",
+    base = file("builtin"),
+    settings = Project.defaultSettings ++ Revolver.settings ++ settings ++ super.settings) dependsOn api
+
   lazy val core = Project(
     id = "core",
     base = file("core"),
-    settings = Project.defaultSettings ++ Revolver.settings ++ settings ++ super.settings) dependsOn (api, ssh)
+    settings = Project.defaultSettings ++ Revolver.settings ++ settings ++ super.settings) dependsOn (api, ssh, builtin /* TODO: make runtime only */)
 
-  Project(id = "easyrider", base = file("."), settings = Project.defaultSettings) dependsOn (api, core, ssh)
+  Project(id = "easyrider", base = file("."), settings = Project.defaultSettings) dependsOn (api, core, ssh, builtin)
 }
