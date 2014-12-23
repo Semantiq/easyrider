@@ -1,6 +1,7 @@
 import sbt._
 import Keys._
 import spray.revolver.RevolverPlugin._
+import com.typesafe.sbt.SbtNativePackager.packageArchetype
 
 object EasyriderBuild extends Build {
   val akkaVersion = "2.3.5"
@@ -50,7 +51,7 @@ object EasyriderBuild extends Build {
   lazy val core = Project(
     id = "core",
     base = file("core"),
-    settings = Project.defaultSettings ++ Revolver.settings ++ settings ++ super.settings) dependsOn (api, ssh, builtin /* TODO: make runtime only */)
+    settings = Project.defaultSettings ++ Revolver.settings ++ settings ++ super.settings ++ packageArchetype.java_application) dependsOn (api, ssh, builtin % "runtime")
 
   Project(id = "easyrider", base = file("."), settings = Project.defaultSettings) dependsOn (api, core, ssh, builtin)
 }
