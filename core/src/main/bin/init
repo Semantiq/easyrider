@@ -1,0 +1,35 @@
+#!/bin/bash
+
+
+BASEDIR=$(dirname $0)
+SCRIPT="$BASEDIR/bin/core"
+RUNNING_PID="$BASEDIR/running.pid"
+
+start() {
+    if [ -f "$RUNNING_PID" ] && ps -p $(cat $RUNNING_PID) > /dev/null; then
+        echo $SCRIPT already started
+        return 1
+    fi
+    echo Starting $SCRIPT
+    # background task may not log to the console, as it will prevent disconnect
+    $SCRIPT > /dev/null 2> /dev/null &
+    echo $! > $RUNNING_PID
+    echo $SCRIPT started
+}
+ 
+stop() {
+    if [ ! -f "$RUNNING_PID" ] || ! ps -p $(cat $RUNNING_PID) > /dev/null; then
+        echo $SCRIPT is not running
+        rm $RUNNING_PID > /dev/null
+        return 1
+    fi
+    echo Stopping $SCRIPT
+    kill -15 $(cat "$RUNNING_PID") && rm -f "$RUNNING_PID"
+    echo $SCRIPT stopped
+}
+case $1 in
+    start) start
+    ;;
+    stop) stop
+    ;;
+esac
