@@ -20,7 +20,9 @@ class ApiActor(bus: ActorRef, applicationManager: ActorRef, componentManager: Ac
                authenticator: ActorRef) extends Actor with Stash with ActorLogging {
   import easyrider.Api._
 
-  def receive = {
+  def receive = awaitingCredentials()
+
+  def awaitingCredentials(): Receive = {
     case authenticationRequest: AuthenticateUser =>
       authenticator ! authenticationRequest
       context.become(authenticating())
@@ -30,7 +32,8 @@ class ApiActor(bus: ActorRef, applicationManager: ActorRef, componentManager: Ac
       context.become(authenticated(auth))
       componentManager ! ComponentManager.Register(componentId)
       client ! auth
-    case _ =>
+    case message =>
+      log.warning("Received message before authentication, disconnecting: {}", message)
       context.stop(self)
   }
 
@@ -39,10 +42,13 @@ class ApiActor(bus: ActorRef, applicationManager: ActorRef, componentManager: Ac
       context.become(authenticated(auth))
       unstashAll()
       client ! auth
+      context.setReceiveTimeout(Duration.Inf)
     case ReceiveTimeout => context.stop(self)
     case failure @ AuthenticationFailure() =>
-      log.warning(s"Authentication failure: $failure")
-      context.stop(self)
+      log.warning(s"Authentication failure for $client: $failure")
+      client ! failure
+      context.become(awaitingCredentials())
+      context.setReceiveTimeout(Duration.Inf)
     case _ => stash()
   }
 

@@ -125,11 +125,17 @@ app.service("Api", ["Connection", function(Connection) {
 
 	Connection.on["easyrider.Api$Authentication"] = function() {
 		me.isAuthenticated = true;
+        me.isAuthenticationFailure = false;
 		for(var i in subscriptionsRequested)
 			Connection.send(subscriptionsRequested[i]);
 		for(i in sendAfterAuthentication)
 			Connection.send(sendAfterAuthentication[i]);
 		sendAfterAuthentication = [];
+	};
+
+	Connection.on["easyrider.Api$AuthenticationFailure"] = function() {
+		me.isAuthenticated = false;
+        me.isAuthenticationFailure = true;
 	};
 
 	Connection.on["easyrider.Events$Subscribed"] = function(msg) {
