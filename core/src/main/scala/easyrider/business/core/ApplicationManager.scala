@@ -62,6 +62,9 @@ class ApplicationManager(eventBus: ActorRef, infrastructure: ActorRef) extends A
       case _ =>
         applications += (application.id -> application)
         eventBus ! ApplicationUpdatedEvent(EventDetails(EventId.generate(), application.id.eventKey, Seq(commandDetails.commandId)), application)
+        containers.values.filter(_.id.stageId.applicationId == application.id).foreach { container =>
+          eventBus ! EffectiveConfigurationChanged(EventDetails(EventId.generate(), container.id.eventKey, Seq(commandDetails.commandId)), container.id, getEffectiveConfiguration(container.id).get)
+        }
     }
     case command @ CreateStage(commandDetails, stage) => stage match {
       case NonExistingApplication(_) => sender ! command.failure(s"Application ${stage.id.applicationId.id} does not exist")

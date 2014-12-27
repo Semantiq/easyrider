@@ -8,3 +8,6 @@ core/src/main/resources/static/*
 core/src/main/web/node_modules/*
 ssh/src/main/resources/static/*
 ssh/src/main/web/node_modules/*
+core/data
+core/log
+

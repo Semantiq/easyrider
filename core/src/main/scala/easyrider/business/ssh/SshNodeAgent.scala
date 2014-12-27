@@ -32,7 +32,13 @@ class SshNodeAgent(eventBus: ActorRef, easyRiderUrl: URL, sshSessionFactory: (No
   def configured(configuration: NodeConfiguration, sshSession: ActorRef) = LoggingReceive {
     case CreateContainer(commandDetails, _, containerId) =>
       def eventDetails = EventDetails(EventId.generate(), containerId.eventKey, Seq(commandDetails.commandId))
-      sshSession ? RunSshCommand(CommandDetails(), configuration.id, "mkdir -p " + versionsDir(containerId)) onSuccess {
+      sshSession ? RunSshCommand(CommandDetails(), configuration.id, "mkdir -p " + versionsDir(containerId)) flatMap {
+        case RunSshCommandSuccess(_, _) => sshSession ? RunSshCommand(CommandDetails(), configuration.id, "mkdir -p " + logDir(containerId))
+      } flatMap {
+        case RunSshCommandSuccess(_, _) => sshSession ? RunSshCommand(CommandDetails(), configuration.id, "mkdir -p " + etcDir(containerId))
+      } flatMap {
+        case RunSshCommandSuccess(_, _) => sshSession ? RunSshCommand(CommandDetails(), configuration.id, "mkdir -p " + dataDir(containerId))
+      } onSuccess {
         case RunSshCommandSuccess(_, _) => eventBus ! ContainerStateChangedEvent(eventDetails, ContainerCreated)
         case Failure(_, message, _) => eventBus ! ContainerStateChangedEvent(eventDetails, ContainerCreationFailed)
       }
@@ -46,6 +52,12 @@ class SshNodeAgent(eventBus: ActorRef, easyRiderUrl: URL, sshSessionFactory: (No
       } flatMap {
         case _: RunSshCommandSuccess => sshSession ? RunSshCommand(CommandDetails(), configuration.id, s"mkdir -p $packageFolder/${version.number}")
       } flatMap {
+        case _: RunSshCommandSuccess => sshSession ? RunSshCommand(CommandDetails(), configuration.id, s"ln -s `pwd`/${etcDir(containerId)} $packageFolder/${version.number}/etc")
+      } flatMap {
+        case _: RunSshCommandSuccess => sshSession ? RunSshCommand(CommandDetails(), configuration.id, s"ln -s `pwd`/${logDir(containerId)} $packageFolder/${version.number}/log")
+      } flatMap {
+        case _: RunSshCommandSuccess => sshSession ? RunSshCommand(CommandDetails(), configuration.id, s"ln -s `pwd`/${dataDir(containerId)} $packageFolder/${version.number}/data")
+      } flatMap {
         case _: RunSshCommandSuccess => sshSession ? RunSshCommand(CommandDetails(), configuration.id, s"tar -jxf $packageFolder/$packageFile -C $packageFolder/${version.number}")
       } onSuccess {
         case _: RunSshCommandSuccess => eventBus ! VersionDeploymentProgressEvent(EventDetails(EventId.generate(), eventKey, Seq(commandDetails.commandId)), version, DeploymentCompleted)
@@ -53,7 +65,7 @@ class SshNodeAgent(eventBus: ActorRef, easyRiderUrl: URL, sshSessionFactory: (No
     case StartContainer(commandDetails, containerId, version) =>
       // TODO: create real token
       val authentication = """{"jsonClass":"easyrider.Api$AuthenticateUser"}"""
-      val startInitFuture = sshSession ? RunSshCommand(CommandDetails(CommandId.generate(), TraceMode()), configuration.id, s"./${versionsDir(containerId)}/${version.number}/init start $easyRiderUrl $authentication")
+      val startInitFuture = sshSession ? RunSshCommand(CommandDetails(CommandId.generate(), TraceMode()), configuration.id, s"( cd ${versionsDir(containerId)}/${version.number}/; ./init start $easyRiderUrl $authentication )")
       val saveVersionFuture = sshSession ? RunSshCommand(CommandDetails(CommandId.generate(), TraceMode()), configuration.id, "echo '" + version.number + "' > " + containerDir(containerId) + "/running.version")
       for {
         startInit <- startInitFuture

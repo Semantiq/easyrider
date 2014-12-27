@@ -22,7 +22,7 @@ class BuiltinModule extends Actor {
         case (key, value) => s"$key=$value"
       }.mkString("\n")
       // TODO: correlate with original event
-      context.parent ! DeployConfigurationFile(CommandDetails(), containerId, containerDir(containerId), "config.properties", ByteString(content, "UTF-8"))
+      context.parent ! DeployConfigurationFile(CommandDetails(), containerId, containerDir(containerId) + "/etc", "config.properties", ByteString(content, "UTF-8"))
   }
 
   // TODO: de-dup SshDirectoryLayout

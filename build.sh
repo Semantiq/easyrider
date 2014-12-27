@@ -8,5 +8,5 @@ BASEDIR=`pwd`
     unzip *.zip
     cd */
     cp $BASEDIR/core/src/main/bin/init .
-    tar -c * | gzip > $BASEDIR/core/target/easyrier.tar.gz
+    tar -c * | bzip2 -9 > $BASEDIR/core/target/easyrier.tar.bz2
 )
