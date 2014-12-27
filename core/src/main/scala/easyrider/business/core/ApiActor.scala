@@ -1,26 +1,30 @@
 package easyrider.business.core
 
+import java.util.concurrent.TimeUnit
+
 import akka.actor._
 import easyrider.Applications.ApplicationCommand
 import easyrider.Commands.Failure
 import easyrider.Components.ComponentCommand
-import easyrider.Events.{GetReplay, EventBusCommand}
-import easyrider.Infrastructure.{ContainerCommand, DeployVersion}
+import easyrider.Events.{EventBusCommand, GetReplay}
+import easyrider.Infrastructure.ContainerCommand
 import easyrider.Orchestrator.OrchestrationCommand
 import easyrider.Repository.StartUpload
-import easyrider.business.ssh.SshInfrastructure
-import SshInfrastructure.SshInfrastructureCommand
 import easyrider._
+import easyrider.business.ssh.SshInfrastructure.SshInfrastructureCommand
+
+import scala.concurrent.duration.Duration
 
 class ApiActor(bus: ActorRef, applicationManager: ActorRef, componentManager: ActorRef, sshInfrastructure: ActorRef,
-               repositoryStorage: ActorRef, client: ActorRef, orchestrator: ActorRef) extends Actor {
+               repositoryStorage: ActorRef, client: ActorRef, orchestrator: ActorRef,
+               authenticator: ActorRef) extends Actor with Stash with ActorLogging {
   import easyrider.Api._
 
   def receive = {
-    case AuthenticateUser() =>
-      val auth = Authentication()
-      context.become(authenticated(auth))
-      client ! auth
+    case authenticationRequest: AuthenticateUser =>
+      authenticator ! authenticationRequest
+      context.become(authenticating())
+      context.setReceiveTimeout(Duration(1, TimeUnit.SECONDS))
     case AuthenticateComponent(componentId) =>
       val auth = Authentication()
       context.become(authenticated(auth))
@@ -28,6 +32,18 @@ class ApiActor(bus: ActorRef, applicationManager: ActorRef, componentManager: Ac
       client ! auth
     case _ =>
       context.stop(self)
+  }
+
+  def authenticating(): Receive = {
+    case auth @ Authentication() =>
+      context.become(authenticated(auth))
+      unstashAll()
+      client ! auth
+    case ReceiveTimeout => context.stop(self)
+    case failure @ AuthenticationFailure() =>
+      log.warning(s"Authentication failure: $failure")
+      context.stop(self)
+    case _ => stash()
   }
 
   def authenticated(authenticated: Authentication): Receive = {
@@ -71,6 +87,6 @@ class ApiActor(bus: ActorRef, applicationManager: ActorRef, componentManager: Ac
 
 object ApiActor {
   def apply(bus: ActorRef, applicationManager: ActorRef, componentManager: ActorRef, sshInfrastructure: ActorRef,
-            repositoryStorage: ActorRef, orchestrator: ActorRef)(client: ActorRef) = Props(classOf[ApiActor], bus, applicationManager,
-            componentManager, sshInfrastructure, repositoryStorage, client, orchestrator)
+            repositoryStorage: ActorRef, orchestrator: ActorRef, authenticator: ActorRef)(client: ActorRef) = Props(classOf[ApiActor],
+            bus, applicationManager, componentManager, sshInfrastructure, repositoryStorage, client, orchestrator, authenticator)
 }

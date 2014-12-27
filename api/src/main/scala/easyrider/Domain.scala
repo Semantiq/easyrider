@@ -153,9 +153,10 @@ object Orchestrator {
 
 object Api {
   trait Authenticate
-  case class AuthenticateUser() extends Authenticate
+  case class AuthenticateUser(username: String, password: String) extends Authenticate
   case class AuthenticateComponent(componentId: ComponentId) extends Authenticate
   case class Authentication()
+  case class AuthenticationFailure()
   
   case class CommandSentEvent(eventDetails: EventDetails, command: Command, authentication: Option[Authentication] = None) extends CommandExecution
 }

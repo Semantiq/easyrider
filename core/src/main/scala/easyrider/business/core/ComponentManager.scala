@@ -5,6 +5,7 @@ import easyrider.ComponentId
 import easyrider.Components.ComponentCommand
 import easyrider.business.core.ComponentManager.Register
 
+// TODO: this is likely redundant - remove
 class ComponentManager extends Actor {
   var components = Map[ComponentId, ActorRef]()
 

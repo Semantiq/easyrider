@@ -10,8 +10,10 @@ app.service("Api", ["Connection", function(Connection) {
 	}
 
 	me.objects = {
-		Authenticate: function() {
+		Authenticate: function(username, password) {
 			this.jsonClass = "easyrider.Api$AuthenticateUser";
+			this.username = username;
+			this.password = password;
 		}
 	};
 

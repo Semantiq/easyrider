@@ -14,4 +14,4 @@ if [ "$FILE" == "" ] || [ "$APP" == "" ] || [ "$VERSION" == "" ]; then
     exit 1
 fi
 
-curl -v -include --user test:test -T $FILE http://localhost:8080/api/repository/upload?application=$APP\&version=$VERSION
+curl -v -include --user admin:test -T $FILE http://localhost:8080/api/repository/upload?application=$APP\&version=$VERSION

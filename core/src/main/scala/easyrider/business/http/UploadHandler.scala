@@ -5,7 +5,8 @@ import easyrider.Api.AuthenticateUser
 import easyrider.Applications.ApplicationId
 import easyrider.CommandDetails
 import easyrider.Repository._
-import spray.http.{HttpResponse, ChunkedMessageEnd, MessageChunk, ChunkedRequestStart}
+import spray.http.HttpHeaders.Authorization
+import spray.http._
 
 class UploadHandler(apiFactory: ActorRef => Props) extends Actor with Stash {
   override def receive: Receive = {
@@ -13,7 +14,8 @@ class UploadHandler(apiFactory: ActorRef => Props) extends Actor with Stash {
       val Some(application) =  r.message.uri.query.get("application")
       val Some(version) =  r.message.uri.query.get("version")
       val api = context.actorOf(apiFactory(self))
-      api ! AuthenticateUser()
+      val credentials: BasicHttpCredentials = r.message.header[Authorization].get.credentials.asInstanceOf[BasicHttpCredentials]
+      api ! AuthenticateUser(credentials.username, credentials.password)
       api ! StartUpload(CommandDetails(), Version(ApplicationId(application), version))
       context.become(initiating(api))
   }

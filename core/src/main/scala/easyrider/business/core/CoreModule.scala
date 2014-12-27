@@ -18,5 +18,6 @@ class CoreModule(easyRiderData: File, easyRiderUrl: URL, actorSystem: ActorSyste
   val commandCenter = actorSystem.actorOf(CommandCenter(eventBus), "CommandCenter")
   val releaseFactory = OrchestratedDeployment(eventBus, applicationManager) _
   val orchestrator = actorSystem.actorOf(Orchestrator(releaseFactory), "Orchestrator")
-  val apiFactory = ApiActor(eventBus, applicationManager, componentManager, infrastructure, repositoryStorage, orchestrator) _
+  val authenticator = actorSystem.actorOf(Authenticator(), "Authenticator")
+  val apiFactory = ApiActor(eventBus, applicationManager, componentManager, infrastructure, repositoryStorage, orchestrator, authenticator) _
 }
