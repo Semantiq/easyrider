@@ -194,7 +194,9 @@ object Repository {
   case class StartUpload(commandDetails: CommandDetails, version: Version) extends Command
   case class StartDownload(version: Version)
   case class Upload(upload: ActorRef)
-  case class UploadChunk(bytes: ByteString)
+  case class UploadChunk(bytes: ByteString) {
+    override def toString = s"UploadChunk(<${bytes.length} bytes>)"
+  }
   case object Ack
   case class UploadCompleted()
 }

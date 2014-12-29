@@ -15,7 +15,7 @@ import easyrider._
 import easyrider.business.ssh.SshInfrastructure._
 
 class SshNodeAgent(eventBus: ActorRef, easyRiderUrl: URL, sshSessionFactory: (NodeConfiguration) => Props) extends Actor with SshNodeDirectoryLayout with ActorLogging {
-  implicit val timeout = Timeout(60, TimeUnit.SECONDS)
+  implicit val timeout = Timeout(5, TimeUnit.MINUTES)
   implicit val dispatcher = context.system.dispatcher
   val containers = Set[ContainerId]()
 
@@ -77,6 +77,7 @@ class SshNodeAgent(eventBus: ActorRef, easyRiderUrl: URL, sshSessionFactory: (No
       sshSession ? RunSshCommand(CommandDetails(CommandId.generate(), TraceMode()), configuration.id, "cat " + containerDir(containerId) + "/running.version") flatMap {
         case RunSshCommandSuccess(_, Some(output)) =>
           val runningVersionNumber = output.trim()
+          // TODO: this event needs to be sent immediately without waiting for ssh session
           eventBus ! ContainerStateChangedEvent(EventDetails(EventId.generate(), containerId.eventKey, Seq(commandDetails.commandId)), ContainerStopping(Version(containerId.stageId.applicationId, runningVersionNumber.trim)))
           sshSession ? RunSshCommand(CommandDetails(CommandId.generate(), TraceMode()), configuration.id, "./" + versionsDir(containerId) + "/" + runningVersionNumber + "/init stop")
       } onSuccess {

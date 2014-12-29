@@ -8,7 +8,7 @@ import spray.can.server.UHttp
 class WebServer(port: Int, workerFactory: ActorRef => Props) extends Actor {
   override def preStart() {
     implicit val system = context.system
-    IO(UHttp) ! Http.Bind(self, "localhost", port)
+    IO(UHttp) ! Http.Bind(self, "0.0.0.0", port)
   }
   def receive = {
     case Http.Connected(remoteAddress, localAddress) =>

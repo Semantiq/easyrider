@@ -15,7 +15,7 @@ class RepositoryDownload(version: Version, target: ActorRef, val easyriderData: 
   readChunk()
 
   private def readChunk() {
-    val buffer = ByteBuffer.allocate(2048)
+    val buffer = ByteBuffer.allocate(2048 * 10)
     val bytesRead = channel.read(buffer)
     if (bytesRead > 0) {
       val byteString = ByteString.fromArray(buffer.array(), 0, bytesRead)
