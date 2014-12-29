@@ -12,8 +12,19 @@
 		</a>
 	</div>
 	<div class="panel-body">
-		<h4>Properties</h4>
-		<pre>{{stage.stage.properties|json}}</pre>
+		<div class="panel">
+			<div class="btn-toolbar pull-right">
+				<button class="btn btn-default btn-xs" ng-click="stage.stage.properties.push({jsonClass: 'easyrider.Applications$Property', namespace: 'literal.string', name: 'name here', value: 'value here'})">
+					Add literal property
+				</button>
+				<button class="btn btn-default btn-xs" ng-click="saveStage(stage)">
+					Save changes
+				</button>
+			</div>
+			<h4>Properites</h4>
+			<property property="property" ng-repeat="property in stage.stage.properties"></property>
+			<pre>{{stage.stage.properties|json}}</pre>
+		</div>
 		<h4>Containers</h4>
 		<div class="list-group">
 			<div class="list-group-item" ng-repeat="containerUpdatedEvent in ContainersConfiguration.containersInStage(stage.stage.id)">
@@ -27,8 +38,19 @@
 					{{containerUpdatedEvent.container.id.id}}
 					<badge state="status" label="status.version.number"></badge>
 				</h4>
-				<strong>Properties</strong>
-				<pre>{{containerUpdatedEvent.container.properties|json}}</pre>
+				<div class="panel">
+					<div class="btn-toolbar pull-right">
+						<button class="btn btn-default btn-xs" ng-click="containerUpdatedEvent.container.properties.push({jsonClass: 'easyrider.Applications$Property', namespace: 'literal.string', name: 'name here', value: 'value here'})">
+							Add literal property
+						</button>
+						<button class="btn btn-default btn-xs" ng-click="saveContainer(containerUpdatedEvent)">
+							Save changes
+						</button>
+					</div>
+					<h5>Properties</h5>
+					<property property="property" ng-repeat="property in containerUpdatedEvent.container.properties"></property>
+					<pre>{{containerUpdatedEvent.container.properties|json}}</pre>
+				</div>
 				<strong>Deployed versions</strong>
 				<ul class="list-group">
 					<li class="list-group-item" ng-repeat="deployedVersion in DeployedVersions.deployedVersionsByContainerId(containerUpdatedEvent.container.id)">

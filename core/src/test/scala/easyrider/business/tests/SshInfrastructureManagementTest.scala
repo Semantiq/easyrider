@@ -21,7 +21,7 @@ class SshInfrastructureManagementTest extends EasyRiderTest(ActorSystem("test"))
     val client = TestProbe()
     val api = easyrider.actorSystem.actorOf(easyrider.core.apiFactory(client.ref))
 
-    client.send(api, AuthenticateUser())
+    client.send(api, AuthenticateUser("test", "test"))
     client.expectMsgClass(classOf[Authentication])
 
     client.send(api, Subscribe(CommandDetails(), "nodeEvents", classOf[NodeUpdatedEvent], EventKey()))
@@ -41,7 +41,7 @@ class SshInfrastructureManagementTest extends EasyRiderTest(ActorSystem("test"))
     // TODO: perform upload, to avoid writing to easyrider folders directly
     FileUtils.copyFile(new File("testing/testing.tar.bz2"), new File("target/easyrider/repository/app/1.0.0.tar.bz2"))
 
-    client.send(api, AuthenticateUser())
+    client.send(api, AuthenticateUser("test", "test"))
     client.expectMsgClass(classOf[Authentication])
 
     client.send(api, Subscribe(CommandDetails(), "deploymentEvents", classOf[VersionDeploymentProgressEvent], EventKey()))
@@ -75,7 +75,7 @@ class SshInfrastructureManagementTest extends EasyRiderTest(ActorSystem("test"))
     val client = TestProbe()
     val api = easyrider.actorSystem.actorOf(easyrider.core.apiFactory(client.ref))
 
-    client.send(api, AuthenticateUser())
+    client.send(api, AuthenticateUser("test", "test"))
     client.expectMsgClass(classOf[Authentication])
 
     client.send(api, Subscribe(CommandDetails(), "configurationDeployment", classOf[DeployConfigurationFileComplete], EventKey()))

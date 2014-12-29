@@ -39,6 +39,12 @@ app.directive("stage", function() {
             $scope.canRemove = function(containerState) {
                 return containerState.jsonClass == 'easyrider.Infrastructure$ContainerCreated$';
             };
+            $scope.saveStage = function(stage) {
+                Command.show(Stages.updateStageTemplate(stage));
+            };
+            $scope.saveContainer = function(container) {
+                Command.show(ContainersConfiguration.updateContainerConfigurationTemplate(container));
+            };
 		}]
 	};
 });

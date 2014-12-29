@@ -50,6 +50,12 @@ app.service("ContainersConfiguration", ["Api", "Validators", "Utils", function(A
 
 		return lst;
 	};
+    me.updateContainerConfigurationTemplate = function(container) {
+        return {
+            jsonClass: "easyrider.Applications$UpdateContainerConfiguration",
+            container: container.container
+        };
+    };
 
 	Validators.addValidator("easyrider.Applications$CreateContainerConfiguration",
 		function(command, reporter) {

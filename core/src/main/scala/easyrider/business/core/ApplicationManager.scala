@@ -62,9 +62,7 @@ class ApplicationManager(eventBus: ActorRef, infrastructure: ActorRef) extends A
       case _ =>
         applications += (application.id -> application)
         eventBus ! ApplicationUpdatedEvent(EventDetails(EventId.generate(), application.id.eventKey, Seq(commandDetails.commandId)), application)
-        containers.values.filter(_.id.stageId.applicationId == application.id).foreach { container =>
-          eventBus ! EffectiveConfigurationChanged(EventDetails(EventId.generate(), container.id.eventKey, Seq(commandDetails.commandId)), container.id, getEffectiveConfiguration(container.id).get)
-        }
+        updateEffectiveConfigurationForContainersThat(_.id.stageId.applicationId == application.id, commandDetails.commandId)
     }
     case command @ CreateStage(commandDetails, stage) => stage match {
       case NonExistingApplication(_) => sender ! command.failure(s"Application ${stage.id.applicationId.id} does not exist")
@@ -78,6 +76,13 @@ class ApplicationManager(eventBus: ActorRef, infrastructure: ActorRef) extends A
       case ExistingStage(stage) =>
         stages -= stageId
         eventBus ! StageUpdatedEvent(EventDetails(EventId.generate(), stage.id.eventKey, Seq(commandDetails.commandId), removal = true), stage)
+    }
+    case command @ UpdateStage(commandDetails, stage) => stage.id match {
+      case NonExistingStage(_) => sender ! command.failure(s"Stage ${stage.id.id} of application ${stage.id.applicationId.id}")
+      case ExistingStage(_) =>
+        stages += (stage.id -> stage)
+        eventBus ! StageUpdatedEvent(EventDetails(EventId.generate(), stage.id.eventKey, Seq(commandDetails.commandId)), stage)
+        updateEffectiveConfigurationForContainersThat(_.id.stageId == stage.id, commandDetails.commandId)
     }
     case command @ CreateContainerConfiguration(commandDetails, container) => container match {
       case ExistingContainer(_) => sender ! command.failure(s"Container ${container.id.id} in application ${container.id.stageId.applicationId.id} stage ${container.id.stageId.id} already exists")
@@ -94,12 +99,19 @@ class ApplicationManager(eventBus: ActorRef, infrastructure: ActorRef) extends A
       case _ =>
         containers += (container.id -> container)
         eventBus ! ContainerConfigurationUpdatedEvent(EventDetails(EventId.generate(), container.id.eventKey, Seq(commandDetails.commandId)), container)
+        eventBus ! EffectiveConfigurationChanged(EventDetails(EventId.generate(), container.id.eventKey, Seq(commandDetails.commandId)), container.id, getEffectiveConfiguration(container.id).get)
     }
     case command: ContainerCommand =>
       containers.get(command.containerId) match {
         case Some(container) => infrastructure.forward(AddressedContainerCommand(container.nodeId, command))
         case None => sender ! command.failure(s"Container ${command.containerId.containerName} does not exist")
       }
+  }
+
+  def updateEffectiveConfigurationForContainersThat(predicate: (ContainerConfiguration) => Boolean, cause: Cause) {
+    containers.values.filter(predicate).foreach { container =>
+      eventBus ! EffectiveConfigurationChanged(EventDetails(EventId.generate(), container.id.eventKey, Seq(cause)), container.id, getEffectiveConfiguration(container.id).get)
+    }
   }
 
   def getEffectiveConfiguration(containerId: ContainerId): Option[EffectiveConfiguration] = {

@@ -22,6 +22,12 @@ app.service('Stages', ['Api', "Validators", "Utils", function(Api, Validators, U
 			stageId: stageId
 		};
 	};
+    me.updateStageTemplate = function(stage) {
+        return {
+            jsonClass: "easyrider.Applications$UpdateStage",
+            stage: stage.stage
+        };
+    };
 
 	me.stagesOfApplication = function(applicationId) {
 		var stages = [];
