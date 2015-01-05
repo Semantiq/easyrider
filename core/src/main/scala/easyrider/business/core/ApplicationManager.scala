@@ -1,6 +1,7 @@
 package easyrider.business.core
 
-import akka.actor.{Actor, ActorRef, Props, Stash}
+import akka.actor._
+import akka.event.LoggingReceive
 import akka.pattern.{ask, pipe}
 import akka.util.Timeout
 import easyrider.Events.{GetSnapshot, GetSnapshotResponse}
@@ -11,13 +12,14 @@ import easyrider.business.core.ApplicationManager.RestoredConfiguration
 
 import scala.concurrent.duration._
 
-class ApplicationManager(eventBus: ActorRef, infrastructure: ActorRef) extends Actor with Stash {
+class ApplicationManager(eventBus: ActorRef, infrastructure: ActorRef) extends Actor with Stash with ActorLogging {
   import easyrider.Applications._
   private var applications = Map[ApplicationId, Application]()
   private var stages = Map[StageId, Stage]()
   private var containers = Map[ContainerId, ContainerConfiguration]()
 
-  implicit val timeout = Timeout(3 seconds)
+  // TODO: make sure there's a proper failure after this timeout
+  implicit val timeout = Timeout(30 seconds)
   implicit val dispatcher = context.system.dispatcher
   val appsFuture = eventBus ? GetSnapshot(QueryId.generate(), classOf[ApplicationUpdatedEvent])
   val stagesFuture = eventBus ? GetSnapshot(QueryId.generate(), classOf[StageUpdatedEvent])
@@ -43,7 +45,7 @@ class ApplicationManager(eventBus: ActorRef, infrastructure: ActorRef) extends A
     case other => stash()
   }
 
-  def running: Receive = {
+  def running = LoggingReceive {
     case command @ CreateApplication(commandDetails, application) => application match {
       case ExistingApplication(_) => sender ! command.failure(s"Application ${application.id.id} already exists")
       case _ =>
