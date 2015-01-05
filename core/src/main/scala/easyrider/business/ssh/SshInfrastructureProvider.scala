@@ -13,7 +13,7 @@ class SshInfrastructureProvider(eventBus: ActorRef, sshNodeAgent: () => Props) e
 
   eventBus ! GetSnapshot(QueryId.generate(), classOf[NodeConfigurationUpdatedEvent])
 
-  def initializing: Receive = {
+  def initializing = LoggingReceive {
     case GetSnapshotResponse(_, events: Seq[NodeConfigurationUpdatedEvent]) =>
       nodes = events.map { event =>
         val agent = context.actorOf(sshNodeAgent(), event.nodeConfiguration.id.id)
