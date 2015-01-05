@@ -2,22 +2,16 @@ package easyrider.business.ssh
 
 import akka.actor.{Actor, ActorRef, Props}
 import akka.event.LoggingReceive
-import akka.pattern.{ask, pipe}
-import akka.util.Timeout
 import easyrider.Events.{GetSnapshot, GetSnapshotResponse}
 import easyrider.Implicits._
 import easyrider.Infrastructure._
-import SshInfrastructure.{CreateNode, NodeConfigurationUpdatedEvent}
 import easyrider._
-
-import scala.concurrent.duration._
+import easyrider.business.ssh.SshInfrastructure.{CreateNode, NodeConfigurationUpdatedEvent}
 
 class SshInfrastructureProvider(eventBus: ActorRef, sshNodeAgent: () => Props) extends Actor {
   var nodes = Map[NodeId, ActorRef]()
 
-  implicit val timeout = Timeout(3 seconds)
-  implicit val dispatcher = context.system.dispatcher
-  eventBus ? GetSnapshot(QueryId.generate(), classOf[NodeConfigurationUpdatedEvent]) pipeTo self
+  eventBus ! GetSnapshot(QueryId.generate(), classOf[NodeConfigurationUpdatedEvent])
 
   def initializing: Receive = {
     case GetSnapshotResponse(_, events: Seq[NodeConfigurationUpdatedEvent]) =>
