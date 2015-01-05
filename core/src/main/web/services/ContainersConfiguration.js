@@ -23,6 +23,13 @@ app.service("ContainersConfiguration", ["Api", "Validators", "Utils", function(A
 			version: { }
 		};
 	};
+	me.unDeployVersionTemplate = function(containerId, version) {
+		return {
+			jsonClass: "easyrider.Infrastructure$UnDeployVersion",
+			containerId: containerId,
+			version: version
+		};
+	};
 	me.startContainerTemplate = function(containerId, version) {
 	    return {
 	        jsonClass: 'easyrider.Infrastructure$StartContainer',
@@ -44,7 +51,7 @@ app.service("ContainersConfiguration", ["Api", "Validators", "Utils", function(A
 		for(var i in me.list) {
 			var cce = me.list[i];
 
-			if(stageId.id == cce.container.id.stageId.id)
+			if(stageId.id == cce.container.id.stageId.id && stageId.applicationId.id == cce.container.id.stageId.applicationId.id)
 				lst.push(cce);
 		}
 

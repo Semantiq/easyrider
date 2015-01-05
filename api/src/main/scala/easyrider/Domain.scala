@@ -109,6 +109,8 @@ object Infrastructure {
   case object DeploymentInProgress extends DeploymentState
   case object DeploymentCompleted extends DeploymentState
   case class DeploymentFailed(reason: String) extends DeploymentState
+  case object UnDeploymentInProgress extends DeploymentState
+  case object UnDeployed extends DeploymentState
 
   trait InfrastructureCommand extends Command
   case class CreateContainer(commandDetails: CommandDetails, nodeId: NodeId, containerId: ContainerId) extends InfrastructureCommand
@@ -116,6 +118,7 @@ object Infrastructure {
     def containerId: ContainerId
   }
   case class DeployVersion(commandDetails: CommandDetails, containerId: ContainerId, version: Version) extends ContainerCommand
+  case class UnDeployVersion(commandDetails: CommandDetails, containerId: ContainerId, version: Version) extends ContainerCommand
   case class DeployConfigurationFile(commandDetails: CommandDetails, containerId: ContainerId, path: String, fileName: String, contents: ByteString) extends ContainerCommand
   case class StartContainer(commandDetails: CommandDetails, containerId: ContainerId, version: Version) extends ContainerCommand
   case class StopContainer(commandDetails: CommandDetails, containerId: ContainerId, immediate: Boolean = false) extends ContainerCommand

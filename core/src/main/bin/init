@@ -2,7 +2,7 @@
 
 
 BASEDIR=$(dirname $0)
-SCRIPT="$BASEDIR/bin/core"
+SCRIPT="$BASEDIR/bin/core -mem 256"
 RUNNING_PID="$BASEDIR/running.pid"
 
 start() {

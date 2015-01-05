@@ -31,9 +31,17 @@ app.constant("StatusClasses", {
         state: 'pending',
         label: 'Deployment in progress'
     },
+    'easyrider.Infrastructure$UnDeploymentInProgress$': {
+        state: 'pending',
+        label: 'Un-deployment in progress'
+    },
     'easyrider.Infrastructure$DeploymentCompleted$': {
         state: 'success',
         label: 'Deployment completed'
+    },
+    'easyrider.Infrastructure$UnDeployed$': {
+        state: 'success',
+        label: 'Un-deployed'
     },
     'easyrider.Infrastructure$DeploymentFailed$': {
         state: 'success',

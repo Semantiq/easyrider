@@ -89,6 +89,14 @@ class SshNodeAgent(eventBus: ActorRef, easyRiderUrl: URL, sshSessionFactory: (No
       sshSession ? SftpUpdateFile(CommandDetails(CommandId.generate(), TraceMode()), configuration.id, path, fileName, content) onSuccess {
         case _: SftpUpdateFileSuccess => eventBus ! DeployConfigurationFileComplete(EventDetails(EventId.generate(), containerId.eventKey, Seq(commandDetails.commandId)), containerId)
       }
+    case UnDeployVersion(commandDetails, containerId, version) =>
+      val eventKey = containerId.eventKey append version.number
+      eventBus ! VersionDeploymentProgressEvent(EventDetails(EventId.generate(), eventKey, Seq(commandDetails.commandId)), version, UnDeploymentInProgress)
+      sshSession ? RunSshCommand(CommandDetails(), configuration.id, s"rm -r ${versionsDir(containerId)}/${version.number}") flatMap {
+        case _: RunSshCommandSuccess => sshSession ? RunSshCommand(CommandDetails(), configuration.id, s"rm ${versionsDir(containerId)}/${version.number}.tar.bz2")
+      } onSuccess {
+        case RunSshCommandSuccess(_, _) => eventBus ! VersionDeploymentProgressEvent(EventDetails(EventId.generate(), eventKey, Seq(commandDetails.commandId), removal = true), version, UnDeployed)
+      }
   }
 
   override def receive = unConfigured

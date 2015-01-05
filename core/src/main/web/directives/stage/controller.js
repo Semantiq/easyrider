@@ -26,6 +26,9 @@ app.directive("stage", function() {
 			$scope.deployVersion = function(containerUpdatedEvent) {
 				Command.show(ContainersConfiguration.deployVersionTemplate(containerUpdatedEvent.container.id));
 			};
+			$scope.unDeployVersion = function(containerId, version) {
+				Command.show(ContainersConfiguration.unDeployVersionTemplate(containerId, version));
+			};
 
             $scope.startContainer = function(containerId, version) {
                 Command.show(ContainersConfiguration.startContainerTemplate(containerId, version));

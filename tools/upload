@@ -1,12 +1,19 @@
 #!/bin/bash
 
-while getopts a:v:f: option; do
+while getopts a:v:f:d:t option; do
 	case "${option}" in
 		f) FILE=${OPTARG};;
+		d) DIR=${OPTARG};;
 		a) APP=${OPTARG};;
 		v) VERSION=${OPTARG};;
+		t) TAG=1;;
 	esac
 done
+
+if [ "$DIR" != "" ]; then
+    ( cd $DIR; tar -c * | bzip2 > ../app.tar.bz2 )
+    FILE=$DIR/../app.tar.bz2
+fi
 
 if [ "$FILE" == "" ] || [ "$APP" == "" ] || [ "$VERSION" == "" ]; then
     echo "Syntax:"
@@ -15,3 +22,7 @@ if [ "$FILE" == "" ] || [ "$APP" == "" ] || [ "$VERSION" == "" ]; then
 fi
 
 curl -v -include --user admin:test -T $FILE http://localhost:8080/api/repository/upload?application=$APP\&version=$VERSION
+
+if [ "$TAG" == "1" ]; then
+    git tag "$VERSION"
+fi
