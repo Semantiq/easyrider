@@ -14,7 +14,7 @@ import easyrider.Repository.Version
 import easyrider._
 import easyrider.business.ssh.SshInfrastructure._
 
-class SshNodeAgent(eventBus: ActorRef, easyRiderUrl: URL, sshSessionFactory: (NodeConfiguration) => Props) extends Actor with SshNodeDirectoryLayout with ActorLogging {
+class SshNodeAgent(eventBus: ActorRef, easyRiderUrl: URL, sshSession: ActorRef) extends Actor with SshNodeDirectoryLayout with ActorLogging {
   implicit val timeout = Timeout(5, TimeUnit.MINUTES)
   implicit val dispatcher = context.system.dispatcher
   val containers = Set[ContainerId]()
@@ -23,7 +23,6 @@ class SshNodeAgent(eventBus: ActorRef, easyRiderUrl: URL, sshSessionFactory: (No
     case CreateNode(commandDetails, configuration) =>
       eventBus ! NodeUpdatedEvent(EventDetails(EventId.generate(), EventKey(configuration.id.id), Seq()), configuration.id, CreatingNode)
       eventBus ! NodeConfigurationUpdatedEvent(EventDetails(EventId.generate(), EventKey(configuration.id.id), Seq(commandDetails.commandId)), configuration)
-      val sshSession = context.actorOf(sshSessionFactory(configuration), "sshSession")
       sshSession ! RunSshCommand(CommandDetails(), configuration.id, "mkdir -p easyrider")
       eventBus ! NodeUpdatedEvent(EventDetails(EventId.generate(), EventKey(configuration.id.id), Seq()), configuration.id, NodeCreated)
       context.become(configured(configuration, sshSession))
@@ -103,5 +102,5 @@ class SshNodeAgent(eventBus: ActorRef, easyRiderUrl: URL, sshSessionFactory: (No
 }
 
 object SshNodeAgent {
-  def apply(eventBus: ActorRef, easyRiderUrl: URL, sshSessionFactory: (NodeConfiguration) => Props)() = Props(classOf[SshNodeAgent], eventBus, easyRiderUrl, sshSessionFactory)
+  def apply(eventBus: ActorRef, easyRiderUrl: URL, sshSession: ActorRef)() = Props(classOf[SshNodeAgent], eventBus, easyRiderUrl, sshSession)
 }

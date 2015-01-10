@@ -18,7 +18,9 @@ object SshInfrastructure {
 
   case class NodeConfigurationUpdatedEvent(eventDetails: EventDetails, nodeConfiguration: NodeConfiguration,
                                            captureOutput: Boolean = false) extends Event
-  case class RunSshCommandSuccess(eventDetails: EventDetails, output: Option[String]) extends Success
-  case class SftpUploadCommandSuccess(eventDetails: EventDetails) extends Success
-  case class SftpUpdateFileSuccess(eventDetails: EventDetails) extends Success
+
+  trait SshEvent extends Event
+  case class RunSshCommandSuccess(eventDetails: EventDetails, output: Option[String]) extends Success with SshEvent
+  case class SftpUploadCommandSuccess(eventDetails: EventDetails) extends Success with SshEvent
+  case class SftpUpdateFileSuccess(eventDetails: EventDetails) extends Success with SshEvent
 }
