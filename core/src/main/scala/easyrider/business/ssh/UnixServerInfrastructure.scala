@@ -33,9 +33,9 @@ class UnixServerInfrastructure(sshSession: (NodeConfiguration, ActorRef) => Prop
       val node = context.actorOf(sshSession(addNode.nodeConfiguration, self), addNode.nodeConfiguration.id.id)
       nodes += (addNode.nodeConfiguration.id -> node)
       //node ! addNode
-    case command @ RunSshCommand(_, nodeId, _) =>
-      nodes(nodeId) ! command
-    //case e: NodeConfigurationUpdatedEvent => context.parent ! e
+    case command: RemoteAccessCommand =>
+      // TODO: handle incorrect nodeId
+      nodes(command.nodeId) ! command
     case e: SshEvent => context.parent ! e
   }
 

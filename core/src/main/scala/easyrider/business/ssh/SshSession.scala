@@ -1,15 +1,15 @@
 package easyrider.business.ssh
 
 import java.io.OutputStream
+import java.util.UUID
 import java.util.concurrent.TimeUnit
 
 import akka.actor._
 import akka.event.LoggingReceive
 import akka.util.Timeout
 import com.jcraft.jsch.{ChannelExec, ChannelSftp, JSch, Session}
-import easyrider.Repository.{Ack, StartDownload, UploadChunk, UploadCompleted}
-import SshInfrastructure._
 import easyrider._
+import easyrider.business.ssh.SshInfrastructure._
 import org.apache.commons.io.IOUtils
 
 import scala.concurrent.duration._
@@ -43,8 +43,9 @@ class SshSession(eventBus: ActorRef, repository: ActorRef, configuration: NodeCo
       channel.connect()
       channel.cd(command.targetFolder)
       val output = channel.put(command.targetFileName)
-      repository ! StartDownload(command.version)
-      becomeUploading(session, channel, output, command, sender())
+      val uploadId = UUID.randomUUID().toString
+      sender() ! SftpUploadNextChunk(EventDetails(EventId.generate(), EventKey(), Seq(command.commandDetails.commandId)), uploadId)
+      becomeUploading(session, channel, output, command, sender(), uploadId)
     case RunSshCommand(commandDetails, nodeId, command) =>
       log.debug("Sending command to {}: {}", configuration.id.id.asInstanceOf[Any], command)
       val shell = session.openChannel("exec").asInstanceOf[ChannelExec]
@@ -78,12 +79,12 @@ class SshSession(eventBus: ActorRef, repository: ActorRef, configuration: NodeCo
       becomeCold()
   }
 
-  def uploading(session: Session, channel: ChannelSftp, output: OutputStream, command: SftpUploadCommand, requestor: ActorRef) = LoggingReceive {
-    case UploadChunk(data) =>
-      sender() ! Ack
+  def uploading(session: Session, channel: ChannelSftp, output: OutputStream, command: SftpUploadCommand, requestor: ActorRef, currentUploadId: String) = LoggingReceive {
+    case SftpUploadChunk(commandDetails, _, uploadId, data) if uploadId == currentUploadId =>
+      sender() ! SftpUploadNextChunk(EventDetails(EventId.generate(), EventKey(), Seq(commandDetails.commandId)), currentUploadId)
       IOUtils.copy(data.iterator.asInputStream, output)
-    case UploadCompleted() =>
-      requestor ! SftpUploadCommandSuccess(EventDetails(EventId.generate(), EventKey(command.commandDetails.commandId.id), Seq(command.commandDetails.commandId)))
+    case SftpUploadComplete(commandDetails, _, uploadId) if uploadId == currentUploadId =>
+      requestor ! SftpUploadCompleted(EventDetails(EventId.generate(), EventKey(), Seq(commandDetails.commandId)), currentUploadId)
       output.close()
       channel.disconnect()
       becomeWarm(session)
@@ -101,9 +102,9 @@ class SshSession(eventBus: ActorRef, repository: ActorRef, configuration: NodeCo
     context.become(warm(session))
   }
 
-  def becomeUploading(session: Session, channel: ChannelSftp, output: OutputStream, command: SftpUploadCommand, requestor: ActorRef) {
+  def becomeUploading(session: Session, channel: ChannelSftp, output: OutputStream, command: SftpUploadCommand, requestor: ActorRef, uploadId: String) {
     context.setReceiveTimeout(Duration.Inf)
-    context.become(uploading(session, channel, output, command, requestor))
+    context.become(uploading(session, channel, output, command, requestor, uploadId))
   }
 
   private def connect() = {

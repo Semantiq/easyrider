@@ -14,7 +14,7 @@ import easyrider.Repository.Version
 import easyrider._
 import easyrider.business.ssh.SshInfrastructure._
 
-class SshNodeAgent(eventBus: ActorRef, easyRiderUrl: URL, sshSession: ActorRef) extends Actor with SshNodeDirectoryLayout with ActorLogging {
+class SshNodeAgent(eventBus: ActorRef, easyRiderUrl: URL, sshSession: ActorRef, builtInPackageUpload: () => Props) extends Actor with SshNodeDirectoryLayout with ActorLogging {
   implicit val timeout = Timeout(5, TimeUnit.MINUTES)
   implicit val dispatcher = context.system.dispatcher
   val containers = Set[ContainerId]()
@@ -46,8 +46,9 @@ class SshNodeAgent(eventBus: ActorRef, easyRiderUrl: URL, sshSession: ActorRef) 
       val packageFile = version.number + ".tar.bz2"
       val packageFolder = versionsDir(containerId)
       eventBus ! VersionDeploymentProgressEvent(EventDetails(EventId.generate(), eventKey, Seq(commandDetails.commandId)), version, DeploymentInProgress)
-      sshSession ? SftpUploadCommand(CommandDetails(), version, packageFolder, packageFile) flatMap {
-        case _: SftpUploadCommandSuccess => sshSession ? RunSshCommand(CommandDetails(), configuration.id, s"rm -r $packageFolder/${version.number}")
+      val upload = context.actorOf(builtInPackageUpload())
+      upload ? BuiltInPackageUpload.Upload(version, configuration.id, packageFolder, packageFile) flatMap {
+        case _: BuiltInPackageUpload.UploadComplete => sshSession ? RunSshCommand(CommandDetails(), configuration.id, s"rm -r $packageFolder/${version.number}")
       } flatMap {
         case _: RunSshCommandSuccess => sshSession ? RunSshCommand(CommandDetails(), configuration.id, s"mkdir -p $packageFolder/${version.number}")
       } flatMap {
@@ -102,5 +103,5 @@ class SshNodeAgent(eventBus: ActorRef, easyRiderUrl: URL, sshSession: ActorRef) 
 }
 
 object SshNodeAgent {
-  def apply(eventBus: ActorRef, easyRiderUrl: URL, sshSession: ActorRef)() = Props(classOf[SshNodeAgent], eventBus, easyRiderUrl, sshSession)
+  def apply(eventBus: ActorRef, easyRiderUrl: URL, sshSession: ActorRef, builtInPackageUpload: () => Props)() = Props(classOf[SshNodeAgent], eventBus, easyRiderUrl, sshSession, builtInPackageUpload)
 }

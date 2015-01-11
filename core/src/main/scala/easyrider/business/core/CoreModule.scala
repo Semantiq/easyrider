@@ -14,7 +14,8 @@ class CoreModule(easyRiderData: File, easyRiderUrl: URL, actorSystem: ActorSyste
   val repositoryStorage = actorSystem.actorOf(RepositoryStorage(easyRiderData, uploadFactory, downloadFactory))
   val sshSessionFactory = SshSession(eventBus, repositoryStorage) _
   val unixInfrastructure = actorSystem.actorOf(PluginHolder(eventBus, ActorRef.noSender /* TODO: undo this hack */)(new UnixServerInfrastructureFactory().props), "UnixInfrastructure")
-  val infrastructure = actorSystem.actorOf(SshInfrastructureProvider(eventBus, SshNodeAgent(eventBus, easyRiderUrl, unixInfrastructure)), "SshInfrastructure")
+  val builtInPackageUpload = BuiltInPackageUpload(unixInfrastructure, repositoryStorage) _
+  val infrastructure = actorSystem.actorOf(SshInfrastructureProvider(eventBus, SshNodeAgent(eventBus, easyRiderUrl, unixInfrastructure, builtInPackageUpload)), "SshInfrastructure")
   val applicationManager = actorSystem.actorOf(ApplicationManager(eventBus, infrastructure), "ApplicationManager")
   val componentManager = actorSystem.actorOf(ComponentManager(), "ComponentManager")
   val commandCenter = actorSystem.actorOf(CommandCenter(eventBus), "CommandCenter")
