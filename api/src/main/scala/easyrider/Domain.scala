@@ -5,7 +5,7 @@ import java.util.UUID
 import akka.actor.{Props, ActorRef}
 import akka.util.ByteString
 import easyrider.Applications._
-import easyrider.Commands.{CommandExecution, Failure}
+import easyrider.Commands.{Success, CommandExecution, Failure}
 import easyrider.Infrastructure.NodeId
 import easyrider.Repository.Version
 import org.joda.time.DateTime
@@ -21,7 +21,7 @@ case class EventType(sender: ComponentId, name: String) {
 }
 
 object Implicits {
-  implicit def class2eventType(x: Class[_]) = EventType(ComponentId.core, x.getName)
+  implicit def class2eventType(x: Class[_]): EventType = EventType(ComponentId.core, x.getName)
 }
 
 case class TraceMode(progress: Boolean = false, confirmation: Boolean = true, consequences: Boolean = false)
@@ -140,6 +140,25 @@ object Infrastructure {
   case class ApplicationStartedEvent(eventDetails: EventDetails) extends Event
   case class ApplicationStoppingEvent(eventDetails: EventDetails, progress: Option[String]) extends Event
   case class ApplicationStoppedEvent(eventDetails: EventDetails) extends Event
+}
+
+object RemoteAccess {
+  trait RemoteAccessCommand extends Command {
+    def nodeId: NodeId
+  }
+  case class RunRemoteCommand(commandDetails: CommandDetails, nodeId: NodeId, command: String) extends RemoteAccessCommand
+  case class StartUpload(commandDetails: CommandDetails, nodeId: NodeId, targetFolder: String, targetFileName: String) extends RemoteAccessCommand
+  case class UploadChunk(commandDetails: CommandDetails, nodeId: NodeId, uploadId: String, data: ByteString) extends RemoteAccessCommand {
+    override def toString = s"SftpUploadChunk($commandDetails, $nodeId, $uploadId, <${data.length} bytes>)"
+  }
+  case class UploadComplete(commandDetails: CommandDetails, nodeId: NodeId, uploadId: String) extends RemoteAccessCommand
+  case class UpdateFile(commandDetails: CommandDetails, nodeId: NodeId, path: String, filename: String, content: ByteString) extends RemoteAccessCommand
+
+  trait RemoteAccessEvent extends Event
+  case class RunRemoteCommandSuccess(eventDetails: EventDetails, output: Option[String]) extends Success with RemoteAccessEvent
+  case class UploadNextChunk(eventDetails: EventDetails, uploadId: String) extends Success with RemoteAccessEvent
+  case class UploadCompleted(eventDetails: EventDetails, uploadId: String) extends Success with RemoteAccessEvent
+  case class UpdateFileSuccess(eventDetails: EventDetails) extends Success with RemoteAccessEvent
 }
 
 object Orchestrator {

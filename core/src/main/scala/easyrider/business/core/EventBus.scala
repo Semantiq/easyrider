@@ -7,7 +7,8 @@ import akka.event.LoggingReceive
 import easyrider.Implicits._
 import easyrider.{Event, EventKey, EventType}
 import org.apache.commons.io.FileUtils
-import org.json4s.FullTypeHints
+import org.json4s.{JValue, FullTypeHints}
+import org.json4s.JsonAST.{JString, JObject, JArray}
 import org.json4s.ext.JodaTimeSerializers
 import org.json4s.native.Serialization
 import org.json4s.native.Serialization.{read, writePretty}
@@ -79,8 +80,22 @@ class EventBus(easyRiderData: File) extends Actor with ActorLogging {
   }
 
   private def loadSnapshot(): Map[EventType, Map[EventKey, Event]] = {
+    import org.json4s.native.JsonParser.parse
+
+    val deprecatedEvents = Seq(
+      "easyrider.business.ssh.SshInfrastructure$RunSshCommandSuccess",
+      "easyrider.business.ssh.SshInfrastructure$SftpUploadNextChunk",
+      "easyrider.business.ssh.SshInfrastructure$SftpUploadCompleted",
+      "easyrider.business.ssh.SshInfrastructure$SftpUpdateFileSuccess"
+    )
     if (snapshotFile.exists()) {
       val string = FileUtils.readFileToString(snapshotFile)
+      val document: JValue = parse(string)
+      val filtered = for (
+        value <- document.asInstanceOf[JArray].values if !deprecatedEvents.contains(value.asInstanceOf[Map[String, _]].getOrElse("jsonClass", "?"))
+      ) yield value
+      val filteredString = writePretty(filtered)
+      FileUtils.write(new File(easyRiderData, "snapshot.migrated.json"), filteredString)
       val events = read[Seq[Event]](string)
       events.groupBy(event => class2eventType(event.getClass)).map {
         case (key, value) => (key, value.groupBy(event => event.eventDetails.eventKey).map {

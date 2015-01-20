@@ -5,6 +5,7 @@ import akka.event.LoggingReceive
 import easyrider.Events.{GetSnapshot, GetSnapshotResponse}
 import easyrider.Implicits._
 import easyrider.Infrastructure.NodeId
+import easyrider.RemoteAccess.{RemoteAccessEvent, RemoteAccessCommand}
 import easyrider.business.ssh.SshInfrastructure._
 import easyrider.{PluginFactory, QueryId}
 
@@ -36,7 +37,7 @@ class UnixServerInfrastructure(sshSession: (NodeConfiguration, ActorRef) => Prop
     case command: RemoteAccessCommand =>
       // TODO: handle incorrect nodeId
       nodes(command.nodeId) ! command
-    case e: SshEvent => context.parent ! e
+    case e: RemoteAccessEvent => context.parent ! e
   }
 
   override def receive = initializing
