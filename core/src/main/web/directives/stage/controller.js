@@ -36,6 +36,9 @@ app.directive("stage", function() {
             $scope.stopContainer = function(containerId) {
                 Command.show(ContainersConfiguration.stopContainerTemplate(containerId));
             };
+            $scope.removeContainer = function(containerId) {
+                Command.show(ContainersConfiguration.removeContainerTemplate(containerId));
+            };
             $scope.canStop = function(containerState) {
                 return containerState.jsonClass == 'easyrider.Infrastructure$ContainerRunning';
             };

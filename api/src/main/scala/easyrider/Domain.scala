@@ -102,6 +102,7 @@ object Infrastructure {
   case class ContainerRunning(version: Version) extends ContainerState
   case class ContainerStopping(version: Version) extends ContainerState
   case class ContainerForceStopping(version: Version) extends ContainerState
+  case object ContainerRemoved extends ContainerState
   sealed trait NodeState
   case object CreatingNode extends NodeState
   case object NodeCreated extends NodeState
@@ -122,6 +123,7 @@ object Infrastructure {
   case class DeployConfigurationFile(commandDetails: CommandDetails, containerId: ContainerId, path: String, fileName: String, contents: ByteString) extends ContainerCommand
   case class StartContainer(commandDetails: CommandDetails, containerId: ContainerId, version: Version) extends ContainerCommand
   case class StopContainer(commandDetails: CommandDetails, containerId: ContainerId, immediate: Boolean = false) extends ContainerCommand
+  case class RemoveContainer(commandDetails: CommandDetails, containerId: ContainerId, force: Boolean) extends ContainerCommand
   // TODO: move out of API, as this does not need to be publicly available
   case class AddressedContainerCommand(nodeId: NodeId, containerCommand: ContainerCommand)
 
@@ -129,7 +131,7 @@ object Infrastructure {
   case class FindNodesResult(sender: ComponentId, queryId: QueryId, nodes: Seq[NodeId]) extends Result
 
   trait InfrastructureEvent extends Event
-  case class ContainerStateChangedEvent(eventDetails: EventDetails, state: ContainerState) extends InfrastructureEvent
+  case class ContainerStateChangedEvent(eventDetails: EventDetails, containerId: ContainerId, state: ContainerState) extends InfrastructureEvent
   case class VersionDeploymentProgressEvent(eventDetails: EventDetails, version: Version, state: DeploymentState) extends InfrastructureEvent
   case class NodeUpdatedEvent(eventDetails: EventDetails, nodeId: NodeId, state: NodeState) extends InfrastructureEvent
   case class ContainerCreatedEvent(eventDetails: EventDetails) extends InfrastructureEvent

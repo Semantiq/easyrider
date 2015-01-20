@@ -39,8 +39,8 @@ class SshNodeAgent(eventBus: ActorRef, easyRiderUrl: URL, sshSession: ActorRef, 
       } flatMap {
         case RunRemoteCommandSuccess(_, _) => sshSession ? RunRemoteCommand(CommandDetails(), configuration.id, "mkdir -p " + dataDir(containerId))
       } onSuccess {
-        case RunRemoteCommandSuccess(_, _) => eventBus ! ContainerStateChangedEvent(eventDetails, ContainerCreated)
-        case Failure(_, message, _) => eventBus ! ContainerStateChangedEvent(eventDetails, ContainerCreationFailed)
+        case RunRemoteCommandSuccess(_, _) => eventBus ! ContainerStateChangedEvent(eventDetails, containerId, ContainerCreated)
+        case Failure(_, message, _) => eventBus ! ContainerStateChangedEvent(eventDetails, containerId, ContainerCreationFailed)
       }
     case DeployVersion(commandDetails, containerId, version) =>
       val eventKey = containerId.eventKey append version.number
@@ -72,18 +72,26 @@ class SshNodeAgent(eventBus: ActorRef, easyRiderUrl: URL, sshSession: ActorRef, 
         startInit <- startInitFuture
         saveVersion <- saveVersionFuture
       } yield {
-        eventBus ! ContainerStateChangedEvent(EventDetails(EventId.generate(), containerId.eventKey, Seq(commandDetails.commandId)), ContainerRunning(version))
+        eventBus ! ContainerStateChangedEvent(EventDetails(EventId.generate(), containerId.eventKey, Seq(commandDetails.commandId)), containerId, ContainerRunning(version))
       }
     case StopContainer(commandDetails, containerId, immediate) =>
       sshSession ? RunRemoteCommand(CommandDetails(CommandId.generate(), TraceMode()), configuration.id, "cat " + containerDir(containerId) + "/running.version") flatMap {
         case RunRemoteCommandSuccess(_, Some(output)) =>
           val runningVersionNumber = output.trim()
           // TODO: this event needs to be sent immediately without waiting for ssh session
-          eventBus ! ContainerStateChangedEvent(EventDetails(EventId.generate(), containerId.eventKey, Seq(commandDetails.commandId)), ContainerStopping(Version(containerId.stageId.applicationId, runningVersionNumber.trim)))
+          eventBus ! ContainerStateChangedEvent(EventDetails(EventId.generate(), containerId.eventKey, Seq(commandDetails.commandId)), containerId, ContainerStopping(Version(containerId.stageId.applicationId, runningVersionNumber.trim)))
           sshSession ? RunRemoteCommand(CommandDetails(CommandId.generate(), TraceMode()), configuration.id, "./" + versionsDir(containerId) + "/" + runningVersionNumber + "/init stop")
       } onSuccess {
         case RunRemoteCommandSuccess(_, _) =>
-          eventBus ! ContainerStateChangedEvent(EventDetails(EventId.generate(), containerId.eventKey, Seq(commandDetails.commandId)), ContainerCreated)
+          eventBus ! ContainerStateChangedEvent(EventDetails(EventId.generate(), containerId.eventKey, Seq(commandDetails.commandId)), containerId, ContainerCreated)
+      }
+    case RemoveContainer(commandDetails, containerId, force) =>
+      if (!force) {
+        // TODO: check that the container is stopped before continuing
+      }
+      sshSession ? RunRemoteCommand(CommandDetails(CommandId.generate(), TraceMode()), configuration.id, s"rm -rf ${containerDir(containerId)}") onSuccess {
+        case _: RunRemoteCommandSuccess =>
+          eventBus ! ContainerStateChangedEvent(EventDetails(EventId.generate(), containerId.eventKey, Seq(commandDetails.commandId), removal = true), containerId, ContainerRemoved)
       }
     case DeployConfigurationFile(commandDetails, containerId, path, fileName, content) =>
       log.info("Deploying configuration {}: {}/{}", containerId, path, fileName)

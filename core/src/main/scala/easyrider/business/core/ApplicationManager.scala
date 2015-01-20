@@ -4,9 +4,9 @@ import akka.actor._
 import akka.event.LoggingReceive
 import akka.pattern.{ask, pipe}
 import akka.util.Timeout
-import easyrider.Events.{GetSnapshot, GetSnapshotResponse}
+import easyrider.Events.{Subscribe, GetSnapshot, GetSnapshotResponse}
 import easyrider.Implicits._
-import easyrider.Infrastructure.{AddressedContainerCommand, ContainerCommand, CreateContainer}
+import easyrider.Infrastructure._
 import easyrider._
 import easyrider.business.core.ApplicationManager.RestoredConfiguration
 
@@ -19,6 +19,7 @@ class ApplicationManager(eventBus: ActorRef, infrastructure: ActorRef) extends A
   private var containers = Map[ContainerId, ContainerConfiguration]()
 
   // TODO: make sure there's a proper failure after this timeout
+  eventBus ! Subscribe(CommandDetails(), "containerStateUpdates", classOf[ContainerStateChangedEvent], EventKey())
   implicit val timeout = Timeout(30 seconds)
   implicit val dispatcher = context.system.dispatcher
   val appsFuture = eventBus ? GetSnapshot(QueryId.generate(), classOf[ApplicationUpdatedEvent])
@@ -108,6 +109,16 @@ class ApplicationManager(eventBus: ActorRef, infrastructure: ActorRef) extends A
         case Some(container) => infrastructure.forward(AddressedContainerCommand(container.nodeId, command))
         case None => sender ! command.failure(s"Container ${command.containerId.containerName} does not exist")
       }
+    case ContainerStateChangedEvent(eventDetails, containerId, state) => state match {
+      case ContainerRemoved =>
+        containers.get(containerId) match {
+          case Some(container) =>
+            eventBus ! ContainerConfigurationUpdatedEvent(EventDetails(EventId.generate(), containerId.eventKey, Seq(eventDetails.eventId), removal = true), container)
+            containers -= containerId
+          case None => // do nothing
+        }
+      case _ =>
+    }
   }
 
   def updateEffectiveConfigurationForContainersThat(predicate: (ContainerConfiguration) => Boolean, cause: Cause) {

@@ -7,11 +7,11 @@ import akka.event.LoggingReceive
 import easyrider.Implicits._
 import easyrider.{Event, EventKey, EventType}
 import org.apache.commons.io.FileUtils
-import org.json4s.{JValue, FullTypeHints}
-import org.json4s.JsonAST.{JString, JObject, JArray}
+import org.json4s.JsonAST.JArray
 import org.json4s.ext.JodaTimeSerializers
 import org.json4s.native.Serialization
 import org.json4s.native.Serialization.{read, writePretty}
+import org.json4s.{FullTypeHints, JValue}
 
 class EventBus(easyRiderData: File) extends Actor with ActorLogging {
   import easyrider.Events._
@@ -93,7 +93,22 @@ class EventBus(easyRiderData: File) extends Actor with ActorLogging {
       val document: JValue = parse(string)
       val filtered = for (
         value <- document.asInstanceOf[JArray].values if !deprecatedEvents.contains(value.asInstanceOf[Map[String, _]].getOrElse("jsonClass", "?"))
-      ) yield value
+      ) yield {
+        value match {
+          case map: Map[String, _] if map.get("jsonClass") == Some("easyrider.Infrastructure$ContainerStateChangedEvent") =>
+            map.updated("containerId", Map(
+              "jsonClass" -> "easyrider.Applications$ContainerId",
+              "stageId" -> Map(
+                "jsonClass" -> "easyrider.Applications$StageId",
+                "applicationId" -> Map(
+                  "jsonClass" -> "easyrider.Applications$ApplicationId",
+                  "id" -> "_"
+                ),
+              "id" -> "_"),
+            "id" -> "_"))
+          case _ => value
+        }
+      }
       val filteredString = writePretty(filtered)
       FileUtils.write(new File(easyRiderData, "snapshot.migrated.json"), filteredString)
       val events = read[Seq[Event]](string)

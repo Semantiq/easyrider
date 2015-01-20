@@ -45,9 +45,9 @@ class OrchestratorTest extends TestKit(ActorSystem()) with FlatSpecLike with Mat
 
     val startContainer0 = commandCenter.expectMsgClass(classOf[StartContainer])
     commandCenter.expectNoMsg()
-    containerStateEvents ! ContainerStateChangedEvent(EventDetails(EventId.generate(), EventKey("app", "dev", "0"), Seq(startContainer0.commandDetails.commandId)), ContainerRunning(Version(ApplicationId("app"), "1.0.0")))
+    containerStateEvents ! ContainerStateChangedEvent(EventDetails(EventId.generate(), EventKey("app", "dev", "0"), Seq(startContainer0.commandDetails.commandId)), ContainerId(StageId(ApplicationId("app"), "dev"), "0"), ContainerRunning(Version(ApplicationId("app"), "1.0.0")))
     val startContainer1 = commandCenter.expectMsgClass(classOf[StartContainer])
-    containerStateEvents ! ContainerStateChangedEvent(EventDetails(EventId.generate(), EventKey("app", "dev", "1"), Seq(startContainer1.commandDetails.commandId)), ContainerRunning(Version(ApplicationId("app"), "1.0.0")))
+    containerStateEvents ! ContainerStateChangedEvent(EventDetails(EventId.generate(), EventKey("app", "dev", "1"), Seq(startContainer1.commandDetails.commandId)), ContainerId(StageId(ApplicationId("app"), "dev"), "0"), ContainerRunning(Version(ApplicationId("app"), "1.0.0")))
 
     eventBus.expectMsgClass(classOf[ReleaseEvent]).releaseStatus should be (ReleaseSuccessful(Version(ApplicationId("app"), "1.0.0")))
   }

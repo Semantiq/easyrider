@@ -31,7 +31,7 @@
 				<div class="btn-toolbar pull-right">
 					<button class="btn btn-primary btn-xs" ng-click="deployVersion(containerUpdatedEvent)">Deploy version</button>
 					<button class="btn btn-primary btn-xs" ng-disabled="!canStop(status)" ng-click="stopContainer(containerUpdatedEvent.container.id)">Stop</button>
-					<button class="btn btn-danger btn-xs" ng-disabled="!canRemove(status)">Remove container</button>
+					<button class="btn btn-danger btn-xs" ng-disabled="!canRemove(status)" ng-click="removeContainer(containerUpdatedEvent.container.id)">Remove container</button>
 				</div>
 				<h4>
 					{{containerUpdatedEvent.container.id.id}}

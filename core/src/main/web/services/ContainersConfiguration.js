@@ -43,6 +43,13 @@ app.service("ContainersConfiguration", ["Api", "Validators", "Utils", function(A
 	        containerId: containerId
 	    };
 	};
+	me.removeContainerTemplate = function(containerId) {
+	    return {
+	        jsonClass: 'easyrider.Infrastructure$RemoveContainer',
+	        containerId: containerId,
+	        force: false
+	    };
+	};
 
 	me.containersInStage = function(stageId) {
 	    if (!stageId) return [];
