@@ -1,4 +1,4 @@
-app.service("Api", ["Connection", function(Connection) {
+app.service("Api", ["Connection", "$interval", function(Connection, $interval) {
 	var me = this;
 	me.isAuthenticated = false;
 
@@ -23,8 +23,9 @@ app.service("Api", ["Connection", function(Connection) {
 	};
 
 	Connection.onOpen = function() {
-		if(me.authObject)
+		if(me.authObject) {
 			Connection.send(me.authObject);
+		}
 	};
 
 	function forceAuthenticated() {
@@ -131,6 +132,10 @@ app.service("Api", ["Connection", function(Connection) {
 		for(i in sendAfterAuthentication)
 			Connection.send(sendAfterAuthentication[i]);
 		sendAfterAuthentication = [];
+		Connection.keepAlive = $interval(function() {
+			Connection.send({jsonClass: 'easyrider.Api$KeepAlive'});
+		}, 30000);
+		// TODO: cancel on disconnect
 	};
 
 	Connection.on["easyrider.Api$AuthenticationFailure"] = function() {

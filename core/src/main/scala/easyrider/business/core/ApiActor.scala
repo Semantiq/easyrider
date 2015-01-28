@@ -3,6 +3,7 @@ package easyrider.business.core
 import java.util.concurrent.TimeUnit
 
 import akka.actor._
+import akka.event.LoggingReceive
 import easyrider.Applications.ApplicationCommand
 import easyrider.Commands.Failure
 import easyrider.Components.ComponentCommand
@@ -52,7 +53,7 @@ class ApiActor(bus: ActorRef, applicationManager: ActorRef, componentManager: Ac
     case _ => stash()
   }
 
-  def authenticated(authenticated: Authentication): Receive = {
+  def authenticated(authenticated: Authentication) = LoggingReceive {
     case e: Event =>
       if(sender() == bus)
         client ! e
@@ -69,6 +70,8 @@ class ApiActor(bus: ActorRef, applicationManager: ActorRef, componentManager: Ac
       client ! r
     case f: Failure =>
       client ! f
+    case KeepAlive() =>
+      // accept but do nothing
   }
 
   val processCommand: Command => Unit = {

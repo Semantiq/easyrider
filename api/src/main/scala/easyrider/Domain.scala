@@ -179,6 +179,7 @@ object Api {
   case class AuthenticateComponent(componentId: ComponentId) extends Authenticate
   case class Authentication()
   case class AuthenticationFailure()
+  case class KeepAlive()
   
   case class CommandSentEvent(eventDetails: EventDetails, command: Command, authentication: Option[Authentication] = None) extends CommandExecution
 }
