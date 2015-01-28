@@ -150,9 +150,7 @@ object RemoteAccess {
   }
   case class RunRemoteCommand(commandDetails: CommandDetails, nodeId: NodeId, command: String) extends RemoteAccessCommand
   case class StartUpload(commandDetails: CommandDetails, nodeId: NodeId, targetFolder: String, targetFileName: String) extends RemoteAccessCommand
-  case class UploadChunk(commandDetails: CommandDetails, nodeId: NodeId, uploadId: String, data: ByteString) extends RemoteAccessCommand {
-    override def toString = s"SftpUploadChunk($commandDetails, $nodeId, $uploadId, <${data.length} bytes>)"
-  }
+  case class UploadChunk(commandDetails: CommandDetails, nodeId: NodeId, uploadId: String, data: BinaryData) extends RemoteAccessCommand
   case class UploadComplete(commandDetails: CommandDetails, nodeId: NodeId, uploadId: String) extends RemoteAccessCommand
   case class UpdateFile(commandDetails: CommandDetails, nodeId: NodeId, path: String, filename: String, content: ByteString) extends RemoteAccessCommand
 

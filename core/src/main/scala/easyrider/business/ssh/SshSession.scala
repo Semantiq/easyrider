@@ -83,7 +83,7 @@ class SshSession(eventBus: ActorRef, repository: ActorRef, configuration: NodeCo
   def uploading(session: Session, channel: ChannelSftp, output: OutputStream, command: StartUpload, requestor: ActorRef, currentUploadId: String) = LoggingReceive {
     case UploadChunk(commandDetails, _, uploadId, data) if uploadId == currentUploadId =>
       sender() ! UploadNextChunk(EventDetails(EventId.generate(), EventKey(), Seq(commandDetails.commandId)), currentUploadId)
-      IOUtils.copy(data.iterator.asInputStream, output)
+      IOUtils.copy(data.data.iterator.asInputStream, output)
     case UploadComplete(commandDetails, _, uploadId) if uploadId == currentUploadId =>
       requestor ! UploadCompleted(EventDetails(EventId.generate(), EventKey(), Seq(commandDetails.commandId)), currentUploadId)
       output.close()

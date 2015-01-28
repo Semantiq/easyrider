@@ -1,42 +1,61 @@
 package easyrider.business
 
-import akka.actor.{Actor, ActorRef, Props}
+import akka.actor.{ActorLogging, Actor, ActorRef, Props}
 import akka.event.LoggingReceive
 import easyrider.Commands.{CommandExecution, Failure, Success}
+import easyrider.business.util.BinaryDataSerializers
 import easyrider.{CommandId, Command, Event}
-import easyrider.Events.{GetSnapshotResponse, GetSnapshot, EventBusCommand}
+import easyrider.Events.{Subscribed, GetSnapshotResponse, GetSnapshot, EventBusCommand}
 import easyrider.Infrastructure.ContainerCommand
+import org.json4s.FullTypeHints
+import org.json4s.ext.JodaTimeSerializers
+import org.json4s.native.Serialization
+import org.json4s.native.Serialization.write
 
-class PluginHolder(eventBus: ActorRef, applicationManager: ActorRef, pluginProps: Props) extends Actor {
+class PluginHolder(eventBus: ActorRef, applicationManager: ActorRef, pluginProps: Props, pluginName: String) extends Actor with ActorLogging {
   val plugin = context.actorOf(pluginProps, "plugin")
   var commands = Map[CommandId, ActorRef]()
 
+  private implicit val formats = Serialization.formats(FullTypeHints(List(classOf[AnyRef]))) ++ JodaTimeSerializers.all ++ BinaryDataSerializers.short
+
   override def receive = LoggingReceive {
-    case c: EventBusCommand if sender == plugin => eventBus ! c
-    case c: ContainerCommand if sender == plugin => applicationManager ! c
-    case e: Event if sender != plugin => plugin ! e
-    case c: GetSnapshot => eventBus ! c
-    case r: GetSnapshotResponse[_] => plugin ! r
-    case c: Command if sender != plugin =>
-      plugin ! c
-      commands += c.commandDetails.commandId -> sender
-    case e: Event if sender == plugin =>
-      eventBus ! e
-      if (e.isInstanceOf[CommandExecution]) {
-        commands.foreach {
-          case (commandId, receiver) if e.eventDetails.causedBy contains commandId =>
-            receiver ! e
-            e match {
-              case e: Success => commands -= commandId
-              case e: Failure => commands -= commandId
-              case _ =>
+    case m: AnyRef if sender == plugin =>
+      logFromPlugin(m)
+      m match {
+        case c: EventBusCommand => eventBus ! c
+        case c: ContainerCommand => applicationManager ! c
+        case c: GetSnapshot => eventBus ! c
+        case e: Event =>
+          eventBus ! e
+          if (e.isInstanceOf[CommandExecution]) {
+            commands.foreach {
+              case (commandId, receiver) if e.eventDetails.causedBy contains commandId =>
+                receiver ! e
+                e match {
+                  case e: Success => commands -= commandId
+                  case e: Failure => commands -= commandId
+                  case _ =>
+                }
+              case _ => // ignore
             }
-          case _ => // ignore
-        }
+          }
+      }
+    case m: AnyRef if sender != plugin =>
+      logToPlugin(m)
+      m match {
+        case e: Event => plugin ! e
+        case r: GetSnapshotResponse[_] => plugin ! r
+        case c: Command =>
+          plugin ! c
+          commands += c.commandDetails.commandId -> sender
+        case s: Subscribed[_] => plugin ! s
       }
   }
+
+  def logToPlugin(message: AnyRef) = log.info("{} << {}", pluginName, write(message))
+  def logFromPlugin(message: AnyRef) = log.info("{} >> {}", pluginName, write(message))
 }
 
 object PluginHolder {
-  def apply(eventBus: ActorRef, applicationManager: ActorRef)(plugin: Props) = Props(classOf[PluginHolder], eventBus, applicationManager, plugin)
+  def apply(eventBus: ActorRef, applicationManager: ActorRef)(plugin: Props, pluginName: String) = Props(classOf[PluginHolder], eventBus, applicationManager, plugin, pluginName)
 }

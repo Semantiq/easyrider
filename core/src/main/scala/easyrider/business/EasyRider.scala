@@ -21,6 +21,6 @@ class EasyRider(port: Int, easyRiderData: File) {
   println("pages: " + pages)
   println("plugins: " + plugins)
   plugins.foreach { p =>
-    actorSystem.actorOf(PluginHolder(core.eventBus, core.applicationManager)(p.props), p.getClass.getSimpleName)
+    actorSystem.actorOf(PluginHolder(core.eventBus, core.applicationManager)(p.props, p.getClass.getSimpleName), p.getClass.getSimpleName)
   }
 }
