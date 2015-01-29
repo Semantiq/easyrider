@@ -10,7 +10,12 @@ object SshInfrastructure {
   case class UpdateNode(commandDetails: CommandDetails, nodeConfiguration: NodeConfiguration) extends SshInfrastructureCommand
   case class RemoveNode(commandDetails: CommandDetails, nodeId: NodeId, keepData: Boolean = true) extends SshInfrastructureCommand
 
+  case object NodeConfigurationEntry extends SnapshotEntryType[NodeConfiguration]
+
   case class NodeConfigurationUpdatedEvent(eventDetails: EventDetails, nodeConfiguration: NodeConfiguration,
-                                           captureOutput: Boolean = false) extends Event
+                                           captureOutput: Boolean = false,
+                                           var snapshotUpdate: SnapshotUpdateDetails[NodeConfiguration] = null) extends Event with SnapshotUpdate[NodeConfiguration] {
+    snapshotUpdate = SnapshotUpdateDetails(NodeConfigurationEntry, EventKey(nodeConfiguration.id.id), if (eventDetails.removal) None else Some(nodeConfiguration))
+  }
 
 }

@@ -30,9 +30,9 @@ class ApplicationManager(eventBus: ActorRef, infrastructure: ActorRef) extends A
     stages <- stagesFuture
     containers <- containersFuture
   } yield RestoredConfiguration(
-      applications = apps.asInstanceOf[GetSnapshotResponse[ApplicationUpdatedEvent]].snapshot.map { case ApplicationUpdatedEvent(_, app) => app },
-      stages = stages.asInstanceOf[GetSnapshotResponse[StageUpdatedEvent]].snapshot.map { case StageUpdatedEvent(_, stage) => stage },
-      containers = containers.asInstanceOf[GetSnapshotResponse[ContainerConfigurationUpdatedEvent]].snapshot.map { case ContainerConfigurationUpdatedEvent(_, container) => container })
+      applications = apps.asInstanceOf[GetSnapshotResponse[ApplicationUpdatedEvent]].snapshot.map { case ApplicationUpdatedEvent(_, app, _) => app },
+      stages = stages.asInstanceOf[GetSnapshotResponse[StageUpdatedEvent]].snapshot.map { case StageUpdatedEvent(_, stage, _) => stage },
+      containers = containers.asInstanceOf[GetSnapshotResponse[ContainerConfigurationUpdatedEvent]].snapshot.map { case ContainerConfigurationUpdatedEvent(_, container, _) => container })
   restoredConfiguration pipeTo self
 
   def initializing: Receive = {
@@ -109,7 +109,7 @@ class ApplicationManager(eventBus: ActorRef, infrastructure: ActorRef) extends A
         case Some(container) => infrastructure.forward(AddressedContainerCommand(container.nodeId, command))
         case None => sender ! command.failure(s"Container ${command.containerId.containerName} does not exist")
       }
-    case ContainerStateChangedEvent(eventDetails, containerId, state) => state match {
+    case ContainerStateChangedEvent(eventDetails, containerId, state, _) => state match {
       case ContainerRemoved =>
         containers.get(containerId) match {
           case Some(container) =>

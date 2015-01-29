@@ -2,12 +2,12 @@ package easyrider
 
 import java.util.UUID
 
-import akka.actor.{Props, ActorRef}
+import akka.actor.{ActorRef, Props}
 import akka.util.ByteString
 import easyrider.Applications._
-import easyrider.Commands.{Success, CommandExecution, Failure}
-import easyrider.Infrastructure.NodeId
-import easyrider.Repository.Version
+import easyrider.Commands.{CommandExecution, Failure, Success}
+import easyrider.Infrastructure.{ContainerState, DeploymentState, NodeId, NodeState}
+import easyrider.Repository.{Version, VersionMetadata}
 import org.joda.time.DateTime
 
 case class ComponentId(id: String)
@@ -92,6 +92,20 @@ trait Event {
   def eventDetails: EventDetails
 }
 
+trait SnapshotEntryType[T]
+case object ApplicationEntry extends SnapshotEntryType[Application]
+case object StageEntry extends SnapshotEntryType[Stage]
+case object ContainerConfigurationEntry extends SnapshotEntryType[ContainerConfiguration]
+case object VersionEntry extends SnapshotEntryType[VersionMetadata]
+case object NodeStateEntry extends SnapshotEntryType[NodeState]
+case object ContainerStateEntry extends SnapshotEntryType[ContainerState]
+case object DeploymentStateEntry extends SnapshotEntryType[DeploymentState]
+case class SnapshotUpdateDetails[T](entryType: SnapshotEntryType[T], eventKey: EventKey, entry: Option[T])
+
+trait SnapshotUpdate[T] extends Event {
+  def snapshotUpdate: SnapshotUpdateDetails[T]
+}
+
 object Infrastructure {
   case class NodeId(id: String) {
     require(id.matches("""^[a-zA-Z0-9_]+$"""), "Node id can contain only letters and underscores")
@@ -131,9 +145,17 @@ object Infrastructure {
   case class FindNodesResult(sender: ComponentId, queryId: QueryId, nodes: Seq[NodeId]) extends Result
 
   trait InfrastructureEvent extends Event
-  case class ContainerStateChangedEvent(eventDetails: EventDetails, containerId: ContainerId, state: ContainerState) extends InfrastructureEvent
-  case class VersionDeploymentProgressEvent(eventDetails: EventDetails, version: Version, state: DeploymentState) extends InfrastructureEvent
-  case class NodeUpdatedEvent(eventDetails: EventDetails, nodeId: NodeId, state: NodeState) extends InfrastructureEvent
+  case class ContainerStateChangedEvent(eventDetails: EventDetails, containerId: ContainerId, state: ContainerState,
+                                         var snapshotUpdate: SnapshotUpdateDetails[ContainerState] = null) extends InfrastructureEvent with SnapshotUpdate[ContainerState] {
+    snapshotUpdate = SnapshotUpdateDetails(ContainerStateEntry, containerId.eventKey, if (eventDetails.removal) None else Some(state))
+  }
+  case class VersionDeploymentProgressEvent(eventDetails: EventDetails, version: Version, state: DeploymentState,
+                                             var snapshotUpdate: SnapshotUpdateDetails[DeploymentState] = null) extends InfrastructureEvent with SnapshotUpdate[DeploymentState] {
+    snapshotUpdate = SnapshotUpdateDetails(DeploymentStateEntry, eventDetails.eventKey, if (eventDetails.removal) None else Some(state))
+  }
+  case class NodeUpdatedEvent(eventDetails: EventDetails, nodeId: NodeId, state: NodeState, var snapshotUpdate: SnapshotUpdateDetails[NodeState] = null) extends InfrastructureEvent with SnapshotUpdate[NodeState] {
+    snapshotUpdate = SnapshotUpdateDetails(NodeStateEntry, EventKey(nodeId.id), Some(state))
+  }
   case class ContainerCreatedEvent(eventDetails: EventDetails) extends InfrastructureEvent
   case class ContainerCreationError(eventDetails: EventDetails)
 
@@ -208,9 +230,13 @@ object Repository {
   case class Version(applicationId: ApplicationId, number: String) {
     def eventKey = EventKey(applicationId.id, number)
   }
+  case class VersionMetadata(version: Version, labels: Seq[Label])
   trait RepositoryEvent extends Event
   case class VersionUploadProgressEvent()
-  case class VersionAvailableEvent(eventDetails: EventDetails, version: Version) extends RepositoryEvent
+  case class VersionAvailableEvent(eventDetails: EventDetails, version: Version,
+                                   var snapshotUpdate: SnapshotUpdateDetails[VersionMetadata] = null) extends RepositoryEvent with SnapshotUpdate[VersionMetadata] {
+    snapshotUpdate = SnapshotUpdateDetails(VersionEntry, version.eventKey, Some(VersionMetadata(version, Seq())))
+  }
   case class VersionLabelsAddedEvent(eventDetails: EventDetails, version: Version, newLabels: Seq[Label],
                                      labels: Seq[Label]) extends RepositoryEvent
 
@@ -257,14 +283,20 @@ object Applications {
   case class UpdateContainerConfiguration(commandDetails: CommandDetails, container: ContainerConfiguration) extends ApplicationCommand
 
   trait ApplicationEvent extends Event
-  case class ApplicationUpdatedEvent(eventDetails: EventDetails, application: Application) extends ApplicationEvent
+  case class ApplicationUpdatedEvent(eventDetails: EventDetails, application: Application, var snapshotUpdate: SnapshotUpdateDetails[Application] = null) extends ApplicationEvent with SnapshotUpdate[Application] {
+    snapshotUpdate = SnapshotUpdateDetails(ApplicationEntry, application.id.eventKey, if (eventDetails.removal) None else Some(application))
+  }
   case class EffectiveConfigurationChanged(eventDetails: EventDetails, containerId: ContainerId, effectiveConfiguration: EffectiveConfiguration) extends ApplicationEvent
 
   trait StageEvent extends Event
-  case class StageUpdatedEvent(eventDetails: EventDetails, stage: Stage) extends StageEvent
+  case class StageUpdatedEvent(eventDetails: EventDetails, stage: Stage, var snapshotUpdate: SnapshotUpdateDetails[Stage] = null) extends StageEvent with SnapshotUpdate[Stage] {
+    snapshotUpdate = SnapshotUpdateDetails(StageEntry, stage.id.eventKey, if (eventDetails.removal) None else Some(stage))
+  }
 
   trait ContainerEvent extends Event
-  case class ContainerConfigurationUpdatedEvent(eventDetails: EventDetails, container: ContainerConfiguration) extends ContainerEvent
+  case class ContainerConfigurationUpdatedEvent(eventDetails: EventDetails, container: ContainerConfiguration, var snapshotUpdate: SnapshotUpdateDetails[ContainerConfiguration] = null) extends ContainerEvent with SnapshotUpdate[ContainerConfiguration] {
+    snapshotUpdate = SnapshotUpdateDetails(ContainerConfigurationEntry, container.id.eventKey, if (eventDetails.removal) None else Some(container))
+  }
 }
 
 object Configuration {

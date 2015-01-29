@@ -72,7 +72,7 @@ class OrchestratedDeployment(eventBus: ActorRef, commandCenter: ActorRef, comman
     }
   }
   def waitingForContainerStart(container: ContainerId, containers: Seq[ContainerConfiguration]) = LoggingReceive {
-    case ContainerStateChangedEvent(eventDetails, _, ContainerRunning(version)) =>
+    case ContainerStateChangedEvent(eventDetails, _, ContainerRunning(version), _) =>
       becomeReleasing(containers)
   }
 }
