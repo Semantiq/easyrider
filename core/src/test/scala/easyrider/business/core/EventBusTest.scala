@@ -9,7 +9,7 @@ import easyrider.Applications.{Application, ApplicationId, ApplicationUpdatedEve
 import easyrider.Commands.{Success, CommandExecution}
 import easyrider.Events._
 import easyrider.Implicits._
-import easyrider.Infrastructure.{NodeCreated, NodeId, NodeUpdatedEvent}
+import easyrider.Infrastructure.{NodeState, NodeCreated, NodeId, NodeUpdatedEvent}
 import easyrider._
 import easyrider.business.core
 import org.apache.commons.io.FileUtils
@@ -105,6 +105,11 @@ class EventBusTest() extends TestKit(ActorSystem()) with FlatSpecLike with Match
     bus ! DummySuccess(EventDetails(EventId.generate(), EventKey(), Seq(CommandId("1"))))
     client.expectMsgClass(classOf[EventDelivered])
     client.expectMsgClass(classOf[EventDeliveryComplete])
+  }
+
+  it should "serialize a snapshot" in {
+    val string = EventBus.serializeSnapshots(Map(SnapshotEntryType(classOf[NodeState]) -> Snapshot(SnapshotEntryType(classOf[NodeState]), Map("1" -> NodeCreated))))
+    println(s"string=$string")
   }
 
   private def emptyDirectory: File = {

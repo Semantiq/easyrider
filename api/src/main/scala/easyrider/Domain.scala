@@ -6,8 +6,8 @@ import akka.actor.{ActorRef, Props}
 import akka.util.ByteString
 import easyrider.Applications._
 import easyrider.Commands.{CommandExecution, Failure, Success}
-import easyrider.Infrastructure.{ContainerState, DeploymentState, NodeId, NodeState}
-import easyrider.Repository.{Version, VersionMetadata}
+import easyrider.Infrastructure.NodeId
+import easyrider.Repository.Version
 import org.joda.time.DateTime
 
 case class ComponentId(id: String)
@@ -92,15 +92,11 @@ trait Event {
   def eventDetails: EventDetails
 }
 
-trait SnapshotEntryType[T]
-case object ApplicationEntry extends SnapshotEntryType[Application]
-case object StageEntry extends SnapshotEntryType[Stage]
-case object ContainerConfigurationEntry extends SnapshotEntryType[ContainerConfiguration]
-case object VersionEntry extends SnapshotEntryType[VersionMetadata]
-case object NodeStateEntry extends SnapshotEntryType[NodeState]
-case object ContainerStateEntry extends SnapshotEntryType[ContainerState]
-case object DeploymentStateEntry extends SnapshotEntryType[DeploymentState]
-case class SnapshotUpdateDetails[T](entryType: SnapshotEntryType[T], eventKey: EventKey, entry: Option[T])
+case class SnapshotEntryType(clazz: String)
+object SnapshotEntryType {
+  def apply(clazz: Class[_]) = new SnapshotEntryType(clazz.getName)
+}
+case class SnapshotUpdateDetails[T](entryType: SnapshotEntryType, eventKey: EventKey, entry: Option[T])
 
 trait SnapshotUpdate[T] extends Event {
   def snapshotUpdate: SnapshotUpdateDetails[T]
@@ -147,14 +143,14 @@ object Infrastructure {
   trait InfrastructureEvent extends Event
   case class ContainerStateChangedEvent(eventDetails: EventDetails, containerId: ContainerId, state: ContainerState,
                                          var snapshotUpdate: SnapshotUpdateDetails[ContainerState] = null) extends InfrastructureEvent with SnapshotUpdate[ContainerState] {
-    snapshotUpdate = SnapshotUpdateDetails(ContainerStateEntry, containerId.eventKey, if (eventDetails.removal) None else Some(state))
+    snapshotUpdate = SnapshotUpdateDetails(SnapshotEntryType(classOf[ContainerState]), containerId.eventKey, if (eventDetails.removal) None else Some(state))
   }
   case class VersionDeploymentProgressEvent(eventDetails: EventDetails, version: Version, state: DeploymentState,
                                              var snapshotUpdate: SnapshotUpdateDetails[DeploymentState] = null) extends InfrastructureEvent with SnapshotUpdate[DeploymentState] {
-    snapshotUpdate = SnapshotUpdateDetails(DeploymentStateEntry, eventDetails.eventKey, if (eventDetails.removal) None else Some(state))
+    snapshotUpdate = SnapshotUpdateDetails(SnapshotEntryType(classOf[DeploymentState]), eventDetails.eventKey, if (eventDetails.removal) None else Some(state))
   }
   case class NodeUpdatedEvent(eventDetails: EventDetails, nodeId: NodeId, state: NodeState, var snapshotUpdate: SnapshotUpdateDetails[NodeState] = null) extends InfrastructureEvent with SnapshotUpdate[NodeState] {
-    snapshotUpdate = SnapshotUpdateDetails(NodeStateEntry, EventKey(nodeId.id), Some(state))
+    snapshotUpdate = SnapshotUpdateDetails(SnapshotEntryType(classOf[NodeState]), EventKey(nodeId.id), Some(state))
   }
   case class ContainerCreatedEvent(eventDetails: EventDetails) extends InfrastructureEvent
   case class ContainerCreationError(eventDetails: EventDetails)
@@ -220,9 +216,28 @@ object Events {
   case class GetReplayResponse(queryId: QueryId, events: Seq[Event]) extends Result
 
   // new flavour of subscriptions
+  @Deprecated
   case class SubscribeToCommandTrail(commandDetails: CommandDetails, commandId: CommandId, trace: Seq[Class[_ <: Event]]) extends EventBusCommand
+  @Deprecated
   case class EventDelivered(eventDetails: EventDetails, event: Event) extends Event
+  @Deprecated
   case class EventDeliveryComplete(eventDetails: EventDetails) extends Event
+
+  // snapshot based subscriptions
+  case class Snapshot[T](entryType: SnapshotEntryType, entries: Map[String, T]) {
+    def updatedWith(updateEvent: SnapshotUpdate[T]): Snapshot[T] = {
+      def asString(eventKey: EventKey) = eventKey.key.mkString(":")
+      val update = updateEvent.snapshotUpdate
+      Snapshot(entryType, update.entry match {
+        case Some(newValue) => entries + (asString(update.eventKey) -> newValue)
+        case None => entries - asString(update.eventKey)
+      })
+    }
+  }
+  case class StartSnapshotSubscription[T](commandDetails: CommandDetails, entryType: SnapshotEntryType) extends EventBusCommand
+  case class SnapshotSubscriptionStarted[T](eventDetails: EventDetails, snapshot: Snapshot[T]) extends Event
+  case class SnapshotUpdatedEvent[T](eventDetails: EventDetails, update: SnapshotUpdateDetails[T]) extends Event
+  case class StopSnapshotSubscription(commandDetails: CommandDetails, subscriptionId: CommandId) extends EventBusCommand
 }
 
 object Repository {
@@ -235,7 +250,7 @@ object Repository {
   case class VersionUploadProgressEvent()
   case class VersionAvailableEvent(eventDetails: EventDetails, version: Version,
                                    var snapshotUpdate: SnapshotUpdateDetails[VersionMetadata] = null) extends RepositoryEvent with SnapshotUpdate[VersionMetadata] {
-    snapshotUpdate = SnapshotUpdateDetails(VersionEntry, version.eventKey, Some(VersionMetadata(version, Seq())))
+    snapshotUpdate = SnapshotUpdateDetails(SnapshotEntryType(classOf[VersionMetadata]), version.eventKey, Some(VersionMetadata(version, Seq())))
   }
   case class VersionLabelsAddedEvent(eventDetails: EventDetails, version: Version, newLabels: Seq[Label],
                                      labels: Seq[Label]) extends RepositoryEvent
@@ -284,18 +299,18 @@ object Applications {
 
   trait ApplicationEvent extends Event
   case class ApplicationUpdatedEvent(eventDetails: EventDetails, application: Application, var snapshotUpdate: SnapshotUpdateDetails[Application] = null) extends ApplicationEvent with SnapshotUpdate[Application] {
-    snapshotUpdate = SnapshotUpdateDetails(ApplicationEntry, application.id.eventKey, if (eventDetails.removal) None else Some(application))
+    snapshotUpdate = SnapshotUpdateDetails(SnapshotEntryType(classOf[Application]), application.id.eventKey, if (eventDetails.removal) None else Some(application))
   }
   case class EffectiveConfigurationChanged(eventDetails: EventDetails, containerId: ContainerId, effectiveConfiguration: EffectiveConfiguration) extends ApplicationEvent
 
   trait StageEvent extends Event
   case class StageUpdatedEvent(eventDetails: EventDetails, stage: Stage, var snapshotUpdate: SnapshotUpdateDetails[Stage] = null) extends StageEvent with SnapshotUpdate[Stage] {
-    snapshotUpdate = SnapshotUpdateDetails(StageEntry, stage.id.eventKey, if (eventDetails.removal) None else Some(stage))
+    snapshotUpdate = SnapshotUpdateDetails(SnapshotEntryType(classOf[Stage]), stage.id.eventKey, if (eventDetails.removal) None else Some(stage))
   }
 
   trait ContainerEvent extends Event
   case class ContainerConfigurationUpdatedEvent(eventDetails: EventDetails, container: ContainerConfiguration, var snapshotUpdate: SnapshotUpdateDetails[ContainerConfiguration] = null) extends ContainerEvent with SnapshotUpdate[ContainerConfiguration] {
-    snapshotUpdate = SnapshotUpdateDetails(ContainerConfigurationEntry, container.id.eventKey, if (eventDetails.removal) None else Some(container))
+    snapshotUpdate = SnapshotUpdateDetails(SnapshotEntryType(classOf[ContainerConfiguration]), container.id.eventKey, if (eventDetails.removal) None else Some(container))
   }
 }
 

@@ -4,8 +4,9 @@ import java.io.File
 
 import akka.actor._
 import akka.event.LoggingReceive
+import easyrider.Events.Snapshot
 import easyrider.Implicits._
-import easyrider.{Event, EventKey, EventType}
+import easyrider._
 import org.apache.commons.io.FileUtils
 import org.json4s.JsonAST.JArray
 import org.json4s.ext.JodaTimeSerializers
@@ -15,12 +16,15 @@ import org.json4s.{FullTypeHints, JValue}
 
 class EventBus(easyRiderData: File) extends Actor with ActorLogging {
   import easyrider.Events._
-  private implicit val formats = Serialization.formats(FullTypeHints(List(classOf[AnyRef]))) ++ JodaTimeSerializers.all
+  private implicit val formats = Serialization.formats(FullTypeHints(List(classOf[AnyRef]))) ++ JodaTimeSerializers.all ++ EventBusSerializers.serializers
 
   private case class Subscription(eventType: EventType, eventKey: EventKey, receiver: ActorRef, subscriptionId: String) {
     def matches(event: Event) = eventType.matches(class2eventType(event.getClass)) && eventKey.contains(event.eventDetails.eventKey)
   }
   private var snapshots = loadSnapshot()
+  private var newSnapshots = loadNewSnapshot()
+  // TODO: remove after migration
+  snapshots.values.flatMap(_.values).foreach(event => processSnapshotUpdate(event))
   private var subscriptions = Set[Subscription]()
   private var eventLog = loadEventLog()
 
@@ -37,6 +41,7 @@ class EventBus(easyRiderData: File) extends Actor with ActorLogging {
         .filter(s => s.matches(event))
         .foreach(s => s.receiver ! event)
       save(snapshots)
+      processSnapshotUpdate(event)
       eventLog +:= event
       save(eventLog)
     case Terminated(subscriber) =>
@@ -67,16 +72,44 @@ class EventBus(easyRiderData: File) extends Actor with ActorLogging {
       sender() ! GetReplayResponse(queryId, matching)
   }
 
+  def processSnapshotUpdate(event: Event) {
+    event match {
+      case updateEvent: SnapshotUpdate[_] =>
+        val update = updateEvent.snapshotUpdate
+        val current = newSnapshots.getOrElse(update.entryType, Snapshot(update.entryType, Map())).asInstanceOf[Snapshot[Any]]
+        val updated = current updatedWith updateEvent.asInstanceOf[SnapshotUpdate[Any]]
+        newSnapshots += (update.entryType -> updated)
+        saveNew(newSnapshots)
+      case _ => // old style event, ignore
+    }
+  }
+
   private def snapshotFile = new File(easyRiderData, "snapshot.json")
   private def eventLogFile = new File(easyRiderData, "eventLogFile.json")
+  private def newSnapshotFile = new File(easyRiderData, "newSnapshot.json")
 
   private def save(snapshots: Map[EventType, Map[EventKey, Event]]) = {
     val events = snapshots.values.flatMap(_.values)
     FileUtils.write(snapshotFile, writePretty(events))
   }
 
+  private def saveNew(snapshots: Map[SnapshotEntryType, Snapshot[_]]) = {
+    FileUtils.write(newSnapshotFile, EventBus.serializeSnapshots(snapshots))
+  }
+
   private def save(eventLog: Seq[Event]) {
     FileUtils.write(eventLogFile, writePretty(eventLog))
+  }
+
+  private def loadNewSnapshot(): Map[SnapshotEntryType, Snapshot[_]] = {
+    if (newSnapshotFile.exists()) {
+      val string = FileUtils.readFileToString(newSnapshotFile)
+      val snapshots = read[Seq[Snapshot[_]]](string)
+      snapshots.map(snapshot => snapshot.entryType -> snapshot).toMap
+    } else {
+      log.info("Could not find snapshot file ({}). Starting with empty snapshots", newSnapshotFile)
+      Map()
+    }
   }
 
   private def loadSnapshot(): Map[EventType, Map[EventKey, Event]] = {
@@ -136,4 +169,9 @@ class EventBus(easyRiderData: File) extends Actor with ActorLogging {
 
 object EventBus {
   def apply(easyRiderData: File) = Props(classOf[EventBus], easyRiderData)
+
+  def serializeSnapshots(snapshots: Map[SnapshotEntryType, Snapshot[_]]): String = {
+    implicit val formats = Serialization.formats(FullTypeHints(List(classOf[AnyRef]))) ++ JodaTimeSerializers.all ++ EventBusSerializers.serializers
+    writePretty(snapshots.values)
+  }
 }
