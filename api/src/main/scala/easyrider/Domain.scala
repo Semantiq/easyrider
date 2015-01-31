@@ -215,14 +215,6 @@ object Events {
   case class GetReplay(queryId: QueryId, subscriptions: Seq[String], since: DateTime) extends Query
   case class GetReplayResponse(queryId: QueryId, events: Seq[Event]) extends Result
 
-  // new flavour of subscriptions
-  @Deprecated
-  case class SubscribeToCommandTrail(commandDetails: CommandDetails, commandId: CommandId, trace: Seq[Class[_ <: Event]]) extends EventBusCommand
-  @Deprecated
-  case class EventDelivered(eventDetails: EventDetails, event: Event) extends Event
-  @Deprecated
-  case class EventDeliveryComplete(eventDetails: EventDetails) extends Event
-
   // snapshot based subscriptions
   case class Snapshot[T](entryType: SnapshotEntryType, entries: Map[String, T]) {
     def updatedWith(updateEvent: SnapshotUpdate[T]): Snapshot[T] = {

@@ -83,33 +83,10 @@ class EventBusTest() extends TestKit(ActorSystem()) with FlatSpecLike with Match
     client.expectMsgClass(classOf[GetReplayResponse]).events should have size 1
   }
 
-  it should "subscribe to command trail" in {
-    val bus = system.actorOf(core.EventBus(emptyDirectory))
-    val client = TestProbe()
-
-    client.send(bus, SubscribeToCommandTrail(CommandDetails(CommandId("2")), CommandId("1"), Seq(classOf[CommandExecution])))
-
-    bus ! CommandSentEvent(EventDetails(EventId.generate(), EventKey(), Seq(CommandId("1"))), DummyCommand(CommandDetails()))
-    val commandSentNotification = client.expectMsgClass(classOf[EventDelivered])
-    commandSentNotification.eventDetails.causedBy should be (Seq(CommandId("2")))
-    commandSentNotification.event.eventDetails.causedBy should be (Seq(CommandId("1")))
-
-    bus ! DummyProgress(EventDetails(EventId.generate(), EventKey(), Seq(CommandId("1"))))
-    val progressNotification = client.expectMsgClass(classOf[EventDelivered])
-    progressNotification.eventDetails.causedBy should be (Seq(CommandId("2")))
-    progressNotification.event.eventDetails.causedBy should be (Seq(CommandId("1")))
-
-    bus ! DummyProgress(EventDetails(EventId.generate(), EventKey(), Seq(CommandId("otherCommandId"))))
-    client.expectNoMsg()
-
-    bus ! DummySuccess(EventDetails(EventId.generate(), EventKey(), Seq(CommandId("1"))))
-    client.expectMsgClass(classOf[EventDelivered])
-    client.expectMsgClass(classOf[EventDeliveryComplete])
-  }
-
   it should "serialize a snapshot" in {
-    val string = EventBus.serializeSnapshots(Map(SnapshotEntryType(classOf[NodeState]) -> Snapshot(SnapshotEntryType(classOf[NodeState]), Map("1" -> NodeCreated))))
-    println(s"string=$string")
+    val snapshots = Map(SnapshotEntryType(classOf[NodeState]) -> Snapshot(SnapshotEntryType(classOf[NodeState]), Map("1" -> NodeCreated)))
+    val string = EventBus.serializeSnapshots(snapshots)
+    string should not be 'empty
   }
 
   private def emptyDirectory: File = {

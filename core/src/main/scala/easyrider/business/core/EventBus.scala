@@ -54,11 +54,6 @@ class EventBus(easyRiderData: File) extends Actor with ActorLogging {
         sender() ! Subscribed(command.queryId, subscriptionId, eventType, snapshot)
         subscriptions += Subscription(eventType, eventKey, sender(), subscriptionId)
         context.watch(sender())
-      case command @ SubscribeToCommandTrail(commandDetails, _, trace) =>
-        val tracer = context.actorOf(CommandTracer(sender(), command))
-        for (eventType <- trace) {
-          subscriptions += Subscription(eventType, EventKey(), tracer, commandDetails.commandId.id + "_" + eventType.getSimpleName)
-        }
       case command @ UnSubscribe(commandId, subscriptionId) =>
         sender() ! UnSubscribed(command.queryId, subscriptionId)
         subscriptions = subscriptions.filter(s => s.subscriptionId != subscriptionId)
