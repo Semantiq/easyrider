@@ -217,9 +217,8 @@ object Events {
 
   // snapshot based subscriptions
   case class Snapshot[T](entryType: SnapshotEntryType, entries: Map[String, T]) {
-    def updatedWith(updateEvent: SnapshotUpdate[T]): Snapshot[T] = {
+    def updatedWith(update: SnapshotUpdateDetails[T]): Snapshot[T] = {
       def asString(eventKey: EventKey) = eventKey.key.mkString(":")
-      val update = updateEvent.snapshotUpdate
       Snapshot(entryType, update.entry match {
         case Some(newValue) => entries + (asString(update.eventKey) -> newValue)
         case None => entries - asString(update.eventKey)
@@ -227,8 +226,8 @@ object Events {
     }
   }
   case class StartSnapshotSubscription[T](commandDetails: CommandDetails, entryType: SnapshotEntryType) extends EventBusCommand
-  case class SnapshotSubscriptionStarted[T](eventDetails: EventDetails, snapshot: Snapshot[T]) extends Event
-  case class SnapshotUpdatedEvent[T](eventDetails: EventDetails, update: SnapshotUpdateDetails[T]) extends Event
+  case class SnapshotSubscriptionStarted[T](eventDetails: EventDetails, executionOf: CommandId, snapshot: Snapshot[T]) extends Event
+  case class SnapshotUpdatedEvent[T](eventDetails: EventDetails, executionOf: CommandId, update: SnapshotUpdateDetails[T]) extends Event
   case class StopSnapshotSubscription(commandDetails: CommandDetails, subscriptionId: CommandId) extends EventBusCommand
 }
 

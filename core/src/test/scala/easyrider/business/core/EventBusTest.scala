@@ -4,12 +4,11 @@ import java.io.File
 
 import akka.actor.{ActorSystem, PoisonPill, Terminated}
 import akka.testkit.{TestKit, TestProbe}
-import easyrider.Api.CommandSentEvent
 import easyrider.Applications.{Application, ApplicationId, ApplicationUpdatedEvent}
-import easyrider.Commands.{Success, CommandExecution}
+import easyrider.Commands.{CommandExecution, Success}
 import easyrider.Events._
 import easyrider.Implicits._
-import easyrider.Infrastructure.{NodeState, NodeCreated, NodeId, NodeUpdatedEvent}
+import easyrider.Infrastructure.{NodeCreated, NodeId, NodeState, NodeUpdatedEvent}
 import easyrider._
 import easyrider.business.core
 import org.apache.commons.io.FileUtils
@@ -87,6 +86,27 @@ class EventBusTest() extends TestKit(ActorSystem()) with FlatSpecLike with Match
     val snapshots = Map(SnapshotEntryType(classOf[NodeState]) -> Snapshot(SnapshotEntryType(classOf[NodeState]), Map("1" -> NodeCreated)))
     val string = EventBus.serializeSnapshots(snapshots)
     string should not be 'empty
+  }
+
+  it should "handle snapshot subscriptions" in {
+    val bus = system.actorOf(core.EventBus(emptyDirectory))
+    val client = TestProbe()
+
+    client.send(bus, StartSnapshotSubscription(CommandDetails(CommandId("1")), SnapshotEntryType(classOf[NodeState])))
+    val snapshot = client.expectMsgClass(classOf[SnapshotSubscriptionStarted[NodeState]])
+    snapshot.executionOf should be (CommandId("1"))
+    snapshot.snapshot.entryType should be (SnapshotEntryType(classOf[NodeState]))
+    snapshot.snapshot.entries should be (Map())
+
+    client.send(bus, NodeUpdatedEvent(EventDetails(EventId.generate(), EventKey("1"), Seq()), NodeId("1"), NodeCreated))
+    val update = client.expectMsgClass(classOf[SnapshotUpdatedEvent[NodeState]])
+    val updatedSnapshot = snapshot.snapshot.updatedWith(update.update)
+    update.executionOf should be (CommandId("1"))
+    updatedSnapshot.entries should be (Map("1" -> NodeCreated))
+
+    client.send(bus, StopSnapshotSubscription(CommandDetails(), CommandId("1")))
+    client.send(bus, NodeUpdatedEvent(EventDetails(EventId.generate(), EventKey("2"), Seq()), NodeId("2"), NodeCreated))
+    client.expectNoMsg()
   }
 
   private def emptyDirectory: File = {

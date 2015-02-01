@@ -21,8 +21,10 @@ class EventBus(easyRiderData: File) extends Actor with ActorLogging {
   private case class Subscription(eventType: EventType, eventKey: EventKey, receiver: ActorRef, subscriptionId: String) {
     def matches(event: Event) = eventType.matches(class2eventType(event.getClass)) && eventKey.contains(event.eventDetails.eventKey)
   }
+  private case class SnapshotSubscriber(commandId: CommandId, entryType: SnapshotEntryType, subscriber: ActorRef)
   private var snapshots = loadSnapshot()
   private var newSnapshots = loadNewSnapshot()
+  private var snapshotSubscribers = Set[SnapshotSubscriber]()
   // TODO: remove after migration
   snapshots.values.flatMap(_.values).foreach(event => processSnapshotUpdate(event))
   private var subscriptions = Set[Subscription]()
@@ -46,8 +48,9 @@ class EventBus(easyRiderData: File) extends Actor with ActorLogging {
       save(eventLog)
     case Terminated(subscriber) =>
       subscriptions = subscriptions.filter(s => s.receiver != subscriber)
+      snapshotSubscribers = snapshotSubscribers.filter(s => s.subscriber != subscriber)
     case command: EventBusCommand => command match {
-      case Subscribe(commandId, subscriptionId, eventType, eventKey) =>
+      case Subscribe(_, subscriptionId, eventType, eventKey) =>
         val snapshot = snapshots.getOrElse(eventType, Map()).values
           .filter(event => eventKey.contains(event.eventDetails.eventKey))
           .toSeq
@@ -57,6 +60,13 @@ class EventBus(easyRiderData: File) extends Actor with ActorLogging {
       case command @ UnSubscribe(commandId, subscriptionId) =>
         sender() ! UnSubscribed(command.queryId, subscriptionId)
         subscriptions = subscriptions.filter(s => s.subscriptionId != subscriptionId)
+      case command @ StartSnapshotSubscription(CommandDetails(commandId, _), entryType) =>
+        snapshotSubscribers += SnapshotSubscriber(commandId, entryType, sender())
+        sender() ! SnapshotSubscriptionStarted(EventDetails(EventId.generate(), EventKey(), Seq(commandId)), commandId,
+          newSnapshots.getOrElse(entryType, Snapshot(entryType, Map())))
+        context.watch(sender())
+      case command @ StopSnapshotSubscription(_, subscriptionId) =>
+        snapshotSubscribers = snapshotSubscribers.filter(s => s.commandId != subscriptionId)
     }
     case GetSnapshot(queryId, eventType) =>
       sender() ! GetSnapshotResponse(queryId, snapshots.getOrElse(eventType, Map()).values.toSeq)
@@ -72,8 +82,13 @@ class EventBus(easyRiderData: File) extends Actor with ActorLogging {
       case updateEvent: SnapshotUpdate[_] =>
         val update = updateEvent.snapshotUpdate
         val current = newSnapshots.getOrElse(update.entryType, Snapshot(update.entryType, Map())).asInstanceOf[Snapshot[Any]]
-        val updated = current updatedWith updateEvent.asInstanceOf[SnapshotUpdate[Any]]
+        val updated = current updatedWith updateEvent.snapshotUpdate.asInstanceOf[SnapshotUpdateDetails[Any]]
         newSnapshots += (update.entryType -> updated)
+        snapshotSubscribers
+          .filter(s => s.entryType == update.entryType)
+          .foreach {s =>
+            s.subscriber ! SnapshotUpdatedEvent(EventDetails(EventId.generate(), EventKey(), Seq(s.commandId)), s.commandId, update)
+          }
         saveNew(newSnapshots)
       case _ => // old style event, ignore
     }
