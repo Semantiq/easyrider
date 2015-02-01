@@ -10,4 +10,5 @@ ssh/src/main/resources/static/*
 ssh/src/main/web/node_modules/*
 core/data
 core/log
+log
 
