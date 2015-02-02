@@ -34,7 +34,6 @@ app.service("Api", ["Connection", "$interval", function(Connection, $interval) {
 	}
 
 	var subscriptionsRequested = [];
-	var replaysRequested = [];
 	var sendAfterAuthentication = [];
 	var snapshots = {};
 
@@ -105,21 +104,8 @@ app.service("Api", ["Connection", "$interval", function(Connection, $interval) {
 				key: eventKey.push ? eventKey : eventKey.split(" ")
 			}
 		};
-		var replayQueryId = nextId();
-		var replay = {
-            jsonClass: "easyrider.Events$GetReplay",
-            queryId: {
-                jsonClass: "easyrider.QueryId",
-                id: replayQueryId
-            },
-            subscriptions: [ subscriptionId ],
-            since: "2000-01-01T00:00:00.000Z"
-		};
 		if(me.isAuthenticated) {
-		    replaysRequested[replayQueryId] = subscription;
-		    //console.log("replaysRequested: " + angular.toJson(replaysRequested));
 			Connection.send(subscription);
-			Connection.send(replay);
 		}
 		subscriptionsRequested.push(subscription);
 		var s = new Subscription(subscriptionId, callback);
@@ -179,12 +165,6 @@ app.service("Api", ["Connection", "$interval", function(Connection, $interval) {
 		if (s.callback) {
 		    s.callback();
 		}
-	};
-	Connection.on["easyrider.Events$GetReplayResponse"] = function(msg) {
-        var s = replaysRequested[msg.queryId.id];
-        //console.log(angular.toJson(replaysRequested) + ": " + angular.toJson(s.tail) + " <- " + angular.toJson(msg));
-        s.tail = msg.events;
-        delete replaysRequested[msg.queryId.id];
 	};
 	function handleFailure(msg) {
 		alert(msg.message);
