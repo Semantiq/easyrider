@@ -32,17 +32,9 @@ class EventBus(easyRiderData: File) extends Actor with ActorLogging {
 
   override def receive: Receive = LoggingReceive {
     case event: Event =>
-      val current = snapshots.getOrElse(event.getClass, Map())
-      val updated = if (event.eventDetails.removal) {
-        current - event.eventDetails.eventKey
-      } else {
-        current.updated(event.eventDetails.eventKey, event)
+      if (event.isInstanceOf[SnapshotUpdate[_]] ) {
+        processLegacySnapshot(event)
       }
-      snapshots += (class2eventType(event.getClass) -> updated)
-      subscriptions
-        .filter(s => s.matches(event))
-        .foreach(s => s.receiver ! event)
-      save(snapshots)
       processSnapshotUpdate(event)
       eventLog +:= event
       save(eventLog)
@@ -75,6 +67,20 @@ class EventBus(easyRiderData: File) extends Actor with ActorLogging {
       val withinTime = eventLog.dropWhile(e => e.eventDetails.publicationTime isBefore since)
       val matching = withinTime.filter(e => filter.exists(f => f.matches(e)))
       sender() ! GetReplayResponse(queryId, matching)
+  }
+
+  def processLegacySnapshot(event: Event): Unit = {
+    val current = snapshots.getOrElse(event.getClass, Map())
+    val updated = if (event.eventDetails.removal) {
+      current - event.eventDetails.eventKey
+    } else {
+      current.updated(event.eventDetails.eventKey, event)
+    }
+    snapshots += (class2eventType(event.getClass) -> updated)
+    subscriptions
+      .filter(s => s.matches(event))
+      .foreach(s => s.receiver ! event)
+    save(snapshots)
   }
 
   def processSnapshotUpdate(event: Event) {

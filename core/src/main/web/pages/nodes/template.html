@@ -1,0 +1,14 @@
+<h1>Nodes</h1>
+<hr />
+<div ng-show="Nodes.state.loading">
+	Loading...
+</div>
+<div class="jumbotron" ng-show="!Nodes.state.loading && Nodes.state.snapshot.entries == {}">
+	<h1>There are no nodes</h1>
+	<p>
+		Some help text
+	</p>
+</div>
+<div ng-repeat="(nodeId, state) in Nodes.state.snapshot.entries">
+	<badge state="state" label="nodeId"></badge>
+</div>

@@ -2,6 +2,7 @@ app.service("Connection", ["$rootScope", function($rootScope) {
 	var me = this;
 	me.open = false;
 	me.on = {};
+	me.onSnapshotUpdate = {};
 
 	me.lastCloudMessage = 0;
 	me.lastToCloudMessage = 0;

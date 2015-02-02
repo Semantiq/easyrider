@@ -36,6 +36,7 @@ app.service("Api", ["Connection", "$interval", function(Connection, $interval) {
 	var subscriptionsRequested = [];
 	var replaysRequested = [];
 	var sendAfterAuthentication = [];
+	var snapshots = {};
 
 	function Subscription(subscriptionId, callback) {
 		this.subscriptionId = subscriptionId;
@@ -45,6 +46,30 @@ app.service("Api", ["Connection", "$interval", function(Connection, $interval) {
 	}
 
 	var subscriptions = {};
+
+    me.subscribeSnapshot = function(entryType, callback) {
+        if (!Connection.onSnapshotUpdate[entryType]) {
+            defineEntry(entryType);
+        }
+        var startSubscription = {
+            jsonClass: "easyrider.Events$StartSnapshotSubscription",
+            commandDetails: makeCommandDetails(),
+            entryType: {
+                jsonClass: "easyrider.SnapshotEntryType",
+                clazz: entryType
+            }
+        };
+        snapshots[entryType] = {
+            loading: true,
+            callback: callback
+        };
+        if (me.isAuthenticated) {
+            Connection.send(startSubscription);
+        } else {
+            sendAfterAuthentication.push(startSubscription);
+        }
+        return snapshots[entryType];
+    };
 
 	me.subscribe = function(eventType, eventKey, callback) {
 	    if(!Connection.on[eventType]) {
@@ -57,16 +82,7 @@ app.service("Api", ["Connection", "$interval", function(Connection, $interval) {
         }
 		var subscription = {
 			jsonClass: "easyrider.Events$Subscribe",
-			commandDetails: {
-                jsonClass: "easyrider.CommandDetails",
-                commandId: {
-                    jsonClass: "easyrider.CommandId",
-                    id: nextId()
-                },
-                traceMode: {
-                    jsonClass: "easyrider.TraceMode"
-                }
-			},
+			commandDetails: makeCommandDetails(),
 			subscriptionId: subscriptionId,
 			eventType: {
 				jsonClass: "easyrider.EventType",
@@ -167,6 +183,15 @@ app.service("Api", ["Connection", "$interval", function(Connection, $interval) {
 	}
 	Connection.on["easyrider.Commands.Failure"] = handleFailure;
 	Connection.on["easyrider.business.http.WebServerWorker$MessageFormatError"] = handleFailure;
+    Connection.on["easyrider.Events$SnapshotSubscriptionStarted"] = function(message) {
+        var snapshot = snapshots[message.snapshot.entryType.clazz];
+        snapshot.snapshot = message.snapshot;
+        snapshot.loading = false;
+        snapshot.callback(snapshot.snapshot);
+    };
+    Connection.on["easyrider.Events$SnapshotUpdatedEvent"] = function(message) {
+        Connection.onSnapshotUpdate[message.update.entryType](message.update);
+    };
 
 	function defineEvent(className) {
 		Connection.on[className] = function(event) {
@@ -199,5 +224,30 @@ app.service("Api", ["Connection", "$interval", function(Connection, $interval) {
 				}
 			}
 		};
+	}
+
+	function defineEntry(className) {
+        Connection.onSnapshotUpdate[className] = function(update) {
+            var snapshot = snapshots[update.entryType.jsonClass];
+            if (update.entry) {
+                snapshot.snapshot.entries[update.eventKey] = update.entry;
+            } else {
+                delete snapshot.snapshot.entries[update.eventKey];
+            }
+            snapshot.callback(snapshot.snapshot);
+        };
+	}
+
+	function makeCommandDetails() {
+	    return {
+            jsonClass: "easyrider.CommandDetails",
+            commandId: {
+                jsonClass: "easyrider.CommandId",
+                id: nextId()
+            },
+            traceMode: {
+                jsonClass: "easyrider.TraceMode"
+            }
+        };
 	}
 }]);

@@ -5,14 +5,8 @@ app.directive("selectNode", function() {
 		scope: {
 			model: "="
 		},
-		controller: ["$scope", "SshNodes", function($scope, SshNodes) {
-			$scope.SshNodes = SshNodes;
-			$scope.ids = function() {
-				var ids = [];
-				for(var i in SshNodes.stateList)
-					ids.push(SshNodes.stateList[i].nodeId);
-				return ids;
-			}
+		controller: ["$scope", "Nodes", function($scope, Nodes) {
+			$scope.Nodes = Nodes;
 		}]
 	};
 });

@@ -20,7 +20,7 @@ module.exports = function(grunt) {
 			}
 		},
 		jshint: {
-			files: ['Gruntfile.js', 'js/init.js', 'services/**/*.js', 'pages/**/*.js'],
+			files: ['Gruntfile.js', 'js/init.js', 'services/*.js', 'pages/**/*.js'],
 		},
 		less: {
 			build: {
