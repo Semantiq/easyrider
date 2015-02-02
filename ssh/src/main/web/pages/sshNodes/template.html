@@ -4,7 +4,10 @@
 <h1>SSH Nodes</h1>
 <hr />
 
-<div class="jumbotron" ng-show="sshNodeConfigurationEvents.length==0">
+<div ng-show="SshNodes.configuration.loading">
+	Loading...
+</div>
+<div class="jumbotron" ng-show="SshNodes.configuration.snapshot.entries == {}">
     <h1>There are no SSH nodes</h1>
     <p>
         Some help text
@@ -14,4 +17,4 @@
     </button>
 </div>
 
-<ssh-node ng-repeat="sshNodeConfiguration in sshNodeConfigurationEvents" configuration="sshNodeConfiguration" state="nodeStates()[sshNodeConfiguration.nodeConfiguration.id.id]"></ssh-node>
+<ssh-node ng-repeat="(key, sshNodeConfiguration) in SshNodes.configuration.snapshot.entries" configuration="sshNodeConfiguration" state="SshNodes.nodeStates()[sshNodeConfiguration.id.id]"></ssh-node>

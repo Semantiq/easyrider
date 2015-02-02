@@ -51,22 +51,30 @@ app.service("Api", ["Connection", "$interval", function(Connection, $interval) {
         if (!Connection.onSnapshotUpdate[entryType]) {
             defineEntry(entryType);
         }
-        var startSubscription = {
-            jsonClass: "easyrider.Events$StartSnapshotSubscription",
-            commandDetails: makeCommandDetails(),
-            entryType: {
-                jsonClass: "easyrider.SnapshotEntryType",
-                clazz: entryType
+        if (!snapshots[entryType]) {
+            var startSubscription = {
+                jsonClass: "easyrider.Events$StartSnapshotSubscription",
+                commandDetails: makeCommandDetails(),
+                entryType: {
+                    jsonClass: "easyrider.SnapshotEntryType",
+                    clazz: entryType
+                }
+            };
+            snapshots[entryType] = {
+                loading: true,
+                callbacks: [ callback ]
+            };
+            if (me.isAuthenticated) {
+                Connection.send(startSubscription);
+            } else {
+                sendAfterAuthentication.push(startSubscription);
             }
-        };
-        snapshots[entryType] = {
-            loading: true,
-            callback: callback
-        };
-        if (me.isAuthenticated) {
-            Connection.send(startSubscription);
         } else {
-            sendAfterAuthentication.push(startSubscription);
+            var snapshot = snapshots[entryType];
+            snapshot.callbacks.push(callback);
+            if (snapshot.snapshot) {
+                callback(snapshot.snapshot);
+            }
         }
         return snapshots[entryType];
     };
@@ -187,7 +195,9 @@ app.service("Api", ["Connection", "$interval", function(Connection, $interval) {
         var snapshot = snapshots[message.snapshot.entryType.clazz];
         snapshot.snapshot = message.snapshot;
         snapshot.loading = false;
-        snapshot.callback(snapshot.snapshot);
+        angular.forEach(snapshot.callbacks, function(callback) {
+            callback(snapshot.snapshot);
+        });
     };
     Connection.on["easyrider.Events$SnapshotUpdatedEvent"] = function(message) {
         Connection.onSnapshotUpdate[message.update.entryType](message.update);
@@ -234,7 +244,9 @@ app.service("Api", ["Connection", "$interval", function(Connection, $interval) {
             } else {
                 delete snapshot.snapshot.entries[update.eventKey];
             }
-            snapshot.callback(snapshot.snapshot);
+            angular.forEach(snapshot.callbacks, function(callback) {
+                callback(snapshot.snapshot);
+            });
         };
 	}
 

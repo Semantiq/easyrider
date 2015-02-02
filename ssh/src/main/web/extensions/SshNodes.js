@@ -1,9 +1,8 @@
 app.service('SshNodes', ['Api', 'Validators', 'Utils', function(Api, Validators, Utils) {
 	var me = this;
 
-	me.subscription = Api.subscribe("easyrider.business.ssh.SshInfrastructure$NodeConfigurationUpdatedEvent", []);
+	me.configuration = Api.subscribeSnapshot("easyrider.business.ssh.SshInfrastructure$NodeConfiguration", function(config) {});
 	me.stateSubscription = Api.subscribe("easyrider.Infrastructure$NodeUpdatedEvent", []);
-	me.list = me.subscription.snapshot;
 	me.stateList = me.stateSubscription.snapshot;
 
 	me.addSshNodeTemplate = function() {
