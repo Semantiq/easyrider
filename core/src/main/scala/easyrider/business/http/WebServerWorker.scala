@@ -4,6 +4,7 @@ import java.lang.reflect.InvocationTargetException
 
 import akka.actor._
 import akka.util.Timeout
+import easyrider.business.core.EventBusSerializers
 import easyrider.business.http.WebServerWorker.MessageFormatError
 import org.json4s._
 import org.json4s.ext.JodaTimeSerializers
@@ -26,7 +27,7 @@ class WebServerWorker(connection: ActorRef, apiFactory: ActorRef => Props, impli
   context.watch(api)
 
   def businessLogic: Receive = {
-    implicit val formats = Serialization.formats(FullTypeHints(List(classOf[AnyRef]))) ++ JodaTimeSerializers.all
+    implicit val formats = Serialization.formats(FullTypeHints(List(classOf[AnyRef]))) ++ JodaTimeSerializers.all ++ EventBusSerializers.serializers
 
     {
       case Terminated(actor) if actor == api =>

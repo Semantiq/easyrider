@@ -1,4 +1,13 @@
 app.service("Versions", ["Api", function(Api) {
-    this.subscription = Api.subscribe("easyrider.Repository$VersionAvailableEvent", []);
-    this.list = this.subscription.snapshot;
+    var me = this;
+    me.versionsByApplicationId = {};
+    me.versions = Api.subscribeSnapshot("easyrider.Repository$VersionMetadata", function(snapshot) {
+        angular.forEach(snapshot.entries, function(value, key) {
+            var applicationId = value.version.applicationId.id;
+            if (!me.versionsByApplicationId[applicationId]) {
+                me.versionsByApplicationId[applicationId] = [];
+            }
+            me.versionsByApplicationId[applicationId].push(value);
+        });
+    });
 }]);

@@ -48,6 +48,7 @@ class BuiltInPackageUpload(sshSession: ActorRef, repository: ActorRef) extends A
         context.become(uploading(command, download, uploadId, queue.tail, 0))
       case RemoteAccess.UploadNextChunk(_, currentUploadId) if queue.isEmpty =>
         context.become(uploading(command, download, uploadId, queue, permissions + 1))
+        download ! Ack
       case UploadCompleted() =>
         for (data <- queue) {
           sshSession ! RemoteAccess.UploadChunk(CommandDetails(), command.nodeId, uploadId, BinaryData(data))

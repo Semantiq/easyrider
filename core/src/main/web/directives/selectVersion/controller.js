@@ -3,14 +3,17 @@ app.directive("selectVersion", function() {
 		restrict: "E",
 		templateUrl: "/directives/selectVersion/template.html",
 		scope: {
-			model: "="
+			model: "=",
+			applicationId: "="
 		},
 		controller: ["$scope", "Versions", function($scope, Versions) {
-			$scope.ids = function() {
-				var ids = [];
-				for(var i in Versions.list)
-					ids.push(Versions.list[i].version);
-				return ids;
+		    $scope.Versions = Versions;
+			$scope.versions = function(applicationId) {
+			    var list = [];
+			    angular.forEach($scope.Versions.versionsByApplicationId[applicationId], function(value) {
+                    list.push(value.version);
+			    });
+			    return list;
 			}
 		}]
 	};

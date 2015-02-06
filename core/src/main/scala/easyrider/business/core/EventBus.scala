@@ -37,7 +37,7 @@ class EventBus(easyRiderData: File) extends Actor with ActorLogging {
       }
       processSnapshotUpdate(event)
       eventLog +:= event
-      save(eventLog)
+      //save(eventLog)
     case Terminated(subscriber) =>
       subscriptions = subscriptions.filter(s => s.receiver != subscriber)
       snapshotSubscribers = snapshotSubscribers.filter(s => s.subscriber != subscriber)

@@ -40,8 +40,8 @@
 			<a class="label label-default" href="/application/{{app.application.id.id}}/stage/{{stageEvent.stage.id.id}}">{{stageEvent.stage.id.id}}</a>&nbsp;
 		</span>
 		<h4>Versions</h4>
-		<span ng-repeat="versionEvent in versionsForApplication(app.application.id, Versions.list)">
-			<a class="label label-default" href="/application/{{app.application.id.id}}/version/{{versionEvent.version.number}}">{{versionEvent.version.number}}</a>
+		<span ng-repeat="versionMetadata in Versions.versionsByApplicationId[app.application.id.id]">
+			<a class="label label-default" href="/application/{{app.application.id.id}}/version/{{versionMetadata.version.number}}">{{versionMetadata.version.number}}</a>
 		</span>
 	</div>
 </div>

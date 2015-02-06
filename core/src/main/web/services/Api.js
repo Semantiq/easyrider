@@ -180,7 +180,7 @@ app.service("Api", ["Connection", "$interval", function(Connection, $interval) {
         });
     };
     Connection.on["easyrider.Events$SnapshotUpdatedEvent"] = function(message) {
-        Connection.onSnapshotUpdate[message.update.entryType](message.update);
+        Connection.onSnapshotUpdate[message.update.entryType.clazz](message.update);
     };
 
 	function defineEvent(className) {
@@ -218,7 +218,7 @@ app.service("Api", ["Connection", "$interval", function(Connection, $interval) {
 
 	function defineEntry(className) {
         Connection.onSnapshotUpdate[className] = function(update) {
-            var snapshot = snapshots[update.entryType.jsonClass];
+            var snapshot = snapshots[update.entryType.clazz];
             if (update.entry) {
                 snapshot.snapshot.entries[update.eventKey] = update.entry;
             } else {

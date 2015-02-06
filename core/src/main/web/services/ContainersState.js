@@ -1,19 +1,20 @@
 app.service("ContainersState", ["Api", function(Api) {
 	var me = this;
 
-	me.subscription = Api.subscribe("easyrider.Infrastructure$ContainerStateChangedEvent", []);
-	me.list = me.subscription.snapshot;
+	me.state = Api.subscribeSnapshot("easyrider.Infrastructure$ContainerState", function(snapshot) {
+	});
 
 	var unknown = { jsonClass: "unknown" };
 
 	me.containerStatus = function(containerId) {
-		for(var i in me.list) {
-			var status = me.list[i];
-            var eventKey = status.eventDetails.eventKey.key;
-			if(eventKey[0] == containerId.stageId.applicationId.id &&
-			    eventKey[1] == containerId.stageId.id &&
-			    eventKey[2] == containerId.id) return status.state;
+	    if (me.state.loading) {
+	        return unknown;
+	    }
+        var status = me.state.snapshot.entries[containerId.stageId.applicationId.id + ":" + containerId.stageId.id + ":" + containerId.id];
+        if (status) {
+            return status;
+        } else {
+		    return unknown;
 		}
-		return unknown;
 	};
 }]);
