@@ -1,8 +1,8 @@
 app.service('Stages', ['Api', "Validators", "Utils", function(Api, Validators, Utils) {
 	var me = this;
 
-	me.subscription = Api.subscribe("easyrider.Applications$StageUpdatedEvent", []);
-	me.list = me.subscription.snapshot;
+	me.stages = Api.subscribeSnapshot("easyrider.Applications$Stage", function(snapshot) {
+	});
 
 	me.addStageTemplate = function(applicationId) {
 		return {
@@ -31,13 +31,13 @@ app.service('Stages', ['Api', "Validators", "Utils", function(Api, Validators, U
 
 	me.stagesOfApplication = function(applicationId) {
 		var stages = [];
-
-		for(var i in me.list) {
-			if(me.list[i].stage.id.applicationId.id == applicationId.id) {
-				stages.push(me.list[i]);
-			}
+        if (me.stages.snapshot) {
+            angular.forEach(me.stages.snapshot.entries, function(value, key) {
+                if(value.id.applicationId.id == applicationId.id) {
+                    stages.push(value);
+                }
+            });
 		}
-
 		return stages;
 	};
 

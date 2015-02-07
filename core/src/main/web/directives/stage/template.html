@@ -1,20 +1,20 @@
 <div class="panel panel-primary">
 	<div class="panel-heading">
 		<div class="btn-toolbar pull-right">
-			<button class="btn btn-success btn-xs" ng-click="addContainer(stage.stage.id)">
+			<button class="btn btn-success btn-xs" ng-click="addContainer(stage.id)">
 				Add container
 			</button>
-			<button class="btn btn-danger btn-xs" ng-click="removeStage(stage.stage.id)">Remove stage</button>
-			<button class="btn btn-primary btn-xs" ng-click="releaseVersionToStage(stage.stage.id)">Release version</button>
+			<button class="btn btn-danger btn-xs" ng-click="removeStage(stage.id)">Remove stage</button>
+			<button class="btn btn-primary btn-xs" ng-click="releaseVersionToStage(stage.id)">Release version</button>
 		</div>
-		<a href="/application/{{stage.stage.id.applicationId.id}}/stage/{{stage.stage.id.id}}">
-			{{stage.stage.id.applicationId.id}} @ {{stage.stage.id.id}}
+		<a href="/application/{{stage.id.applicationId.id}}/stage/{{stage.id.id}}">
+			{{stage.id.applicationId.id}} @ {{stage.id.id}}
 		</a>
 	</div>
 	<div class="panel-body">
 		<div class="panel">
 			<div class="btn-toolbar pull-right">
-				<button class="btn btn-default btn-xs" ng-click="stage.stage.properties.push({jsonClass: 'easyrider.Applications$Property', namespace: 'literal.string', name: 'name here', value: 'value here'})">
+				<button class="btn btn-default btn-xs" ng-click="stage.properties.push({jsonClass: 'easyrider.Applications$Property', namespace: 'literal.string', name: 'name here', value: 'value here'})">
 					Add literal property
 				</button>
 				<button class="btn btn-default btn-xs" ng-click="saveStage(stage)">
@@ -22,11 +22,11 @@
 				</button>
 			</div>
 			<h4>Properties</h4>
-			<property property="property" ng-repeat="property in stage.stage.properties"></property>
+			<property property="property" ng-repeat="property in stage.properties"></property>
 		</div>
 		<h4>Containers</h4>
 		<div class="list-group">
-			<div class="list-group-item" ng-repeat="containerUpdatedEvent in ContainersConfiguration.containersInStage(stage.stage.id)">
+			<div class="list-group-item" ng-repeat="containerUpdatedEvent in ContainersConfiguration.containersInStage(stage.id)">
 				<div  ng-repeat="status in [ContainersState.containerStatus(containerUpdatedEvent.container.id)]">
 				<div class="btn-toolbar pull-right">
 					<button class="btn btn-primary btn-xs" ng-click="deployVersion(containerUpdatedEvent)">Deploy version</button>

@@ -8,6 +8,9 @@ app.service("DeployedVersions", ["Api", function(Api) {
 	me.deployedVersionsByContainerId = function(containerId) {
 		var lst = [];
         var prefix = containerId.stageId.applicationId.id + ":" + containerId.stageId.id + ":" + containerId.id + ":";
+        if (!me.deployment.snapshot) {
+            return lst;
+        }
 
         angular.forEach(me.deployment.snapshot.entries, function(value, key) {
 			if (key.lastIndexOf(prefix, 0) === 0) {

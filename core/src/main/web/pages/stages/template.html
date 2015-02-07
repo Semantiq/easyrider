@@ -4,7 +4,7 @@
 <h1>Stages</h1>
 <hr />
 
-<div class="jumbotron" ng-show="Stages.list.length==0">
+<div class="jumbotron" ng-show="!Stages.stages.loading && Stages.stages.snapshot.entries == {}">
 	<h1>There are no stages</h1>
 	<p>
 		Some help text
@@ -14,4 +14,4 @@
 	</button>
 </div>
 
-<div ng-repeat="stage in Stages.list" stage="stage"></div>
+<div ng-repeat="(key, stage) in Stages.stages.snapshot.entries" stage="stage"></div>

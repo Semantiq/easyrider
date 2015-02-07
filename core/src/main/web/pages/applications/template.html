@@ -40,8 +40,8 @@
 			<property property="property" ng-repeat="property in app.properties"></property>
 		</div>
 		<h4>Stages</h4>
-		<span ng-repeat="stageEvent in Stages.stagesOfApplication(app.id)">
-			<a class="label label-default" href="/application/{{app.id.id}}/stage/{{stageEvent.stage.id.id}}">{{stageEvent.stage.id.id}}</a>&nbsp;
+		<span ng-repeat="stage in Stages.stagesOfApplication(app.id)">
+			<a class="label label-default" href="/application/{{app.id.id}}/stage/{{stage.id.id}}">{{stage.id.id}}</a>&nbsp;
 		</span>
 		<h4>Versions</h4>
 		<span ng-repeat="versionMetadata in Versions.versionsByApplicationId[app.id.id]">

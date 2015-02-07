@@ -6,12 +6,8 @@ app.config(["$routeProvider", function($routeProvider) {
 			$scope.stageId = $routeParams.stageId;
 
 			$scope.stage = function() {
-				for(var i in Stages.list) {
-					var stageEvent = Stages.list[i];
-					if(stageEvent.stage.id.id == $scope.stageId &&
-						stageEvent.stage.id.applicationId.id == $scope.appId) {
-						return stageEvent;
-					}
+			    if (Stages.stages.snapshot) {
+				    return Stages.stages.snapshot.entries[$routeParams.appId + ":" + $routeParams.stageId];
 				}
 			};
 		}]
