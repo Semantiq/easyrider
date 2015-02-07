@@ -50,15 +50,16 @@
 					<property property="property" ng-repeat="property in containerUpdatedEvent.container.properties"></property>
 				</div>
 				<strong>Deployed versions</strong>
-				<ul class="list-group">
-					<li class="list-group-item" ng-repeat="deployedVersion in DeployedVersions.deployedVersionsByContainerId(containerUpdatedEvent.container.id)">
-						<div class="btn-toolbar pull-right">
-							<button class="btn btn-primary btn-xs" ng-disabled="canStop(status)" ng-click="startContainer(containerUpdatedEvent.container.id, deployedVersion.version)">Run</button>
-							<button class="btn btn-danger btn-xs" ng-disabled="status.version.number == deployedVersion.version.number" ng-click="unDeployVersion(containerUpdatedEvent.container.id, deployedVersion.version)">Un-deploy</button>
-						</div>
-						<badge state="deployedVersion.state" label="deployedVersion.version.number"></badge>
-					</li>
-				</ul>
+				<div ng-hide="DeployedVersions.deployment.loading">
+					<ul class="list-group">
+						<li class="list-group-item" ng-repeat="deployedVersion in DeployedVersions.deployedVersionsByContainerId(containerUpdatedEvent.container.id)">
+							<div class="btn-toolbar pull-right">
+								<button class="btn btn-primary btn-xs" ng-disabled="canStop(status)" ng-click="startContainer(containerUpdatedEvent.container.id, deployedVersion.version)">Run</button>
+								<button class="btn btn-danger btn-xs" ng-disabled="status.version.number == deployedVersion.version.number" ng-click="unDeployVersion(containerUpdatedEvent.container.id, deployedVersion.version)">Un-deploy</button>
+							</div>
+							<badge state="deployedVersion.state" label="deployedVersion.version.number"></badge>
+						</li>
+					</ul>
 				</div>
 			</div>
 		</div>

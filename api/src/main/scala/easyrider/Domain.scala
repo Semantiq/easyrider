@@ -122,6 +122,7 @@ object Infrastructure {
   case class DeploymentFailed(reason: String) extends DeploymentState
   case object UnDeploymentInProgress extends DeploymentState
   case object UnDeployed extends DeploymentState
+  case class DeploymentInfo(version: Version, state: DeploymentState)
 
   trait InfrastructureCommand extends Command
   case class CreateContainer(commandDetails: CommandDetails, nodeId: NodeId, containerId: ContainerId) extends InfrastructureCommand
@@ -146,8 +147,8 @@ object Infrastructure {
     snapshotUpdate = SnapshotUpdateDetails(SnapshotEntryType(classOf[ContainerState]), containerId.eventKey, if (eventDetails.removal) None else Some(state))
   }
   case class VersionDeploymentProgressEvent(eventDetails: EventDetails, version: Version, state: DeploymentState,
-                                             var snapshotUpdate: SnapshotUpdateDetails[DeploymentState] = null) extends InfrastructureEvent with SnapshotUpdate[DeploymentState] {
-    snapshotUpdate = SnapshotUpdateDetails(SnapshotEntryType(classOf[DeploymentState]), eventDetails.eventKey, if (eventDetails.removal) None else Some(state))
+                                             var snapshotUpdate: SnapshotUpdateDetails[DeploymentInfo] = null) extends InfrastructureEvent with SnapshotUpdate[DeploymentInfo] {
+    snapshotUpdate = SnapshotUpdateDetails(SnapshotEntryType(classOf[DeploymentInfo]), eventDetails.eventKey, if (eventDetails.removal) None else Some(DeploymentInfo(version, state)))
   }
   case class NodeUpdatedEvent(eventDetails: EventDetails, nodeId: NodeId, state: NodeState, var snapshotUpdate: SnapshotUpdateDetails[NodeState] = null) extends InfrastructureEvent with SnapshotUpdate[NodeState] {
     snapshotUpdate = SnapshotUpdateDetails(SnapshotEntryType(classOf[NodeState]), EventKey(nodeId.id), Some(state))
