@@ -6,6 +6,9 @@ app.config(["$routeProvider", function($routeProvider) {
 			$scope.Stages = Stages;
 			$scope.Versions = Versions;
 
+            $scope.loading = function() {
+                return Applications.applications.loading || Stages.stages.loading || Versions.versions.loading;
+            };
 			$scope.addApplication = function() {
 				Command.show(Applications.addApplicationTemplate());
 			};

@@ -4,11 +4,11 @@
 <h1>Applications</h1>
 <hr />
 
-<div ng-show="Applications.applications.loading">
+<div ng-show="loading()">
 	Loading...
 </div>
 
-<div class="jumbotron" ng-show="Applications.list.length==0">
+<div class="jumbotron" ng-show="!loading() && Applications.applications == {}">
 	<h1>There are no applications</h1>
 	<p>
 		Some help text
@@ -18,7 +18,7 @@
 	</button>
 </div>
 
-<div class="panel panel-primary" ng-repeat="(applicationId, app) in Applications.applications.snapshot.entries">
+<div class="panel panel-primary" nh-hide="loading()" ng-repeat="(applicationId, app) in Applications.applications.snapshot.entries">
 	<div class="panel-heading">
 		<div class="btn-toolbar pull-right">
 			<button class="btn btn-success btn-xs" ng-click="addStage(app.id)">Add stage</button>
