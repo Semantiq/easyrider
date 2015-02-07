@@ -1,7 +1,13 @@
 app.service('Applications', ['Api', "Validators", "Utils", function(Api, Validators, Utils) {
 	var me = this;
 
-	me.applications = Api.subscribeSnapshot("easyrider.Applications$Application", function(snapshot) {});
+    me.ids = [];
+	me.applications = Api.subscribeSnapshot("easyrider.Applications$Application", function(snapshot) {
+        me.ids.length = 0;
+        angular.forEach(snapshot.entries, function(value, key) {
+            me.ids.push(value.id);
+        });
+	});
 
 	me.addApplicationTemplate = function() {
 		return {

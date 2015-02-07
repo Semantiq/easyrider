@@ -7,12 +7,6 @@ app.directive("selectApplication", function() {
 		},
 		controller: ["$scope", "Applications", function($scope, Applications) {
 			$scope.Applications = Applications;
-			$scope.ids = function() {
-				var ids = [];
-				for(var i in Applications.list)
-					ids.push(Applications.list[i].application.id);
-				return ids;
-			}
 		}]
 	};
 });
