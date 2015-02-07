@@ -78,44 +78,6 @@ app.service("Api", ["Connection", "$interval", function(Connection, $interval) {
         return snapshots[entryType];
     };
 
-	me.subscribe = function(eventType, eventKey, callback) {
-	    if(!Connection.on[eventType]) {
-	        defineEvent(eventType);
-	    }
-	    // TODO: this will not prevent duplicated subscriptions if they are nested
-		var subscriptionId = eventType + "::" + eventKey.join("::");
-        if (subscriptions[subscriptionId]) {
-            return subscriptions[subscriptionId];
-        }
-		var subscription = {
-			jsonClass: "easyrider.Events$Subscribe",
-			commandDetails: makeCommandDetails(),
-			subscriptionId: subscriptionId,
-			eventType: {
-				jsonClass: "easyrider.EventType",
-				name: eventType,
-				sender: {
-					id: "core",
-					jsonClass: "easyrider.ComponentId"
-				}
-			},
-			eventKey: {
-				jsonClass: "easyrider.EventKey",
-				key: eventKey.push ? eventKey : eventKey.split(" ")
-			}
-		};
-		if(me.isAuthenticated) {
-			Connection.send(subscription);
-		}
-		subscriptionsRequested.push(subscription);
-		var s = new Subscription(subscriptionId, callback);
-		subscriptions[subscriptionId] = s;
-		s.eventKey = subscription.eventKey;
-		s.eventType = subscription.eventType;
-		s.commandId = subscription.commandId;
-		return s;
-	};
-
 	me.command = function(jsonClass, command) {
 		command.jsonClass = jsonClass;
 		command.commandDetails = {
@@ -153,19 +115,6 @@ app.service("Api", ["Connection", "$interval", function(Connection, $interval) {
         me.isAuthenticationFailure = true;
 	};
 
-	Connection.on["easyrider.Events$Subscribed"] = function(msg) {
-		var s = subscriptions[msg.subscriptionId];
-		s.subscribed = true;
-		while(s.snapshot.length > 0) {
-			s.snapshot.pop();
-		}
-		for(var i in msg.snapshot) {
-			s.snapshot.push(msg.snapshot[i]);
-		}
-		if (s.callback) {
-		    s.callback();
-		}
-	};
 	function handleFailure(msg) {
 		alert(msg.message);
 	}
