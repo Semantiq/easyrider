@@ -23,8 +23,8 @@ app.directive("stage", function() {
             $scope.releaseVersionToStage = function(stageId) {
                 Command.show(Orchestrator.releaseVersionTemplate(stageId))
             };
-			$scope.deployVersion = function(containerUpdatedEvent) {
-				Command.show(ContainersConfiguration.deployVersionTemplate(containerUpdatedEvent.container.id));
+			$scope.deployVersion = function(container) {
+				Command.show(ContainersConfiguration.deployVersionTemplate(container.id));
 			};
 			$scope.unDeployVersion = function(containerId, version) {
 				Command.show(ContainersConfiguration.unDeployVersionTemplate(containerId, version));

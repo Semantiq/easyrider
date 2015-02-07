@@ -26,36 +26,36 @@
 		</div>
 		<h4>Containers</h4>
 		<div class="list-group">
-			<div class="list-group-item" ng-repeat="containerUpdatedEvent in ContainersConfiguration.containersInStage(stage.id)">
-				<div  ng-repeat="status in [ContainersState.containerStatus(containerUpdatedEvent.container.id)]">
+			<div class="list-group-item" ng-repeat="container in ContainersConfiguration.containersInStage(stage.id)">
+				<div  ng-repeat="status in [ContainersState.containerStatus(container.id)]">
 				<div class="btn-toolbar pull-right">
-					<button class="btn btn-primary btn-xs" ng-click="deployVersion(containerUpdatedEvent)">Deploy version</button>
-					<button class="btn btn-primary btn-xs" ng-disabled="!canStop(status)" ng-click="stopContainer(containerUpdatedEvent.container.id)">Stop</button>
-					<button class="btn btn-danger btn-xs" ng-disabled="!canRemove(status)" ng-click="removeContainer(containerUpdatedEvent.container.id)">Remove container</button>
+					<button class="btn btn-primary btn-xs" ng-click="deployVersion(container)">Deploy version</button>
+					<button class="btn btn-primary btn-xs" ng-disabled="!canStop(status)" ng-click="stopContainer(container.id)">Stop</button>
+					<button class="btn btn-danger btn-xs" ng-disabled="!canRemove(status)" ng-click="removeContainer(container.id)">Remove container</button>
 				</div>
 				<h4>
-					{{containerUpdatedEvent.container.id.id}}
+					{{container.id.id}}
 					<badge state="status" label="status.version.number"></badge>
 				</h4>
 				<div class="panel">
 					<div class="btn-toolbar pull-right">
-						<button class="btn btn-default btn-xs" ng-click="containerUpdatedEvent.container.properties.push({jsonClass: 'easyrider.Applications$Property', namespace: 'literal.string', name: 'name here', value: 'value here'})">
+						<button class="btn btn-default btn-xs" ng-click="container.properties.push({jsonClass: 'easyrider.Applications$Property', namespace: 'literal.string', name: 'name here', value: 'value here'})">
 							Add literal property
 						</button>
-						<button class="btn btn-default btn-xs" ng-click="saveContainer(containerUpdatedEvent)">
+						<button class="btn btn-default btn-xs" ng-click="saveContainer(container)">
 							Save changes
 						</button>
 					</div>
 					<h5>Properties</h5>
-					<property property="property" ng-repeat="property in containerUpdatedEvent.container.properties"></property>
+					<property property="property" ng-repeat="property in container.properties"></property>
 				</div>
 				<strong>Deployed versions</strong>
 				<div ng-hide="DeployedVersions.deployment.loading">
 					<ul class="list-group">
-						<li class="list-group-item" ng-repeat="deployedVersion in DeployedVersions.deployedVersionsByContainerId(containerUpdatedEvent.container.id)">
+						<li class="list-group-item" ng-repeat="deployedVersion in DeployedVersions.deployedVersionsByContainerId(container.id)">
 							<div class="btn-toolbar pull-right">
-								<button class="btn btn-primary btn-xs" ng-disabled="canStop(status)" ng-click="startContainer(containerUpdatedEvent.container.id, deployedVersion.version)">Run</button>
-								<button class="btn btn-danger btn-xs" ng-disabled="status.version.number == deployedVersion.version.number" ng-click="unDeployVersion(containerUpdatedEvent.container.id, deployedVersion.version)">Un-deploy</button>
+								<button class="btn btn-primary btn-xs" ng-disabled="canStop(status)" ng-click="startContainer(container.id, deployedVersion.version)">Run</button>
+								<button class="btn btn-danger btn-xs" ng-disabled="status.version.number == deployedVersion.version.number" ng-click="unDeployVersion(container.id, deployedVersion.version)">Un-deploy</button>
 							</div>
 							<badge state="deployedVersion.state" label="deployedVersion.version.number"></badge>
 						</li>

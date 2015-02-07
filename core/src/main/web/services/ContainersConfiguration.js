@@ -1,8 +1,8 @@
 app.service("ContainersConfiguration", ["Api", "Validators", "Utils", function(Api, Validators, Utils) {
 	var me = this;
 
-	me.subscription = Api.subscribe("easyrider.Applications$ContainerConfigurationUpdatedEvent", []);
-	me.list = me.subscription.snapshot;
+	me.containers = Api.subscribeSnapshot("easyrider.Applications$ContainerConfiguration", function(snapshot) {
+	});
 
 	me.addContainerConfigurationTemplate = function(stageId) {
 		return {
@@ -54,13 +54,15 @@ app.service("ContainersConfiguration", ["Api", "Validators", "Utils", function(A
 	me.containersInStage = function(stageId) {
 	    if (!stageId) return [];
 		var lst = [];
+        if (!me.containers.snapshot) {
+            return lst;
+        }
 
-		for(var i in me.list) {
-			var cce = me.list[i];
-
-			if(stageId.id == cce.container.id.stageId.id && stageId.applicationId.id == cce.container.id.stageId.applicationId.id)
-				lst.push(cce);
-		}
+        angular.forEach(me.containers.snapshot.entries, function(value, key) {
+			if (stageId.id == value.id.stageId.id && stageId.applicationId.id == value.id.stageId.applicationId.id) {
+				lst.push(value);
+            }
+        });
 
 		return lst;
 	};
