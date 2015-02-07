@@ -4,6 +4,10 @@
 <h1>Applications</h1>
 <hr />
 
+<div ng-show="Applications.applications.loading">
+	Loading...
+</div>
+
 <div class="jumbotron" ng-show="Applications.list.length==0">
 	<h1>There are no applications</h1>
 	<p>
@@ -14,18 +18,18 @@
 	</button>
 </div>
 
-<div class="panel panel-primary" ng-repeat="app in Applications.list">
+<div class="panel panel-primary" ng-repeat="(applicationId, app) in Applications.applications.snapshot.entries">
 	<div class="panel-heading">
 		<div class="btn-toolbar pull-right">
-			<button class="btn btn-success btn-xs" ng-click="addStage(app.application.id)">Add stage</button>
-			<button class="btn btn-danger btn-xs" ng-click="removeApplication(app.application.id)">Remove application</button>
+			<button class="btn btn-success btn-xs" ng-click="addStage(app.id)">Add stage</button>
+			<button class="btn btn-danger btn-xs" ng-click="removeApplication(app.id)">Remove application</button>
 		</div>
-		{{app.application.id.id}}
+		{{app.id.id}}
 	</div>
 	<div class="panel-body">
 		<div class="panel">
 			<div class="btn-toolbar pull-right">
-				<button class="btn btn-default btn-xs" ng-click="app.application.properties.push({jsonClass: 'easyrider.Applications$Property', namespace: 'literal.string', name: 'name here', value: 'value here'})">
+				<button class="btn btn-default btn-xs" ng-click="app.properties.push({jsonClass: 'easyrider.Applications$Property', namespace: 'literal.string', name: 'name here', value: 'value here'})">
 					Add literal property
 				</button>
 				<button class="btn btn-default btn-xs" ng-click="saveApplication(app)">
@@ -33,15 +37,15 @@
 				</button>
 			</div>
 			<h4>Properties</h4>
-			<property property="property" ng-repeat="property in app.application.properties"></property>
+			<property property="property" ng-repeat="property in app.properties"></property>
 		</div>
 		<h4>Stages</h4>
-		<span ng-repeat="stageEvent in Stages.stagesOfApplication(app.application.id)">
-			<a class="label label-default" href="/application/{{app.application.id.id}}/stage/{{stageEvent.stage.id.id}}">{{stageEvent.stage.id.id}}</a>&nbsp;
+		<span ng-repeat="stageEvent in Stages.stagesOfApplication(app.id)">
+			<a class="label label-default" href="/application/{{app.id.id}}/stage/{{stageEvent.stage.id.id}}">{{stageEvent.stage.id.id}}</a>&nbsp;
 		</span>
 		<h4>Versions</h4>
-		<span ng-repeat="versionMetadata in Versions.versionsByApplicationId[app.application.id.id]">
-			<a class="label label-default" href="/application/{{app.application.id.id}}/version/{{versionMetadata.version.number}}">{{versionMetadata.version.number}}</a>
+		<span ng-repeat="versionMetadata in Versions.versionsByApplicationId[app.id.id]">
+			<a class="label label-default" href="/application/{{app.id.id}}/version/{{versionMetadata.version.number}}">{{versionMetadata.version.number}}</a>
 		</span>
 	</div>
 </div>
