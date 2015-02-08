@@ -55,12 +55,12 @@ class ApiActor(bus: ActorRef, applicationManager: ActorRef, componentManager: Ac
 
   def authenticated(authenticated: Authentication) = LoggingReceive {
     case e: Event =>
-      if(sender() == bus)
+      if(sender() != client)
         client ! e
       else
         bus ! e
     case c: Command =>
-      bus ! CommandSentEvent(EventDetails(EventId.generate(), EventKey(), Seq(c.commandDetails.commandId)), c, Some(authenticated))
+      bus ! CommandSentEvent(EventDetails(EventId.generate(), EventKey(), Seq(c.commandDetails.commandId)), c, Some(authenticated), c.commandDetails.commandId)
       processCommand(c)
     case r: GetReplay =>
       bus ! r

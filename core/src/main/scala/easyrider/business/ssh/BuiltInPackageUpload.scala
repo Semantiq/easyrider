@@ -28,7 +28,7 @@ class BuiltInPackageUpload(sshSession: ActorRef, repository: ActorRef) extends A
   }
 
   def initializingUpload(command: Upload, download: ActorRef, data: ByteString) = LoggingReceive {
-    case RemoteAccess.UploadNextChunk(_, uploadId) =>
+    case RemoteAccess.UploadNextChunk(_, uploadId, _, _) =>
       download ! Ack
       sshSession ! RemoteAccess.UploadChunk(CommandDetails(), command.nodeId, uploadId, BinaryData(data))
       context.become(uploading(command, download, uploadId, Seq(), 0))
@@ -42,11 +42,11 @@ class BuiltInPackageUpload(sshSession: ActorRef, repository: ActorRef) extends A
       case UploadChunk(data) if permissions > 0 =>
         sshSession ! RemoteAccess.UploadChunk(CommandDetails(), command.nodeId, uploadId, BinaryData(data))
         context.become(uploading(command, download, uploadId, queue, permissions - 1))
-      case RemoteAccess.UploadNextChunk(_, currentUploadId) if queue.nonEmpty =>
+      case RemoteAccess.UploadNextChunk(_, currentUploadId, _, _) if queue.nonEmpty =>
         download ! Ack
         sshSession ! RemoteAccess.UploadChunk(CommandDetails(), command.nodeId, uploadId, BinaryData(queue.head))
         context.become(uploading(command, download, uploadId, queue.tail, 0))
-      case RemoteAccess.UploadNextChunk(_, currentUploadId) if queue.isEmpty =>
+      case RemoteAccess.UploadNextChunk(_, currentUploadId, _, _) if queue.isEmpty =>
         context.become(uploading(command, download, uploadId, queue, permissions + 1))
         download ! Ack
       case UploadCompleted() =>

@@ -13,9 +13,10 @@ import easyrider.Infrastructure._
 import easyrider.Repository.Version
 import easyrider._
 import easyrider.RemoteAccess._
+import easyrider.business.core.EventPublisher
 import easyrider.business.ssh.SshInfrastructure.{NodeConfiguration, NodeConfigurationUpdatedEvent, CreateNode}
 
-class SshNodeAgent(eventBus: ActorRef, easyRiderUrl: URL, sshSession: ActorRef, builtInPackageUpload: () => Props) extends Actor with SshNodeDirectoryLayout with ActorLogging {
+class SshNodeAgent(val eventBus: ActorRef, easyRiderUrl: URL, sshSession: ActorRef, builtInPackageUpload: () => Props) extends Actor with SshNodeDirectoryLayout with ActorLogging with EventPublisher {
   implicit val timeout = Timeout(5, TimeUnit.MINUTES)
   implicit val dispatcher = context.system.dispatcher
   val containers = Set[ContainerId]()
@@ -33,14 +34,14 @@ class SshNodeAgent(eventBus: ActorRef, easyRiderUrl: URL, sshSession: ActorRef, 
     case CreateContainer(commandDetails, _, containerId) =>
       def eventDetails = EventDetails(EventId.generate(), containerId.eventKey, Seq(commandDetails.commandId))
       sshSession ? RunRemoteCommand(CommandDetails(), configuration.id, "mkdir -p " + versionsDir(containerId)) flatMap {
-        case RunRemoteCommandSuccess(_, _) => sshSession ? RunRemoteCommand(CommandDetails(), configuration.id, "mkdir -p " + logDir(containerId))
+        case _: RunRemoteCommandSuccess => sshSession ? RunRemoteCommand(CommandDetails(), configuration.id, "mkdir -p " + logDir(containerId))
       } flatMap {
-        case RunRemoteCommandSuccess(_, _) => sshSession ? RunRemoteCommand(CommandDetails(), configuration.id, "mkdir -p " + etcDir(containerId))
+        case _: RunRemoteCommandSuccess => sshSession ? RunRemoteCommand(CommandDetails(), configuration.id, "mkdir -p " + etcDir(containerId))
       } flatMap {
-        case RunRemoteCommandSuccess(_, _) => sshSession ? RunRemoteCommand(CommandDetails(), configuration.id, "mkdir -p " + dataDir(containerId))
+        case _: RunRemoteCommandSuccess => sshSession ? RunRemoteCommand(CommandDetails(), configuration.id, "mkdir -p " + dataDir(containerId))
       } onSuccess {
-        case RunRemoteCommandSuccess(_, _) => eventBus ! ContainerStateChangedEvent(eventDetails, containerId, ContainerCreated)
-        case Failure(_, message, _) => eventBus ! ContainerStateChangedEvent(eventDetails, containerId, ContainerCreationFailed)
+        case _: RunRemoteCommandSuccess => eventBus ! ContainerStateChangedEvent(eventDetails, containerId, ContainerCreated)
+        case Failure(_, message, _, _) => eventBus ! ContainerStateChangedEvent(eventDetails, containerId, ContainerCreationFailed)
       }
     case DeployVersion(commandDetails, containerId, version) =>
       val eventKey = containerId.eventKey append version.number
@@ -61,7 +62,7 @@ class SshNodeAgent(eventBus: ActorRef, easyRiderUrl: URL, sshSession: ActorRef, 
       } flatMap {
         case _: RunRemoteCommandSuccess => sshSession ? RunRemoteCommand(CommandDetails(), configuration.id, s"tar -jxf $packageFolder/$packageFile -C $packageFolder/${version.number}")
       } onSuccess {
-        case _: RunRemoteCommandSuccess => eventBus ! VersionDeploymentProgressEvent(EventDetails(EventId.generate(), eventKey, Seq(commandDetails.commandId)), version, DeploymentCompleted)
+        case _: RunRemoteCommandSuccess => publishEvent(VersionDeploymentProgressEvent(EventDetails(EventId.generate(), eventKey, Seq(commandDetails.commandId)), version, DeploymentCompleted))
       }
     case StartContainer(commandDetails, containerId, version) =>
       // TODO: create real token
@@ -76,13 +77,13 @@ class SshNodeAgent(eventBus: ActorRef, easyRiderUrl: URL, sshSession: ActorRef, 
       }
     case StopContainer(commandDetails, containerId, immediate) =>
       sshSession ? RunRemoteCommand(CommandDetails(CommandId.generate(), TraceMode()), configuration.id, "cat " + containerDir(containerId) + "/running.version") flatMap {
-        case RunRemoteCommandSuccess(_, Some(output)) =>
+        case RunRemoteCommandSuccess(_, Some(output), _, _) =>
           val runningVersionNumber = output.trim()
           // TODO: this event needs to be sent immediately without waiting for ssh session
           eventBus ! ContainerStateChangedEvent(EventDetails(EventId.generate(), containerId.eventKey, Seq(commandDetails.commandId)), containerId, ContainerStopping(Version(containerId.stageId.applicationId, runningVersionNumber.trim)))
           sshSession ? RunRemoteCommand(CommandDetails(CommandId.generate(), TraceMode()), configuration.id, "./" + versionsDir(containerId) + "/" + runningVersionNumber + "/init stop")
       } onSuccess {
-        case RunRemoteCommandSuccess(_, _) =>
+        case _: RunRemoteCommandSuccess =>
           eventBus ! ContainerStateChangedEvent(EventDetails(EventId.generate(), containerId.eventKey, Seq(commandDetails.commandId)), containerId, ContainerCreated)
       }
     case RemoveContainer(commandDetails, containerId, force) =>
@@ -104,7 +105,7 @@ class SshNodeAgent(eventBus: ActorRef, easyRiderUrl: URL, sshSession: ActorRef, 
       sshSession ? RunRemoteCommand(CommandDetails(), configuration.id, s"rm -r ${versionsDir(containerId)}/${version.number}") flatMap {
         case _: RunRemoteCommandSuccess => sshSession ? RunRemoteCommand(CommandDetails(), configuration.id, s"rm ${versionsDir(containerId)}/${version.number}.tar.bz2")
       } onSuccess {
-        case RunRemoteCommandSuccess(_, _) => eventBus ! VersionDeploymentProgressEvent(EventDetails(EventId.generate(), eventKey, Seq(commandDetails.commandId), removal = true), version, UnDeployed)
+        case _: RunRemoteCommandSuccess => eventBus ! VersionDeploymentProgressEvent(EventDetails(EventId.generate(), eventKey, Seq(commandDetails.commandId), removal = true), version, UnDeployed)
       }
   }
 

@@ -29,18 +29,27 @@ case class CommandDetails(commandId: CommandId = CommandId.generate(), trace: Tr
 
 trait Command {
   def commandDetails: CommandDetails
-  def failure(message: String) = Failure(EventDetails(EventId.generate(), EventKey(commandDetails.commandId.id), Seq(commandDetails.commandId)), message, None)
-  def failure(message: String, exception: Throwable) = Failure(EventDetails(EventId.generate(), EventKey(commandDetails.commandId.id), Seq(commandDetails.commandId)), message, Some(exception))
+  def failure(message: String) = Failure(EventDetails(EventId.generate(), EventKey(commandDetails.commandId.id), Seq(commandDetails.commandId)), message, None, commandDetails.commandId)
+  def failure(message: String, exception: Throwable) = Failure(EventDetails(EventId.generate(), EventKey(commandDetails.commandId.id), Seq(commandDetails.commandId)), message, Some(exception), commandDetails.commandId)
 }
 
 object Commands {
   case class RegisterProvider(commandClass: Class[_ <: Command])
-  trait CommandExecution extends Event
-  trait Success extends CommandExecution
-  case class Failure(eventDetails: EventDetails, message: String, exception: Option[Throwable]) extends CommandExecution {
+  trait CommandExecution extends Event {
+    def executionOf: CommandId
+  }
+  trait Success extends CommandExecution {
+    def successMessage: String
+  }
+  trait CommandFailure extends CommandExecution {
+    def failureMessage: String
+  }
+  case class Failure(eventDetails: EventDetails, failureMessage: String, exception: Option[Throwable], executionOf: CommandId = CommandId("?")) extends CommandFailure {
     def isSystemFailure = exception.isDefined
   }
-  trait CommandProgress extends CommandExecution
+  trait CommandProgress extends CommandExecution {
+    def progressOf: CommandId = executionOf
+  }
 }
 
 object Components {
@@ -174,10 +183,10 @@ object RemoteAccess {
   case class UpdateFile(commandDetails: CommandDetails, nodeId: NodeId, path: String, filename: String, content: ByteString) extends RemoteAccessCommand
 
   trait RemoteAccessEvent extends Event
-  case class RunRemoteCommandSuccess(eventDetails: EventDetails, output: Option[String]) extends Success with RemoteAccessEvent
-  case class UploadNextChunk(eventDetails: EventDetails, uploadId: String) extends Success with RemoteAccessEvent
-  case class UploadCompleted(eventDetails: EventDetails, uploadId: String) extends Success with RemoteAccessEvent
-  case class UpdateFileSuccess(eventDetails: EventDetails) extends Success with RemoteAccessEvent
+  case class RunRemoteCommandSuccess(eventDetails: EventDetails, output: Option[String], executionOf: CommandId = CommandId("?"), successMessage: String = "Completed") extends Success with RemoteAccessEvent
+  case class UploadNextChunk(eventDetails: EventDetails, uploadId: String, executionOf: CommandId = CommandId("?"), successMessage: String = "Completed") extends Success with RemoteAccessEvent
+  case class UploadCompleted(eventDetails: EventDetails, uploadId: String, executionOf: CommandId = CommandId("?"), successMessage: String = "Completed") extends Success with RemoteAccessEvent
+  case class UpdateFileSuccess(eventDetails: EventDetails, executionOf: CommandId = CommandId("?"), successMessage: String = "Completed") extends Success with RemoteAccessEvent
 }
 
 object Orchestrator {
@@ -200,7 +209,7 @@ object Api {
   case class AuthenticationFailure()
   case class KeepAlive()
   
-  case class CommandSentEvent(eventDetails: EventDetails, command: Command, authentication: Option[Authentication] = None) extends CommandExecution
+  case class CommandSentEvent(eventDetails: EventDetails, command: Command, authentication: Option[Authentication] = None, executionOf: CommandId = CommandId("?")) extends CommandExecution
 }
 
 object Events {
@@ -290,7 +299,7 @@ object Applications {
   case class UpdateContainerConfiguration(commandDetails: CommandDetails, container: ContainerConfiguration) extends ApplicationCommand
 
   trait ApplicationEvent extends Event
-  case class ApplicationUpdatedEvent(eventDetails: EventDetails, application: Application, var snapshotUpdate: SnapshotUpdateDetails[Application] = null) extends ApplicationEvent with SnapshotUpdate[Application] {
+  case class ApplicationUpdatedEvent(eventDetails: EventDetails, application: Application, executionOf: CommandId = CommandId("?"), successMessage: String = "Completed", var snapshotUpdate: SnapshotUpdateDetails[Application] = null) extends ApplicationEvent with SnapshotUpdate[Application] with Success {
     snapshotUpdate = SnapshotUpdateDetails(SnapshotEntryType(classOf[Application]), application.id.eventKey, if (eventDetails.removal) None else Some(application))
   }
   case class EffectiveConfigurationChanged(eventDetails: EventDetails, containerId: ContainerId, effectiveConfiguration: EffectiveConfiguration) extends ApplicationEvent

@@ -117,8 +117,8 @@ class EventBusTest() extends TestKit(ActorSystem()) with FlatSpecLike with Match
   }
 
   case class DummyCommand(commandDetails: CommandDetails) extends Command
-  case class DummyProgress(eventDetails: EventDetails) extends CommandExecution
-  case class DummySuccess(eventDetails: EventDetails) extends Success
+  case class DummyProgress(eventDetails: EventDetails, executionOf: CommandId) extends CommandExecution
+  case class DummySuccess(eventDetails: EventDetails, executionOf: CommandId, successMessage: String) extends Success
   val dummySubscribe = Subscribe(CommandDetails(), "all", classOf[NodeUpdatedEvent], EventKey())
   val dummyEvent = NodeUpdatedEvent(EventDetails(EventId("1"), EventKey(), Seq()), NodeId("nodeId"), NodeCreated)
 }

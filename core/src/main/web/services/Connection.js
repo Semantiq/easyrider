@@ -3,15 +3,18 @@ app.service("Connection", ["$rootScope", function($rootScope) {
 	me.open = false;
 	me.on = {};
 	me.onSnapshotUpdate = {};
+	me.onExecution = function(msg) {};
 
 	me.lastCloudMessage = 0;
 	me.lastToCloudMessage = 0;
 
 	function onMessage(msg) {
 		$rootScope.$apply(function() {
-			if(me.on[msg.jsonClass])
+			if(me.on[msg.jsonClass]) {
 				me.on[msg.jsonClass](msg);
-			else {
+			} else if (msg.executionOf) {
+                me.onExecution(msg);
+			} else {
 				console.error("Unhandled message ", msg);
 			}
 		});

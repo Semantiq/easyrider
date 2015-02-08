@@ -12,7 +12,7 @@ import easyrider.business.core.ApplicationManager.RestoredConfiguration
 
 import scala.concurrent.duration._
 
-class ApplicationManager(eventBus: ActorRef, infrastructure: ActorRef) extends Actor with Stash with ActorLogging {
+class ApplicationManager(val eventBus: ActorRef, infrastructure: ActorRef) extends Actor with Stash with ActorLogging with EventPublisher {
   import easyrider.Applications._
   private var applications = Map[ApplicationId, Application]()
   private var stages = Map[StageId, Stage]()
@@ -30,7 +30,7 @@ class ApplicationManager(eventBus: ActorRef, infrastructure: ActorRef) extends A
     stages <- stagesFuture
     containers <- containersFuture
   } yield RestoredConfiguration(
-      applications = apps.asInstanceOf[GetSnapshotResponse[ApplicationUpdatedEvent]].snapshot.map { case ApplicationUpdatedEvent(_, app, _) => app },
+      applications = apps.asInstanceOf[GetSnapshotResponse[ApplicationUpdatedEvent]].snapshot.map { case ApplicationUpdatedEvent(_, app, _, _, _) => app },
       stages = stages.asInstanceOf[GetSnapshotResponse[StageUpdatedEvent]].snapshot.map { case StageUpdatedEvent(_, stage, _) => stage },
       containers = containers.asInstanceOf[GetSnapshotResponse[ContainerConfigurationUpdatedEvent]].snapshot.map { case ContainerConfigurationUpdatedEvent(_, container, _) => container })
   restoredConfiguration pipeTo self
@@ -51,20 +51,20 @@ class ApplicationManager(eventBus: ActorRef, infrastructure: ActorRef) extends A
       case ExistingApplication(_) => sender ! command.failure(s"Application ${application.id.id} already exists")
       case _ =>
         applications += (application.id -> application)
-        eventBus ! ApplicationUpdatedEvent(EventDetails(EventId.generate(), EventKey(application.id.id), Seq(commandDetails.commandId)), application)
+        publishEvent(ApplicationUpdatedEvent(EventDetails(EventId.generate(), EventKey(application.id.id), Seq(commandDetails.commandId)), application, commandDetails.commandId))
     }
     case command @ RemoveApplication(commandDetails, applicationId) => applicationId match {
       case NonExistingApplication(_) => sender ! command.failure(s"Application ${applicationId.id} does not exist")
       case ApplicationWithStages(_) => sender ! command.failure(s"Remove all stages from ${applicationId.id} first")
       case ExistingApplication(application) =>
         applications -= applicationId
-        eventBus ! ApplicationUpdatedEvent(EventDetails(EventId.generate(), application.id.eventKey, Seq(commandDetails.commandId), removal = true), application)
+        publishEvent(ApplicationUpdatedEvent(EventDetails(EventId.generate(), application.id.eventKey, Seq(commandDetails.commandId), removal = true), application, commandDetails.commandId))
     }
     case command @ UpdateApplication(commandDetails, application) => application match {
       case NonExistingApplication(_) => sender ! command.failure(s"Application ${application.id} does not exist")
       case _ =>
         applications += (application.id -> application)
-        eventBus ! ApplicationUpdatedEvent(EventDetails(EventId.generate(), application.id.eventKey, Seq(commandDetails.commandId)), application)
+        eventBus ! ApplicationUpdatedEvent(EventDetails(EventId.generate(), application.id.eventKey, Seq(commandDetails.commandId)), application, commandDetails.commandId)
         updateEffectiveConfigurationForContainersThat(_.id.stageId.applicationId == application.id, commandDetails.commandId)
     }
     case command @ CreateStage(commandDetails, stage) => stage match {

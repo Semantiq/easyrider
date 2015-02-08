@@ -21,8 +21,9 @@ app.service("Command", ["Api", "Validators", function(Api, Validators) {
 	};
 }]);
 
-app.controller("CommandCtrl", ["$scope", "Command", function($scope, Command) {
+app.controller("CommandCtrl", ["$scope", "Command", "Api", function($scope, Command, Api) {
 	$scope.Command = Command;
+	$scope.runningCommands = Api.runningCommands;
 	var commandJson = "";
 	$scope.$watch(function() {
 		var newJson = JSON.stringify(Command.command);

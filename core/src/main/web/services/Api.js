@@ -1,4 +1,4 @@
-app.service("Api", ["Connection", "$interval", function(Connection, $interval) {
+app.service("Api", ["Connection", "$interval", "$timeout", function(Connection, $interval, $timeout) {
 	var me = this;
 	me.isAuthenticated = false;
 
@@ -36,6 +36,7 @@ app.service("Api", ["Connection", "$interval", function(Connection, $interval) {
 	var subscriptionsRequested = [];
 	var sendAfterAuthentication = [];
 	var snapshots = {};
+	me.runningCommands = {};
 
 	function Subscription(subscriptionId, callback) {
 		this.subscriptionId = subscriptionId;
@@ -90,11 +91,31 @@ app.service("Api", ["Connection", "$interval", function(Connection, $interval) {
 		        jsonClass: "easyrider.TraceMode"
 		    }
 		};
-		if(me.isAuthenticated)
+		if(me.isAuthenticated) {
 			Connection.send(command);
-		else
+		} else {
 			sendAfterAuthentication.push(command);
+		}
+		me.runningCommands[command.commandDetails.commandId.id] = {};
 	};
+
+    Connection.onExecution = function(message) {
+        if (me.runningCommands[message.executionOf.id]) {
+            me.runningCommands[message.executionOf.id] = message;
+            if (message.successMessage) {
+                $timeout(function() {
+                    delete me.runningCommands[message.executionOf.id];
+                }, 1000);
+            }
+            if (message.failureMessage) {
+                $timeout(function() {
+                    delete me.runningCommands[message.executionOf.id];
+                }, 10000);
+            }
+        } else {
+            console.log("Ignoring execution of " + message.executionOf.id + ": " + angular.toJson(message));
+        }
+    };
 
 	Connection.on["easyrider.Api$Authentication"] = function() {
 		me.isAuthenticated = true;

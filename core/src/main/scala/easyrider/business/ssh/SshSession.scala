@@ -45,7 +45,7 @@ class SshSession(eventBus: ActorRef, repository: ActorRef, configuration: NodeCo
       channel.cd(command.targetFolder)
       val output = channel.put(command.targetFileName)
       val uploadId = UUID.randomUUID().toString
-      sender() ! UploadNextChunk(EventDetails(EventId.generate(), EventKey(), Seq(command.commandDetails.commandId)), uploadId)
+      sender() ! UploadNextChunk(EventDetails(EventId.generate(), EventKey(), Seq(command.commandDetails.commandId)), uploadId, command.commandDetails.commandId)
       becomeUploading(session, channel, output, command, sender(), uploadId)
     case RunRemoteCommand(commandDetails, nodeId, command) =>
       log.debug("Sending command to {}: {}", configuration.id.id.asInstanceOf[Any], command)
@@ -61,7 +61,7 @@ class SshSession(eventBus: ActorRef, repository: ActorRef, configuration: NodeCo
       log.debug("Command output: {}", output)
       log.debug("Command error: {}", outputErr)
       log.debug("Command exit code: {}", exitStatus)
-      sender ! RunRemoteCommandSuccess(EventDetails(EventId.generate(), EventKey(commandDetails.commandId.id), Seq(commandDetails.commandId)), Some(output))
+      sender ! RunRemoteCommandSuccess(EventDetails(EventId.generate(), EventKey(commandDetails.commandId.id), Seq(commandDetails.commandId)), Some(output), commandDetails.commandId)
     case UpdateFile(commandDetails, nodeId, path, filename, content) =>
       log.debug("Writing {} bytes to {}/{}", content.length, path, filename)
       val channel = session.openChannel("sftp").asInstanceOf[ChannelSftp]
@@ -70,7 +70,7 @@ class SshSession(eventBus: ActorRef, repository: ActorRef, configuration: NodeCo
       val output = channel.put(filename)
       IOUtils.copy(content.iterator.asInputStream, output)
       output.close()
-      sender ! UpdateFileSuccess(EventDetails(EventId.generate(), EventKey(commandDetails.commandId.id), Seq(commandDetails.commandId)))
+      sender ! UpdateFileSuccess(EventDetails(EventId.generate(), EventKey(commandDetails.commandId.id), Seq(commandDetails.commandId)), commandDetails.commandId)
       channel.disconnect()
     case ReceiveTimeout =>
       Try(session.disconnect()) match {
@@ -82,10 +82,10 @@ class SshSession(eventBus: ActorRef, repository: ActorRef, configuration: NodeCo
 
   def uploading(session: Session, channel: ChannelSftp, output: OutputStream, command: StartUpload, requestor: ActorRef, currentUploadId: String) = LoggingReceive {
     case UploadChunk(commandDetails, _, uploadId, data) if uploadId == currentUploadId =>
-      sender() ! UploadNextChunk(EventDetails(EventId.generate(), EventKey(), Seq(commandDetails.commandId)), currentUploadId)
+      sender() ! UploadNextChunk(EventDetails(EventId.generate(), EventKey(), Seq(commandDetails.commandId)), currentUploadId, commandDetails.commandId)
       IOUtils.copy(data.data.iterator.asInputStream, output)
     case UploadComplete(commandDetails, _, uploadId) if uploadId == currentUploadId =>
-      requestor ! UploadCompleted(EventDetails(EventId.generate(), EventKey(), Seq(commandDetails.commandId)), currentUploadId)
+      requestor ! UploadCompleted(EventDetails(EventId.generate(), EventKey(), Seq(commandDetails.commandId)), currentUploadId, commandDetails.commandId)
       output.close()
       channel.disconnect()
       becomeWarm(session)
