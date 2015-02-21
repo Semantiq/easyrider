@@ -6,19 +6,20 @@
 		<link rel="stylesheet" href="/vendor/bower_components/fontawesome/css/font-awesome.min.css" />
 	</head>
 	<body>
-		<nav class="navbar navbar-default" role="navigation">
+		<nav class="navbar navbar-default" role="navigation" ng-controller="ConnectionInfoCtrl">
 			<div class="container-fluid">
 				<div class="navbar-header">
 					<a class="navbar-brand" href="/">EasyRider</a>
 				</div>
-				<div class="navbar-text indicator" ng-controller="ConnectionInfoCtrl">
+				<div class="navbar-text indicator">
 					<i class="fa fa-user"></i>
 					<span ng-style="toUser()">&lt;</span>
 					<span ng-style="toCloud()">&gt;</span>
 					<i class="fa fa-cloud"></i>
 				</div>
 				<ul class="nav navbar-nav pull-right">
-					<li><a href="/" target="_self">Sign out</a></li>
+					<li><a href="#">{{currentUser().username}}</a></li>
+					<li><a href="/api/logOut" target="_self">Sign out</a></li>
 				</ul>
 				<ul class="nav navbar-nav">
 					<li><a href="/applications">Applications</a></li>
@@ -95,6 +96,7 @@
 		</div>
 		<script src="/vendor/vendor/angular-file-upload/angular-file-upload-html5-shim.js"></script>
 		<script src="/vendor/bower_components/angular/angular.js"></script>
+        <script src="/vendor/bower_components/angular-cookies/angular-cookies.js"></script>
 		<!-- <script src="search.js"></script> -->
 		<script src="/vendor/bower_components/angular-route/angular-route.js"></script>
 		<script src="/vendor/bower_components/angular-animate/angular-animate.js"></script>

@@ -64,6 +64,11 @@ class WebServerWorker(connection: ActorRef, apiFactory: ActorRef => Props, impli
   def businessLogicNoUpgrade(): Receive = {
     implicit val refFactory: ActorRefFactory = context
     runRoute {
+      path("api" / "logOut") {
+        deleteCookie("authObject", path = "/") {
+          redirect(Uri("/"), StatusCodes.TemporaryRedirect)
+        }
+      } ~
       getFromResourceDirectory("static") ~ getFromResource("static/index.html") // TODO: run index through template engine
     }
   }

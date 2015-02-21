@@ -1,4 +1,4 @@
-app.service("Api", ["Connection", "$interval", "$timeout", function(Connection, $interval, $timeout) {
+app.service("Api", ["Connection", "$interval", "$timeout", "$cookieStore", function(Connection, $interval, $timeout, $cookieStore) {
 	var me = this;
 	me.isAuthenticated = false;
 
@@ -17,14 +17,26 @@ app.service("Api", ["Connection", "$interval", "$timeout", function(Connection, 
 		}
 	};
 
+    me.setAuthObject = function(authObject) {
+        $cookieStore.put("authObject", authObject);
+    };
+	me.getAuthObject = function() {
+	    return $cookieStore.get("authObject");
+	};
+    me.currentUser = function() {
+        if (me.isAuthenticated) {
+            return me.getAuthObject();
+        }
+    };
 	me.authenticate = function(auth) {
 		Connection.send(auth);
-		me.authObject = auth;
+		me.setAuthObject(auth);
 	};
 
 	Connection.onOpen = function() {
-		if(me.authObject) {
-			Connection.send(me.authObject);
+	    var authObject = me.getAuthObject();
+		if(authObject) {
+			Connection.send(authObject);
 		}
 	};
 
@@ -117,9 +129,10 @@ app.service("Api", ["Connection", "$interval", "$timeout", function(Connection, 
         }
     };
 
-	Connection.on["easyrider.Api$Authentication"] = function() {
+	Connection.on["easyrider.Api$Authentication"] = function(message) {
 		me.isAuthenticated = true;
         me.isAuthenticationFailure = false;
+        console.log("Authentication result: " + angular.toJson(message));
 		for(var i in subscriptionsRequested)
 			Connection.send(subscriptionsRequested[i]);
 		for(i in sendAfterAuthentication)

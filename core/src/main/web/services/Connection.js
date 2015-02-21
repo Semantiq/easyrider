@@ -63,14 +63,19 @@ app.service("Connection", ["$rootScope", function($rootScope) {
 		};
 	}
 
+	function disconnect() {
+        me.ws.close();
+	}
+
 	connect();
 }]);
 
-app.controller("ConnectionInfoCtrl", ["$scope", "Connection", function($scope, Connection) {
+app.controller("ConnectionInfoCtrl", ["$scope", "Connection", "Api", "$window", function($scope, Connection, Api, $window) {
 	$scope.toUser = function() {
 		return { opacity: (new Date().getTime() - Connection.lastCloudMessage < 600) ? 1 : 0.2 };
 	};
 	$scope.toCloud = function() {
 		return { opacity: (new Date().getTime() - Connection.lastToCloudMessage < 400) ? 1 : 0.2 };
 	};
+	$scope.currentUser = Api.currentUser;
 }]);
