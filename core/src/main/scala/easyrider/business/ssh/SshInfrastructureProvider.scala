@@ -2,23 +2,22 @@ package easyrider.business.ssh
 
 import akka.actor.{Actor, ActorRef, Props}
 import akka.event.LoggingReceive
-import easyrider.Events.{GetSnapshot, GetSnapshotResponse}
-import easyrider.Implicits._
+import easyrider.Events.{GetSnapshot, GetSnapshotResponse, Snapshot}
 import easyrider.Infrastructure._
 import easyrider._
-import easyrider.business.ssh.SshInfrastructure.{CreateNode, NodeConfigurationUpdatedEvent}
+import easyrider.business.ssh.SshInfrastructure.{CreateNode, NodeConfiguration}
 
 class SshInfrastructureProvider(eventBus: ActorRef, sshNodeAgent: () => Props) extends Actor {
   var nodes = Map[NodeId, ActorRef]()
 
-  eventBus ! GetSnapshot(QueryId.generate(), classOf[NodeConfigurationUpdatedEvent])
+  eventBus ! GetSnapshot(QueryId.generate(), SnapshotEntryType(classOf[NodeConfiguration]))
 
   def initializing = LoggingReceive {
-    case GetSnapshotResponse(_, events: Seq[NodeConfigurationUpdatedEvent]) =>
-      nodes = events.map { event =>
-        val agent = context.actorOf(sshNodeAgent(), event.nodeConfiguration.id.id)
-        agent ! CreateNode(CommandDetails(), event.nodeConfiguration)
-        event.nodeConfiguration.id -> agent
+    case GetSnapshotResponse(_, Snapshot(_, entries)) =>
+      nodes = entries.values.map(_.asInstanceOf[NodeConfiguration]).map { nodeConfiguration =>
+        val agent = context.actorOf(sshNodeAgent(), nodeConfiguration.id.id)
+        agent ! CreateNode(CommandDetails(), nodeConfiguration)
+        nodeConfiguration.id -> agent
       }.toMap
       context.become(running)
   }

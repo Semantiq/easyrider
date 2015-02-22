@@ -4,8 +4,7 @@ import akka.actor.ActorSystem
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import easyrider.Applications._
 import easyrider.Commands.Failure
-import easyrider.Events.{GetSnapshot, GetSnapshotResponse}
-import easyrider.Implicits.class2eventType
+import easyrider.Events.{GetSnapshot, GetSnapshotResponse, Snapshot}
 import easyrider.Infrastructure.{CreateContainer, NodeId}
 import easyrider._
 import org.scalatest.{FlatSpecLike, Matchers}
@@ -61,12 +60,12 @@ class ApplicationManagerTest extends TestKit(ActorSystem()) with FlatSpecLike wi
     val eventBus = TestProbe()
     val infrastructure = TestProbe()
     val apps = system.actorOf(ApplicationManager(eventBus.ref, infrastructure.ref))
-    eventBus.expectMsgClass(classOf[GetSnapshot]).eventType should be(class2eventType(classOf[ApplicationUpdatedEvent]))
-    eventBus.reply(GetSnapshotResponse(QueryId("any"), Seq()))
-    eventBus.expectMsgClass(classOf[GetSnapshot]).eventType should be(class2eventType(classOf[StageUpdatedEvent]))
-    eventBus.reply(GetSnapshotResponse(QueryId("any"), Seq()))
-    eventBus.expectMsgClass(classOf[GetSnapshot]).eventType should be(class2eventType(classOf[ContainerConfigurationUpdatedEvent]))
-    eventBus.reply(GetSnapshotResponse(QueryId("any"), Seq()))
+    eventBus.expectMsgClass(classOf[GetSnapshot]).entryType should be(SnapshotEntryType(classOf[ApplicationUpdatedEvent]))
+    eventBus.reply(GetSnapshotResponse(QueryId("any"), Snapshot(SnapshotEntryType(classOf[ApplicationUpdatedEvent]), Map())))
+    eventBus.expectMsgClass(classOf[GetSnapshot]).entryType should be(SnapshotEntryType(classOf[StageUpdatedEvent]))
+    eventBus.reply(GetSnapshotResponse(QueryId("any"), Snapshot(SnapshotEntryType(classOf[Stage]), Map())))
+    eventBus.expectMsgClass(classOf[GetSnapshot]).entryType should be(SnapshotEntryType(classOf[ContainerConfigurationUpdatedEvent]))
+    eventBus.reply(GetSnapshotResponse(QueryId("any"), Snapshot(SnapshotEntryType(classOf[ContainerConfiguration]), Map())))
     (eventBus, infrastructure, apps)
   }
 }

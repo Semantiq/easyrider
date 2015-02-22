@@ -1,5 +1,6 @@
 package easyrider.business.core
 
+import akka.actor.Actor.Receive
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.event.LoggingReceive
 import easyrider.Applications.{ContainerId, ContainerConfiguration, ContainerConfigurationUpdatedEvent}
@@ -10,6 +11,9 @@ import easyrider.Orchestrator.{ReleaseEvent, ReleaseSuccessful, ReleaseVersionTo
 import easyrider._
 
 class OrchestratedDeployment(eventBus: ActorRef, commandCenter: ActorRef, command: ReleaseVersionToStage) extends Actor with ActorLogging {
+  override def receive: Receive = ???
+  /*
+  TODO: implement
   override def preStart() = {
     eventBus ! Subscribe(CommandDetails(), "orchestrator-containerconfiguration-" + command.commandDetails.commandId.id, classOf[ContainerConfigurationUpdatedEvent], command.stageId.eventKey)
     eventBus ! Subscribe(CommandDetails(), "orchestrator-versiondeployment-" + command.commandDetails.commandId.id, classOf[VersionDeploymentProgressEvent], command.stageId.eventKey)
@@ -75,6 +79,7 @@ class OrchestratedDeployment(eventBus: ActorRef, commandCenter: ActorRef, comman
     case ContainerStateChangedEvent(eventDetails, _, ContainerRunning(version), _) =>
       becomeReleasing(containers)
   }
+  */
 }
 
 object OrchestratedDeployment {

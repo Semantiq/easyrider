@@ -44,16 +44,6 @@ class EventBusTest() extends TestKit(ActorSystem()) with FlatSpecLike with Match
     subscriber.expectNoMsg()
   }
 
-  it should "handle removal events" in {
-    val bus = system.actorOf(core.EventBus(emptyDirectory))
-    val client = TestProbe()
-    client.send(bus, NodeUpdatedEvent(EventDetails(EventId("1"), EventKey("node0"), Seq(CommandId("1"))), NodeId("node0"), NodeCreated))
-    client.send(bus, NodeUpdatedEvent(EventDetails(EventId("2"), EventKey("node0"), Seq(CommandId("2")), removal = true), NodeId("node0"), NodeCreated))
-    client.send(bus, Subscribe(CommandDetails(), "node-events", classOf[NodeUpdatedEvent], EventKey()))
-    val subscribed = client.expectMsgClass(classOf[Subscribed[_]])
-    subscribed.snapshot should be ('empty)
-  }
-
   it should "replay events matching a subscription" in {
     val bus = system.actorOf(core.EventBus(emptyDirectory))
     val client = TestProbe()
@@ -80,12 +70,6 @@ class EventBusTest() extends TestKit(ActorSystem()) with FlatSpecLike with Match
     client.send(bus1, GetReplay(QueryId.generate(), Seq("app-events"), DateTime.now().minusMinutes(1)))
     client.expectMsgClass(classOf[Subscribed[_]])
     client.expectMsgClass(classOf[GetReplayResponse]).events should have size 1
-  }
-
-  it should "serialize a snapshot" in {
-    val snapshots = Map(SnapshotEntryType(classOf[NodeState]) -> Snapshot(SnapshotEntryType(classOf[NodeState]), Map("1" -> NodeCreated)))
-    val string = EventBus.serializeSnapshots(snapshots)
-    string should not be 'empty
   }
 
   it should "handle snapshot subscriptions" in {

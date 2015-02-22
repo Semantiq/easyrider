@@ -2,12 +2,11 @@ package easyrider.business.ssh
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.event.LoggingReceive
-import easyrider.Events.{GetSnapshot, GetSnapshotResponse}
-import easyrider.Implicits._
+import easyrider.Events.{Snapshot, GetSnapshot, GetSnapshotResponse}
 import easyrider.Infrastructure.NodeId
-import easyrider.RemoteAccess.{RemoteAccessEvent, RemoteAccessCommand}
+import easyrider.RemoteAccess.{RemoteAccessCommand, RemoteAccessEvent}
 import easyrider.business.ssh.SshInfrastructure._
-import easyrider.{PluginFactory, QueryId}
+import easyrider.{PluginFactory, QueryId, SnapshotEntryType}
 
 class UnixServerInfrastructureFactory extends PluginFactory {
   private def sshSessionFactory(config: NodeConfiguration, parent: ActorRef) = SshSession(parent, parent)(config)
@@ -17,14 +16,13 @@ class UnixServerInfrastructureFactory extends PluginFactory {
 class UnixServerInfrastructure(sshSession: (NodeConfiguration, ActorRef) => Props) extends Actor with ActorLogging {
   var nodes = Map[NodeId, ActorRef]()
 
-  context.parent ! GetSnapshot(QueryId.generate(), classOf[NodeConfigurationUpdatedEvent])
+  context.parent ! GetSnapshot(QueryId.generate(), SnapshotEntryType(classOf[NodeConfiguration]))
 
   def initializing = LoggingReceive {
-    case GetSnapshotResponse(_, events: Seq[NodeConfigurationUpdatedEvent]) =>
-      nodes = events.map { event =>
-        val session = context.actorOf(sshSession(event.nodeConfiguration, self), event.nodeConfiguration.id.id)
-        //session ! CreateNode(CommandDetails(), event.nodeConfiguration)
-        event.nodeConfiguration.id -> session
+    case GetSnapshotResponse(_, Snapshot(_, entries)) =>
+      nodes = entries.values.map(_.asInstanceOf[NodeConfiguration]).map { nodeConfiguration =>
+        val session = context.actorOf(sshSession(nodeConfiguration, self), nodeConfiguration.id.id)
+        nodeConfiguration.id -> session
       }.toMap
       context.become(running)
   }

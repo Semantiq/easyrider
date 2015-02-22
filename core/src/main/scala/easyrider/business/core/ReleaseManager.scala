@@ -19,11 +19,12 @@ class ReleaseManager(eventBus: ActorRef, orchestrator: ActorRef) extends Actor w
   override def receive: Receive = {
     case _: Subscribed[_] => // TODO: check for any missed events
     case VersionAvailableEvent(eventDetails, version, _) =>
-      eventBus ? GetSnapshot(QueryId.generate(), classOf[StageUpdatedEvent]) onSuccess {
-        case configuration: GetSnapshotResponse[StageUpdatedEvent] =>
-        val stages = configuration.snapshot.map(_.stage).filter(_.id.applicationId == version.applicationId)
-        log.info("Considering deployment of {} to {}", version, stages)
-      }
+      // TODO: implement
+//      eventBus ? GetSnapshot(QueryId.generate(), classOf[StageUpdatedEvent]) onSuccess {
+//        case configuration: GetSnapshotResponse[StageUpdatedEvent] =>
+//        val stages = configuration.snapshot.map(_.stage).filter(_.id.applicationId == version.applicationId)
+//        log.info("Considering deployment of {} to {}", version, stages)
+//      }
   }
 }
 

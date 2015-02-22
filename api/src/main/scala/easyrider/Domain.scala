@@ -219,10 +219,10 @@ object Events {
   }
   case class Subscribe(commandDetails: CommandDetails, subscriptionId: String, eventType: EventType, eventKey: EventKey) extends EventBusCommand
   case class UnSubscribe(commandDetails: CommandDetails, subscriptionId: String) extends EventBusCommand
-  case class Subscribed[T](queryId: QueryId, subscriptionId: String, eventType: EventType, snapshot: Seq[T]) extends Result
+  case class Subscribed[T](queryId: QueryId, subscriptionId: String, eventType: EventType) extends Result
   case class UnSubscribed(queryId: QueryId, subscriptionId: String) extends Result
-  case class GetSnapshot(queryId: QueryId, eventType: EventType) extends Query
-  case class GetSnapshotResponse[T](queryId: QueryId, snapshot: Seq[T]) extends Result
+  case class GetSnapshot(queryId: QueryId, entryType: SnapshotEntryType) extends Query
+  case class GetSnapshotResponse[T](queryId: QueryId, snapshot: Snapshot[T]) extends Result
   case class GetReplay(queryId: QueryId, subscriptions: Seq[String], since: DateTime) extends Query
   case class GetReplayResponse(queryId: QueryId, events: Seq[Event]) extends Result
 

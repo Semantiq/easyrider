@@ -29,7 +29,7 @@ class ApiActorTest() extends TestKit(ActorSystem()) with FlatSpecLike with Match
 
     client.send(api, AuthenticateUser("test", "test"))
 
-    client.expectMsg(Authentication())
+    client.expectMsg(Authentication("test"))
 
     val event1 = dummyEvent
     client.send(api, event1)

@@ -22,25 +22,24 @@ class ApplicationManager(val eventBus: ActorRef, infrastructure: ActorRef) exten
   eventBus ! Subscribe(CommandDetails(), "containerStateUpdates", classOf[ContainerStateChangedEvent], EventKey())
   implicit val timeout = Timeout(30 seconds)
   implicit val dispatcher = context.system.dispatcher
-  val appsFuture = eventBus ? GetSnapshot(QueryId.generate(), classOf[ApplicationUpdatedEvent])
-  val stagesFuture = eventBus ? GetSnapshot(QueryId.generate(), classOf[StageUpdatedEvent])
-  val containersFuture = eventBus ? GetSnapshot(QueryId.generate(), classOf[ContainerConfigurationUpdatedEvent])
+  val appsFuture = eventBus ? GetSnapshot(QueryId.generate(), SnapshotEntryType(classOf[Application]))
+  val stagesFuture = eventBus ? GetSnapshot(QueryId.generate(), SnapshotEntryType(classOf[Stage]))
+  val containersFuture = eventBus ? GetSnapshot(QueryId.generate(), SnapshotEntryType(classOf[ContainerConfiguration]))
   private val restoredConfiguration = for {
     apps <- appsFuture
     stages <- stagesFuture
     containers <- containersFuture
   } yield RestoredConfiguration(
-      applications = apps.asInstanceOf[GetSnapshotResponse[ApplicationUpdatedEvent]].snapshot.map { case ApplicationUpdatedEvent(_, app, _, _, _) => app },
-      stages = stages.asInstanceOf[GetSnapshotResponse[StageUpdatedEvent]].snapshot.map { case StageUpdatedEvent(_, stage, _) => stage },
-      containers = containers.asInstanceOf[GetSnapshotResponse[ContainerConfigurationUpdatedEvent]].snapshot.map { case ContainerConfigurationUpdatedEvent(_, container, _) => container })
+      applications = apps.asInstanceOf[GetSnapshotResponse[Application]].snapshot.entries.map { case (_, app) => app.id -> app },
+      stages = stages.asInstanceOf[GetSnapshotResponse[Stage]].snapshot.entries.map { case (_, stage) => stage.id -> stage },
+      containers = containers.asInstanceOf[GetSnapshotResponse[ContainerConfiguration]].snapshot.entries.map { case (_, container) => container.id -> container })
   restoredConfiguration pipeTo self
 
   def initializing: Receive = {
     case restored: RestoredConfiguration =>
-      def unpack[T, K](map: Map[T, Seq[K]]) = map.map { case (key, Seq(value)) => (key, value) }
-      applications = unpack(restored.applications.groupBy(_.id))
-      stages = unpack(restored.stages.groupBy(_.id))
-      containers = unpack(restored.containers.groupBy(_.id))
+      applications = restored.applications
+      stages = restored.stages
+      containers = restored.containers
       unstashAll()
       context.become(running)
     case other => stash()
@@ -175,5 +174,5 @@ object ApplicationManager {
 
   def apply(eventBus: ActorRef, infrastructure: ActorRef) = Props(classOf[ApplicationManager], eventBus, infrastructure)
 
-  private case class RestoredConfiguration(applications: Seq[Application], stages: Seq[Stage], containers: Seq[ContainerConfiguration])
+  private case class RestoredConfiguration(applications: Map[ApplicationId, Application], stages: Map[StageId, Stage], containers: Map[ContainerId, ContainerConfiguration])
 }
