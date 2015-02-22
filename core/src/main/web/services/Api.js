@@ -30,7 +30,7 @@ app.service("Api", ["Connection", "$interval", "$timeout", "$cookieStore", funct
     };
 	me.authenticate = function(auth) {
 		Connection.send(auth);
-		me.setAuthObject(auth);
+		//me.setAuthObject(auth);
 	};
 
 	Connection.onOpen = function() {
@@ -132,7 +132,7 @@ app.service("Api", ["Connection", "$interval", "$timeout", "$cookieStore", funct
 	Connection.on["easyrider.Api$Authentication"] = function(message) {
 		me.isAuthenticated = true;
         me.isAuthenticationFailure = false;
-        console.log("Authentication result: " + angular.toJson(message));
+        me.setAuthObject(message.authenticate);
 		for(var i in subscriptionsRequested)
 			Connection.send(subscriptionsRequested[i]);
 		for(i in sendAfterAuthentication)
@@ -147,6 +147,7 @@ app.service("Api", ["Connection", "$interval", "$timeout", "$cookieStore", funct
 	Connection.on["easyrider.Api$AuthenticationFailure"] = function() {
 		me.isAuthenticated = false;
         me.isAuthenticationFailure = true;
+        me.setAuthObject({});
 	};
 
 	function handleFailure(msg) {

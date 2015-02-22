@@ -10,7 +10,7 @@ class Authenticator extends Actor {
     case AuthenticateUser(username, password) =>
       // TODO: move to builtin plugin and delegate
       if (username == "admin" && DigestUtils.sha512Hex(password) == Configuration.builtinPasswordHash) {
-        sender ! Authentication()
+        sender ! Authentication(username)
       } else {
         sender ! AuthenticationFailure()
       }

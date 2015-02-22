@@ -204,8 +204,9 @@ object Orchestrator {
 object Api {
   trait Authenticate
   case class AuthenticateUser(username: String, password: String) extends Authenticate
+  case class ReAuthenticateUser(username: String, signature: String) extends Authenticate
   case class AuthenticateComponent(componentId: ComponentId) extends Authenticate
-  case class Authentication()
+  case class Authentication(username: String, authenticate: Option[Authenticate] = None)
   case class AuthenticationFailure()
   case class KeepAlive()
   
