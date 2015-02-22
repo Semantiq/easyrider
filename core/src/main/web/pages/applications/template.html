@@ -43,7 +43,7 @@
 		<span ng-repeat="stage in Stages.stagesOfApplication(app.id)">
 			<a class="label label-default" href="/application/{{app.id.id}}/stage/{{stage.id.id}}">{{stage.id.id}}</a>&nbsp;
 		</span>
-		<h4>Versions</h4>
+		<h4><a href="/versions/{{app.id.id}}">Versions</a></h4>
 		<span ng-repeat="versionMetadata in Versions.versionsByApplicationId[app.id.id]">
 			<a class="label label-default" href="/application/{{app.id.id}}/version/{{versionMetadata.version.number}}">{{versionMetadata.version.number}}</a>
 		</span>

@@ -11,7 +11,7 @@ class CoreModule(easyRiderData: File, easyRiderUrl: URL, actorSystem: ActorSyste
   val eventBus = actorSystem.actorOf(EventBus(easyRiderData), "EventBus")
   val uploadFactory = RepositoryUpload(eventBus) _
   val downloadFactory = RepositoryDownload(easyRiderData) _
-  val repositoryStorage = actorSystem.actorOf(RepositoryStorage(easyRiderData, uploadFactory, downloadFactory))
+  val repositoryStorage = actorSystem.actorOf(RepositoryStorage(easyRiderData, uploadFactory, downloadFactory, eventBus))
   val sshSessionFactory = SshSession(eventBus, repositoryStorage) _
   val unixInfrastructure = actorSystem.actorOf(PluginHolder(eventBus, ActorRef.noSender /* TODO: undo this hack */)(new UnixServerInfrastructureFactory().props, "UnixInfrastructure"), "UnixInfrastructure")
   val builtInPackageUpload = BuiltInPackageUpload(unixInfrastructure, repositoryStorage) _
@@ -22,5 +22,5 @@ class CoreModule(easyRiderData: File, easyRiderUrl: URL, actorSystem: ActorSyste
   val orchestrator = actorSystem.actorOf(Orchestrator(releaseFactory), "Orchestrator")
   val releaseManager = actorSystem.actorOf(ReleaseManager(eventBus, orchestrator), "ReleaseManager")
   val authenticator = actorSystem.actorOf(Authenticator(), "Authenticator")
-  val apiFactory = ApiActor(eventBus, applicationManager, componentManager, infrastructure, repositoryStorage, orchestrator, authenticator) _
+  val apiFactory = ApiActor(eventBus, applicationManager, componentManager, infrastructure, repositoryStorage, orchestrator, authenticator, repositoryStorage) _
 }

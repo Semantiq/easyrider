@@ -28,6 +28,7 @@ class EventBus(easyRiderData: File) extends Actor with ActorLogging {
   override def receive: Receive = LoggingReceive {
     case event: Event =>
       processSnapshotUpdate(event)
+      processGenericSubscriptions(event)
       eventLog +:= event
     case Terminated(subscriber) =>
       subscriptions = subscriptions.filter(s => s.receiver != subscriber)
@@ -56,6 +57,8 @@ class EventBus(easyRiderData: File) extends Actor with ActorLogging {
       val matching = withinTime.filter(e => filter.exists(f => f.matches(e)))
       sender() ! GetReplayResponse(queryId, matching)
   }
+
+  private def processGenericSubscriptions(event: Event) = subscriptions filter (_ matches event) foreach (_.receiver ! event)
 
   private def processSnapshotUpdate(event: Event) {
     event match {

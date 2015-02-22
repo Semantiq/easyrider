@@ -10,7 +10,7 @@ import easyrider.Components.ComponentCommand
 import easyrider.Events.{EventBusCommand, GetReplay}
 import easyrider.Infrastructure.ContainerCommand
 import easyrider.Orchestrator.OrchestrationCommand
-import easyrider.Repository.StartUpload
+import easyrider.Repository.{RepositoryCommand, StartUpload}
 import easyrider._
 import easyrider.business.Configuration
 import easyrider.business.ssh.SshInfrastructure.SshInfrastructureCommand
@@ -20,7 +20,7 @@ import scala.concurrent.duration.Duration
 
 class ApiActor(bus: ActorRef, applicationManager: ActorRef, componentManager: ActorRef, sshInfrastructure: ActorRef,
                repositoryStorage: ActorRef, client: ActorRef, orchestrator: ActorRef,
-               authenticator: ActorRef) extends Actor with Stash with ActorLogging {
+               authenticator: ActorRef, repository: ActorRef) extends Actor with Stash with ActorLogging {
   import easyrider.Api._
 
   def receive = awaitingCredentials()
@@ -87,6 +87,8 @@ class ApiActor(bus: ActorRef, applicationManager: ActorRef, componentManager: Ac
   val processCommand: Command => Unit = {
     case c: StartUpload =>
       repositoryStorage.forward(c)
+    case c: RepositoryCommand =>
+      repository ! c
     case c: ApplicationCommand =>
       applicationManager ! c
     case c: EventBusCommand =>
@@ -108,6 +110,7 @@ class ApiActor(bus: ActorRef, applicationManager: ActorRef, componentManager: Ac
 
 object ApiActor {
   def apply(bus: ActorRef, applicationManager: ActorRef, componentManager: ActorRef, sshInfrastructure: ActorRef,
-            repositoryStorage: ActorRef, orchestrator: ActorRef, authenticator: ActorRef)(client: ActorRef) = Props(classOf[ApiActor],
-            bus, applicationManager, componentManager, sshInfrastructure, repositoryStorage, client, orchestrator, authenticator)
+            repositoryStorage: ActorRef, orchestrator: ActorRef, authenticator: ActorRef, repository: ActorRef)(client: ActorRef) = Props(classOf[ApiActor],
+            bus, applicationManager, componentManager, sshInfrastructure, repositoryStorage, client, orchestrator, authenticator,
+            repository)
 }

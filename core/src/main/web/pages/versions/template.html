@@ -1,0 +1,11 @@
+<h2>Versions of {{applicationId}}</h2>
+<ul class="list-group">
+	<li class="list-group-item" ng-repeat="versionMetadata in Versions.versionsByApplicationId[applicationId]">
+		<div class="btn-toolbar pull-right">
+			<button class="btn btn-primary btn-xs" ng-click="addLabel(versionMetadata.version)">Label</button>
+			<button class="btn btn-danger btn-xs" ng-click="deleteVersion(versionMetadata.version)">Delete</button>
+		</div>
+		{{versionMetadata.version.number}}
+		<div ng-repeat="label in versionMetadata.labels">{{label}}</div>
+	</li>
+</ul>

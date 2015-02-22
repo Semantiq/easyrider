@@ -10,9 +10,10 @@ import easyrider.Repository.{Version, VersionAvailableEvent, UploadChunk, Upload
 import org.apache.commons.io.IOUtils
 
 class RepositoryUpload(commandId: CommandId, version: Version, eventBus: ActorRef, repositoryDir: File) extends Actor {
-  val applicationDir = new File(repositoryDir, version.applicationId.id)
+  val applicationDir = RepositoryStorageLayout.applicationDir(repositoryDir, version)
   applicationDir.mkdirs()
-  val versionFile = new FileOutputStream(new File(applicationDir, version.number + ".tar.bz2"))
+  private val versionFileName = RepositoryStorageLayout.versionFileName(repositoryDir, version)
+  val versionFile = new FileOutputStream(versionFileName)
 
   override def receive = LoggingReceive {
     case UploadChunk(data: ByteString) =>

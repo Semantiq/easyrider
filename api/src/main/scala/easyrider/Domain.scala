@@ -252,10 +252,8 @@ object Repository {
   case class VersionUploadProgressEvent()
   case class VersionAvailableEvent(eventDetails: EventDetails, version: Version,
                                    var snapshotUpdate: SnapshotUpdateDetails[VersionMetadata] = null) extends RepositoryEvent with SnapshotUpdate[VersionMetadata] {
-    snapshotUpdate = SnapshotUpdateDetails(SnapshotEntryType(classOf[VersionMetadata]), version.eventKey, Some(VersionMetadata(version, Seq())))
+    snapshotUpdate = SnapshotUpdateDetails(SnapshotEntryType(classOf[VersionMetadata]), version.eventKey, if (eventDetails.removal) None else Some(VersionMetadata(version, Seq())))
   }
-  case class VersionLabelsAddedEvent(eventDetails: EventDetails, version: Version, newLabels: Seq[Label],
-                                     labels: Seq[Label]) extends RepositoryEvent
 
   case class StartUpload(commandDetails: CommandDetails, version: Version) extends Command
   case class StartDownload(version: Version)
@@ -265,6 +263,10 @@ object Repository {
   }
   case object Ack
   case class UploadCompleted()
+
+  trait RepositoryCommand extends Command
+  case class AddLabel(commandDetails: CommandDetails, version: Version, name: String) extends RepositoryCommand
+  case class DeleteVersion(commandDetails: CommandDetails, version: Version) extends RepositoryCommand
 }
 
 case class VersionRecommendedEvent()
