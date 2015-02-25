@@ -78,7 +78,7 @@ class EventBus(easyRiderData: File) extends Actor with ActorLogging {
   }
 
   private def eventLogFile = new File(easyRiderData, "eventLogFile.json")
-  private def snapshotFile = new File(easyRiderData, "newSnapshot.json")
+  private def snapshotFile = new File(easyRiderData, "snapshot.json")
 
   private def saveSnapshots(snapshots: Map[SnapshotEntryType, Snapshot[_]]) = {
     FileUtils.write(snapshotFile, serializeSnapshots(snapshots))
