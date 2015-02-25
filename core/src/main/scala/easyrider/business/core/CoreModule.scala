@@ -17,10 +17,9 @@ class CoreModule(easyRiderData: File, easyRiderUrl: URL, actorSystem: ActorSyste
   val builtInPackageUpload = BuiltInPackageUpload(unixInfrastructure, repositoryStorage) _
   val infrastructure = actorSystem.actorOf(SshInfrastructureProvider(eventBus, SshNodeAgent(eventBus, easyRiderUrl, unixInfrastructure, builtInPackageUpload)), "SshInfrastructure")
   val applicationManager = actorSystem.actorOf(ApplicationManager(eventBus, infrastructure), "ApplicationManager")
-  val componentManager = actorSystem.actorOf(ComponentManager(), "ComponentManager")
   val releaseFactory = OrchestratedDeployment(eventBus, applicationManager) _
   val orchestrator = actorSystem.actorOf(Orchestrator(releaseFactory), "Orchestrator")
   val releaseManager = actorSystem.actorOf(ReleaseManager(eventBus, orchestrator), "ReleaseManager")
   val authenticator = actorSystem.actorOf(Authenticator(), "Authenticator")
-  val apiFactory = ApiActor(eventBus, applicationManager, componentManager, infrastructure, repositoryStorage, orchestrator, authenticator, repositoryStorage) _
+  val apiFactory = ApiActor(eventBus, applicationManager, infrastructure, repositoryStorage, orchestrator, authenticator, repositoryStorage) _
 }

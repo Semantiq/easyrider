@@ -52,17 +52,6 @@ object Commands {
   }
 }
 
-object Components {
-  case class ExtensionId(id: String)
-  case class ConsoleExtension(componentId: ComponentId, extensionId: ExtensionId) {
-    def eventKey = EventKey(componentId.id, extensionId.id)
-  }
-
-  case class ComponentCommand(commandDetails: CommandDetails, componentId: ComponentId, payload: Map[String, String]) extends Command
-  case class ComponentEvent(eventDetails: EventDetails, payload: Map[String, String]) extends Event
-  case class ConsoleExtensionAvailableEvent(eventDetails: EventDetails, extension: ConsoleExtension) extends Event
-}
-
 sealed trait Query {
   def queryId: QueryId
 }
@@ -205,7 +194,6 @@ object Api {
   trait Authenticate
   case class AuthenticateUser(username: String, password: String) extends Authenticate
   case class ReAuthenticateUser(username: String, signature: String) extends Authenticate
-  case class AuthenticateComponent(componentId: ComponentId) extends Authenticate
   case class Authentication(username: String, authenticate: Option[Authenticate] = None)
   case class AuthenticationFailure()
   case class KeepAlive()

@@ -6,7 +6,6 @@ import akka.actor._
 import akka.event.LoggingReceive
 import easyrider.Applications.ApplicationCommand
 import easyrider.Commands.Failure
-import easyrider.Components.ComponentCommand
 import easyrider.Events.{EventBusCommand, GetReplay}
 import easyrider.Infrastructure.ContainerCommand
 import easyrider.Orchestrator.OrchestrationCommand
@@ -18,7 +17,7 @@ import org.apache.commons.codec.digest.DigestUtils
 
 import scala.concurrent.duration.Duration
 
-class ApiActor(bus: ActorRef, applicationManager: ActorRef, componentManager: ActorRef, sshInfrastructure: ActorRef,
+class ApiActor(bus: ActorRef, applicationManager: ActorRef, sshInfrastructure: ActorRef,
                repositoryStorage: ActorRef, client: ActorRef, orchestrator: ActorRef,
                authenticator: ActorRef, repository: ActorRef) extends Actor with Stash with ActorLogging {
   import easyrider.Api._
@@ -38,11 +37,6 @@ class ApiActor(bus: ActorRef, applicationManager: ActorRef, componentManager: Ac
       } else {
         client ! AuthenticationFailure()
       }
-    case AuthenticateComponent(componentId) =>
-      val auth = Authentication(componentId.id)
-      context.become(authenticated(auth))
-      componentManager ! ComponentManager.Register(componentId)
-      client ! auth
     case message =>
       log.warning("Received message before authentication, disconnecting: {}", message)
       context.stop(self)
@@ -74,8 +68,6 @@ class ApiActor(bus: ActorRef, applicationManager: ActorRef, componentManager: Ac
       processCommand(c)
     case r: GetReplay =>
       bus ! r
-    case q: Query =>
-      ???
     case r: Result =>
       client ! r
     case f: Failure =>
@@ -93,10 +85,6 @@ class ApiActor(bus: ActorRef, applicationManager: ActorRef, componentManager: Ac
       applicationManager ! c
     case c: EventBusCommand =>
       bus ! c
-    case c: ComponentCommand if sender() == client =>
-      componentManager ! c
-    case c: ComponentCommand =>
-      client ! c
     case c: ContainerCommand =>
       applicationManager ! c
     case c: OrchestrationCommand =>
@@ -109,8 +97,8 @@ class ApiActor(bus: ActorRef, applicationManager: ActorRef, componentManager: Ac
 }
 
 object ApiActor {
-  def apply(bus: ActorRef, applicationManager: ActorRef, componentManager: ActorRef, sshInfrastructure: ActorRef,
+  def apply(bus: ActorRef, applicationManager: ActorRef, sshInfrastructure: ActorRef,
             repositoryStorage: ActorRef, orchestrator: ActorRef, authenticator: ActorRef, repository: ActorRef)(client: ActorRef) = Props(classOf[ApiActor],
-            bus, applicationManager, componentManager, sshInfrastructure, repositoryStorage, client, orchestrator, authenticator,
+            bus, applicationManager, sshInfrastructure, repositoryStorage, client, orchestrator, authenticator,
             repository)
 }
