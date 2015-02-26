@@ -9,7 +9,7 @@ import easyrider.Commands.Failure
 import easyrider.Events.{EventBusCommand, GetReplay}
 import easyrider.Infrastructure.ContainerCommand
 import easyrider.Orchestrator.OrchestrationCommand
-import easyrider.Repository.{RepositoryCommand, StartUpload}
+import easyrider.Repository.RepositoryCommand
 import easyrider._
 import easyrider.business.Configuration
 import easyrider.business.ssh.SshInfrastructure.SshInfrastructureCommand
@@ -18,7 +18,7 @@ import org.apache.commons.codec.digest.DigestUtils
 import scala.concurrent.duration.Duration
 
 class ApiActor(bus: ActorRef, applicationManager: ActorRef, sshInfrastructure: ActorRef,
-               repositoryStorage: ActorRef, client: ActorRef, orchestrator: ActorRef,
+               client: ActorRef, orchestrator: ActorRef,
                authenticator: ActorRef, repository: ActorRef) extends Actor with Stash with ActorLogging {
   import easyrider.Api._
 
@@ -77,8 +77,6 @@ class ApiActor(bus: ActorRef, applicationManager: ActorRef, sshInfrastructure: A
   }
 
   val processCommand: Command => Unit = {
-    case c: StartUpload =>
-      repositoryStorage.forward(c)
     case c: RepositoryCommand =>
       repository ! c
     case c: ApplicationCommand =>
@@ -98,7 +96,6 @@ class ApiActor(bus: ActorRef, applicationManager: ActorRef, sshInfrastructure: A
 
 object ApiActor {
   def apply(bus: ActorRef, applicationManager: ActorRef, sshInfrastructure: ActorRef,
-            repositoryStorage: ActorRef, orchestrator: ActorRef, authenticator: ActorRef, repository: ActorRef)(client: ActorRef) = Props(classOf[ApiActor],
-            bus, applicationManager, sshInfrastructure, repositoryStorage, client, orchestrator, authenticator,
-            repository)
+            orchestrator: ActorRef, authenticator: ActorRef, repository: ActorRef)(client: ActorRef) = Props(classOf[ApiActor],
+            bus, applicationManager, sshInfrastructure, client, orchestrator, authenticator, repository)
 }

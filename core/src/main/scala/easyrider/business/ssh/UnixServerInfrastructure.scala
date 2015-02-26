@@ -9,7 +9,7 @@ import easyrider.business.ssh.SshInfrastructure._
 import easyrider.{PluginFactory, QueryId, SnapshotEntryType}
 
 class UnixServerInfrastructureFactory extends PluginFactory {
-  private def sshSessionFactory(config: NodeConfiguration, parent: ActorRef) = SshSession(parent, parent)(config)
+  private def sshSessionFactory(config: NodeConfiguration, parent: ActorRef) = SshSession(parent)(config)
   def props = UnixServerInfrastructure(sshSessionFactory)
 }
 

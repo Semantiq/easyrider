@@ -4,7 +4,9 @@ import java.io.File
 
 import akka.actor.{ActorRef, Actor, Props}
 import akka.event.LoggingReceive
-import easyrider.{EventKey, EventId, EventDetails, CommandId}
+import easyrider.Applications.ApplicationId
+import easyrider.Events.{SnapshotSubscriptionStarted, SnapshotUpdatedEvent, StartSnapshotSubscription}
+import easyrider._
 import easyrider.Repository._
 
 class RepositoryStorage(val easyriderData: File,
@@ -12,6 +14,7 @@ class RepositoryStorage(val easyriderData: File,
                         downloadFactory: (Version, ActorRef) => Props,
                         eventBus: ActorRef) extends Actor with RepositoryDirectoryLayout {
   repositoryDir.mkdirs()
+  eventBus ! StartSnapshotSubscription(CommandDetails(), SnapshotEntryType(classOf[VersionMetadata]))
 
   override def receive = LoggingReceive {
     case StartUpload(commandDetails, version) =>
@@ -19,12 +22,11 @@ class RepositoryStorage(val easyriderData: File,
       sender() ! Upload(upload)
     case StartDownload(version) =>
       context.actorOf(downloadFactory(version, sender()))
-    case AddLabel(commandDetails, version, name) =>
-      val label = Label(name, commandDetails.commandId)
-      // TODO: implement
-    case DeleteVersion(commandDetails, version) =>
-      RepositoryStorageLayout.versionFileName(repositoryDir, version).delete()
-      eventBus ! VersionAvailableEvent(EventDetails(EventId.generate(), EventKey(), Seq(commandDetails.commandId), removal = true), version)
+    case e: SnapshotSubscriptionStarted[_] =>
+      // TODO
+    case SnapshotUpdatedEvent(_, _, SnapshotUpdateDetails(_, eventKey, None)) =>
+      val Seq(applicationId, number) = eventKey.key
+      RepositoryStorageLayout.versionFileName(repositoryDir, Version(ApplicationId(applicationId), number)).delete()
   }
 }
 

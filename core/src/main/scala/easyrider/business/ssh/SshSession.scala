@@ -16,7 +16,7 @@ import org.apache.commons.io.IOUtils
 import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
 
-class SshSession(eventBus: ActorRef, repository: ActorRef, configuration: NodeConfiguration) extends Actor with ActorLogging with Stash {
+class SshSession(eventBus: ActorRef, configuration: NodeConfiguration) extends Actor with ActorLogging with Stash {
   implicit val timeout = Timeout(10, TimeUnit.SECONDS)
   implicit val dispatcher = context.system.dispatcher
   val disconnectTimeout = Duration(1, TimeUnit.SECONDS)
@@ -121,5 +121,5 @@ class SshSession(eventBus: ActorRef, repository: ActorRef, configuration: NodeCo
 }
 
 object SshSession {
-  def apply(eventBus: ActorRef, repository: ActorRef)(configuration: NodeConfiguration) = Props(classOf[SshSession], eventBus, repository, configuration)
+  def apply(eventBus: ActorRef)(configuration: NodeConfiguration) = Props(classOf[SshSession], eventBus, configuration)
 }

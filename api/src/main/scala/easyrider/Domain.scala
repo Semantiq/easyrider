@@ -100,6 +100,8 @@ trait SnapshotUpdate[T] extends Event {
   def snapshotUpdate: SnapshotUpdateDetails[T]
 }
 
+case class PackageType(name: String)
+
 object Infrastructure {
   case class NodeId(id: String) {
     require(id.matches("""^[a-zA-Z0-9_]+$"""), "Node id can contain only letters and underscores")
@@ -235,14 +237,11 @@ object Repository {
   case class Version(applicationId: ApplicationId, number: String) {
     def eventKey = EventKey(applicationId.id, number)
   }
-  case class VersionMetadata(version: Version, labels: Seq[Label])
+  case class VersionMetadata(version: Version, labels: Seq[Label], packageType: PackageType = PackageType("builtin"))
   trait RepositoryEvent extends Event
-  case class VersionUploadProgressEvent()
-  case class VersionAvailableEvent(eventDetails: EventDetails, version: Version,
-                                   var snapshotUpdate: SnapshotUpdateDetails[VersionMetadata] = null) extends RepositoryEvent with SnapshotUpdate[VersionMetadata] {
-    snapshotUpdate = SnapshotUpdateDetails(SnapshotEntryType(classOf[VersionMetadata]), version.eventKey, if (eventDetails.removal) None else Some(VersionMetadata(version, Seq())))
-  }
+  case class VersionAvailableEvent(eventDetails: EventDetails, version: Version, snapshotUpdate: SnapshotUpdateDetails[VersionMetadata]) extends RepositoryEvent with SnapshotUpdate[VersionMetadata]
 
+  case class VersionUploadProgressEvent()
   case class StartUpload(commandDetails: CommandDetails, version: Version) extends Command
   case class StartDownload(version: Version)
   case class Upload(upload: ActorRef)
@@ -255,6 +254,11 @@ object Repository {
   trait RepositoryCommand extends Command
   case class AddLabel(commandDetails: CommandDetails, version: Version, name: String) extends RepositoryCommand
   case class DeleteVersion(commandDetails: CommandDetails, version: Version) extends RepositoryCommand
+
+  /**
+   * Sent by a plugin, to refer a version of an application in the repository.
+   */
+  case class NotifyNewVersion(commandDetails: CommandDetails, versionMetadata: VersionMetadata) extends RepositoryCommand
 }
 
 case class VersionRecommendedEvent()

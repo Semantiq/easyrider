@@ -1,14 +1,14 @@
 package easyrider.business.http
 
 import akka.actor.{Stash, ActorRef, Props, Actor}
-import easyrider.Api.AuthenticateUser
+import easyrider.Api.{Authentication, AuthenticateUser}
 import easyrider.Applications.ApplicationId
 import easyrider.CommandDetails
 import easyrider.Repository._
 import spray.http.HttpHeaders.Authorization
 import spray.http._
 
-class UploadHandler(apiFactory: ActorRef => Props) extends Actor with Stash {
+class UploadHandler(apiFactory: ActorRef => Props, repositoryStorage: ActorRef) extends Actor with Stash {
   override def receive: Receive = {
     case r: ChunkedRequestStart =>
       val Some(application) =  r.message.uri.query.get("application")
@@ -16,13 +16,20 @@ class UploadHandler(apiFactory: ActorRef => Props) extends Actor with Stash {
       val api = context.actorOf(apiFactory(self))
       val credentials: BasicHttpCredentials = r.message.header[Authorization].get.credentials.asInstanceOf[BasicHttpCredentials]
       api ! AuthenticateUser(credentials.username, credentials.password)
-      api ! StartUpload(CommandDetails(), Version(ApplicationId(application), version))
-      context.become(initiating(api))
+      repositoryStorage ! StartUpload(CommandDetails(), Version(ApplicationId(application), version))
+      context.become(authenticating(api))
   }
 
-  def initiating(api: ActorRef): Receive = {
-    case Upload(upload) =>
+  def authenticating(api: ActorRef): Receive = {
+    case e: Authentication =>
       context.stop(api)
+      context.become(initiating)
+      unstashAll()
+    case _ => stash()
+  }
+
+  def initiating: Receive = {
+    case Upload(upload) =>
       context.become(uploading(upload))
       unstashAll()
     case _ => stash()
@@ -37,5 +44,5 @@ class UploadHandler(apiFactory: ActorRef => Props) extends Actor with Stash {
 }
 
 object UploadHandler {
-  def apply(apiFactory: ActorRef => Props) = Props(classOf[UploadHandler], apiFactory)
+  def apply(apiFactory: ActorRef => Props, repositoryStorage: ActorRef) = Props(classOf[UploadHandler], apiFactory, repositoryStorage)
 }

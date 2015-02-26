@@ -16,7 +16,8 @@ import spray.can.websocket.frame.TextFrame
 import spray.http._
 import spray.routing.HttpServiceActor
 
-class WebServerWorker(connection: ActorRef, apiFactory: ActorRef => Props, implicit val timeout: Timeout) extends HttpServiceActor
+class WebServerWorker(connection: ActorRef, apiFactory: ActorRef => Props,
+                      pluginHttpWorkers: Map[String, ActorRef], implicit val timeout: Timeout) extends HttpServiceActor
   with websocket.WebSocketServerWorker {
   implicit val dispatcher = context.system.dispatcher
 
@@ -55,10 +56,9 @@ class WebServerWorker(connection: ActorRef, apiFactory: ActorRef => Props, impli
   }
 
   def upload(): Receive = {
-    case r @ HttpRequest(_, Uri.Path("/api/repository/upload"), _, _, _) =>
-      val handler = context.actorOf(UploadHandler(apiFactory))
-      // TODO: this provides no back-pressure, will overflow with slow backend
-      r.asPartStream(1024 * 10).foreach(handler.tell(_, sender()))
+    // TODO: introduce a URL pattern for all plugins
+    case r @ HttpRequest(_, uri, _, _, _) if uri.path.startsWith(Uri.Path("/api/repository/")) =>
+      pluginHttpWorkers("builtin") forward r
   }
 
   def businessLogicNoUpgrade(): Receive = {
@@ -75,7 +75,8 @@ class WebServerWorker(connection: ActorRef, apiFactory: ActorRef => Props, impli
 }
 
 object WebServerWorker {
-  def apply(apiFactory: ActorRef => Props, timeout: Timeout)(connection: ActorRef) = Props(classOf[WebServerWorker], connection, apiFactory, timeout)
+  def apply(apiFactory: ActorRef => Props, pluginHttpWorkers: Map[String, ActorRef], timeout: Timeout)(connection: ActorRef) = Props(classOf[WebServerWorker],
+    connection, apiFactory, pluginHttpWorkers, timeout)
 
   case class MessageFormatError(message: String)
 }
