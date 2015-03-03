@@ -43,7 +43,7 @@ app.directive("stage", function() {
                 return containerState.jsonClass == 'easyrider.Infrastructure$ContainerRunning';
             };
             $scope.canRemove = function(containerState) {
-                return containerState.jsonClass == 'easyrider.Infrastructure$ContainerCreated$';
+                return containerState.jsonClass == 'unknown' || containerState.jsonClass == 'easyrider.Infrastructure$ContainerCreated$';
             };
             $scope.saveStage = function(stage) {
                 Command.show(Stages.updateStageTemplate(stage));

@@ -49,8 +49,8 @@ class EventBus(easyRiderData: File) extends Actor with ActorLogging {
       case command @ StopSnapshotSubscription(_, subscriptionId) =>
         snapshotSubscribers = snapshotSubscribers.filter(s => s.commandId != subscriptionId)
     }
-    case GetSnapshot(queryId, entryType) =>
-      sender() ! GetSnapshotResponse(queryId, snapshots(entryType))
+    case command @ GetSnapshot(_, entryType) =>
+      sender() ! command.success(snapshots(entryType))
     case GetReplay(queryId, subscriptionIds, since) =>
       val filter = subscriptions.filter(s => subscriptionIds.contains(s.subscriptionId))
       val withinTime = eventLog.dropWhile(e => e.eventDetails.publicationTime isBefore since)

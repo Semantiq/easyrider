@@ -17,7 +17,7 @@ import spray.http._
 import spray.routing.HttpServiceActor
 
 class WebServerWorker(connection: ActorRef, apiFactory: ActorRef => Props,
-                      pluginHttpWorkers: Map[String, ActorRef], implicit val timeout: Timeout) extends HttpServiceActor
+                      workersRegistry: ActorRef, implicit val timeout: Timeout) extends HttpServiceActor
   with websocket.WebSocketServerWorker {
   implicit val dispatcher = context.system.dispatcher
 
@@ -58,7 +58,8 @@ class WebServerWorker(connection: ActorRef, apiFactory: ActorRef => Props,
   def upload(): Receive = {
     // TODO: introduce a URL pattern for all plugins
     case r @ HttpRequest(_, uri, _, _, _) if uri.path.startsWith(Uri.Path("/api/repository/")) =>
-      pluginHttpWorkers("builtin") forward r
+      // TODO: use actual plugin name from URL pattern
+      workersRegistry.forward(HttpWorkersRegistry.Handle("builtin", r))
   }
 
   def businessLogicNoUpgrade(): Receive = {
@@ -75,8 +76,8 @@ class WebServerWorker(connection: ActorRef, apiFactory: ActorRef => Props,
 }
 
 object WebServerWorker {
-  def apply(apiFactory: ActorRef => Props, pluginHttpWorkers: Map[String, ActorRef], timeout: Timeout)(connection: ActorRef) = Props(classOf[WebServerWorker],
-    connection, apiFactory, pluginHttpWorkers, timeout)
+  def apply(apiFactory: ActorRef => Props, workersRegistry: ActorRef, timeout: Timeout)(connection: ActorRef) = Props(classOf[WebServerWorker],
+    connection, apiFactory, workersRegistry, timeout)
 
   case class MessageFormatError(message: String)
 }

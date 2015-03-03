@@ -1,4 +1,4 @@
-package easyrider.business.core.repsoritory
+package easyrider.business.core.builtin
 
 import akka.actor.{Actor, Props}
 import spray.http.{HttpRequest, Uri}

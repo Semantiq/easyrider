@@ -1,13 +1,14 @@
-package easyrider.business.core
+package easyrider.business.core.builtin
 
 import java.io.File
 
-import akka.actor.{ActorRef, Actor, Props}
+import akka.actor.{Actor, ActorRef, Props}
 import akka.event.LoggingReceive
 import easyrider.Applications.ApplicationId
 import easyrider.Events.{SnapshotSubscriptionStarted, SnapshotUpdatedEvent, StartSnapshotSubscription}
-import easyrider._
 import easyrider.Repository._
+import easyrider._
+import easyrider.business.core.builtin.RepositoryDirectoryLayout
 
 class RepositoryStorage(val easyriderData: File,
                         uploadFactory: (CommandId, Version, File) => Props,

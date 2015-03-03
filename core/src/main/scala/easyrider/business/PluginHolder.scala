@@ -3,8 +3,12 @@ package easyrider.business
 import akka.actor.{ActorLogging, Actor, ActorRef, Props}
 import akka.event.LoggingReceive
 import easyrider.Commands.{CommandExecution, Failure, Success}
+import easyrider.Plugins.{NotifyNodeStatus, RegisterContainerPlugin}
+import easyrider.RemoteAccess.RemoteAccessCommand
+import easyrider.Repository.RepositoryCommand
+import easyrider.business.http.HttpWorkersRegistry
 import easyrider.business.util.BinaryDataSerializers
-import easyrider.{CommandId, Command, Event}
+import easyrider.{PluginFactory, CommandId, Command, Event}
 import easyrider.Events.{Subscribed, GetSnapshotResponse, GetSnapshot, EventBusCommand}
 import easyrider.Infrastructure.ContainerCommand
 import org.json4s.FullTypeHints
@@ -12,8 +16,14 @@ import org.json4s.ext.JodaTimeSerializers
 import org.json4s.native.Serialization
 import org.json4s.native.Serialization.write
 
-class PluginHolder(eventBus: ActorRef, applicationManager: ActorRef, pluginProps: Props, pluginName: String) extends Actor with ActorLogging {
-  val plugin = context.actorOf(pluginProps, "plugin")
+class PluginHolder(eventBus: ActorRef, applicationManager: ActorRef, pluginFactory: PluginFactory, pluginName: String,
+                    containerPluginManager: ActorRef, nodeManager: ActorRef,
+                    httpWorkersRegistry: ActorRef, repository: ActorRef) extends Actor with ActorLogging {
+  val plugin = context.actorOf(pluginFactory.props, "plugin")
+  val http = pluginFactory.httpHandler(plugin).map(handler => context.actorOf(handler, "http")).foreach { handler =>
+    httpWorkersRegistry ! HttpWorkersRegistry.Register(pluginName, handler)
+  }
+
   var commands = Map[CommandId, ActorRef]()
 
   private implicit val formats = Serialization.formats(FullTypeHints(List(classOf[AnyRef]))) ++ JodaTimeSerializers.all ++ BinaryDataSerializers.short
@@ -39,6 +49,10 @@ class PluginHolder(eventBus: ActorRef, applicationManager: ActorRef, pluginProps
               case _ => // ignore
             }
           }
+        case c: RegisterContainerPlugin => containerPluginManager ! c
+        case notify: NotifyNodeStatus => nodeManager ! notify
+        case c: RemoteAccessCommand => nodeManager ! c
+        case c: RepositoryCommand => repository ! c
       }
     case m: AnyRef if sender != plugin =>
       logToPlugin(m)
@@ -57,5 +71,8 @@ class PluginHolder(eventBus: ActorRef, applicationManager: ActorRef, pluginProps
 }
 
 object PluginHolder {
-  def apply(eventBus: ActorRef, applicationManager: ActorRef)(plugin: Props, pluginName: String) = Props(classOf[PluginHolder], eventBus, applicationManager, plugin, pluginName)
+  def apply(eventBus: ActorRef, applicationManager: ActorRef, containerPluginManager: ActorRef, nodeManager: ActorRef,
+            httpWorkersRegistry: ActorRef, repository: ActorRef)
+           (pluginFactory: PluginFactory, pluginName: String) = Props(classOf[PluginHolder], eventBus, applicationManager,
+    pluginFactory, pluginName, containerPluginManager, nodeManager, httpWorkersRegistry, repository)
 }

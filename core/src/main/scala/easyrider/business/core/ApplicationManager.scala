@@ -22,9 +22,9 @@ class ApplicationManager(val eventBus: ActorRef, infrastructure: ActorRef) exten
   eventBus ! Subscribe(CommandDetails(), "containerStateUpdates", classOf[ContainerStateChangedEvent], EventKey())
   implicit val timeout = Timeout(30 seconds)
   implicit val dispatcher = context.system.dispatcher
-  val appsFuture = eventBus ? GetSnapshot(QueryId.generate(), SnapshotEntryType(classOf[Application]))
-  val stagesFuture = eventBus ? GetSnapshot(QueryId.generate(), SnapshotEntryType(classOf[Stage]))
-  val containersFuture = eventBus ? GetSnapshot(QueryId.generate(), SnapshotEntryType(classOf[ContainerConfiguration]))
+  val appsFuture = eventBus ? GetSnapshot(CommandDetails(), SnapshotEntryType(classOf[Application]))
+  val stagesFuture = eventBus ? GetSnapshot(CommandDetails(), SnapshotEntryType(classOf[Stage]))
+  val containersFuture = eventBus ? GetSnapshot(CommandDetails(), SnapshotEntryType(classOf[ContainerConfiguration]))
   private val restoredConfiguration = for {
     apps <- appsFuture
     stages <- stagesFuture
@@ -105,7 +105,8 @@ class ApplicationManager(val eventBus: ActorRef, infrastructure: ActorRef) exten
     }
     case command: ContainerCommand =>
       containers.get(command.containerId) match {
-        case Some(container) => infrastructure.forward(AddressedContainerCommand(container.nodeId, command))
+          // TODO: use the applications' container-type
+        case Some(container) => infrastructure.forward(AddressedContainerCommand("builtin", container.nodeId, command))
         case None => sender ! command.failure(s"Container ${command.containerId.containerName} does not exist")
       }
     case ContainerStateChangedEvent(eventDetails, containerId, state, _) => state match {

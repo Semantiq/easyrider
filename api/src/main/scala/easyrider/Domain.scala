@@ -6,7 +6,7 @@ import akka.actor.{ActorRef, Props}
 import akka.util.ByteString
 import easyrider.Applications._
 import easyrider.Commands.{CommandExecution, Failure, Success}
-import easyrider.Infrastructure.NodeId
+import easyrider.Infrastructure.{NodeState, NodeId}
 import easyrider.Repository.Version
 import org.joda.time.DateTime
 
@@ -125,10 +125,10 @@ object Infrastructure {
   case class DeploymentInfo(version: Version, state: DeploymentState)
 
   trait InfrastructureCommand extends Command
-  case class CreateContainer(commandDetails: CommandDetails, nodeId: NodeId, containerId: ContainerId) extends InfrastructureCommand
   trait ContainerCommand extends InfrastructureCommand {
     def containerId: ContainerId
   }
+  case class CreateContainer(commandDetails: CommandDetails, nodeId: NodeId, containerId: ContainerId) extends ContainerCommand
   case class DeployVersion(commandDetails: CommandDetails, containerId: ContainerId, version: Version) extends ContainerCommand
   case class UnDeployVersion(commandDetails: CommandDetails, containerId: ContainerId, version: Version) extends ContainerCommand
   case class DeployConfigurationFile(commandDetails: CommandDetails, containerId: ContainerId, path: String, fileName: String, contents: ByteString) extends ContainerCommand
@@ -136,7 +136,7 @@ object Infrastructure {
   case class StopContainer(commandDetails: CommandDetails, containerId: ContainerId, immediate: Boolean = false) extends ContainerCommand
   case class RemoveContainer(commandDetails: CommandDetails, containerId: ContainerId, force: Boolean) extends ContainerCommand
   // TODO: move out of API, as this does not need to be publicly available
-  case class AddressedContainerCommand(nodeId: NodeId, containerCommand: ContainerCommand)
+  case class AddressedContainerCommand(containerType: String, nodeId: NodeId, containerCommand: ContainerCommand)
 
   case class FindNodes(queryId: QueryId) extends Query
   case class FindNodesResult(sender: ComponentId, queryId: QueryId, nodes: Seq[NodeId]) extends Result
@@ -211,8 +211,12 @@ object Events {
   case class UnSubscribe(commandDetails: CommandDetails, subscriptionId: String) extends EventBusCommand
   case class Subscribed[T](queryId: QueryId, subscriptionId: String, eventType: EventType) extends Result
   case class UnSubscribed(queryId: QueryId, subscriptionId: String) extends Result
-  case class GetSnapshot(queryId: QueryId, entryType: SnapshotEntryType) extends Query
-  case class GetSnapshotResponse[T](queryId: QueryId, snapshot: Snapshot[T]) extends Result
+  case class GetSnapshot(commandDetails: CommandDetails, entryType: SnapshotEntryType) extends Command {
+    def success[T](snapshot: Snapshot[T]) = GetSnapshotResponse(EventDetails(EventId.generate(), EventKey(),
+      Seq(commandDetails.commandId)), snapshot, commandDetails.commandId)
+  }
+  case class GetSnapshotResponse[T](eventDetails: EventDetails, snapshot: Snapshot[T], executionOf: CommandId,
+                                    successMessage: String = "Snapshot delivered") extends Success
   case class GetReplay(queryId: QueryId, subscriptions: Seq[String], since: DateTime) extends Query
   case class GetReplayResponse(queryId: QueryId, events: Seq[Event]) extends Result
 
@@ -227,8 +231,8 @@ object Events {
     }
   }
   case class StartSnapshotSubscription[T](commandDetails: CommandDetails, entryType: SnapshotEntryType) extends EventBusCommand
-  case class SnapshotSubscriptionStarted[T](eventDetails: EventDetails, executionOf: CommandId, snapshot: Snapshot[T]) extends Event
-  case class SnapshotUpdatedEvent[T](eventDetails: EventDetails, executionOf: CommandId, update: SnapshotUpdateDetails[T]) extends Event
+  case class SnapshotSubscriptionStarted[T](eventDetails: EventDetails, executionOf: CommandId, snapshot: Snapshot[T]) extends Event with CommandExecution
+  case class SnapshotUpdatedEvent[T](eventDetails: EventDetails, executionOf: CommandId, update: SnapshotUpdateDetails[T]) extends Event with CommandExecution
   case class StopSnapshotSubscription(commandDetails: CommandDetails, subscriptionId: CommandId) extends EventBusCommand
 }
 
@@ -316,6 +320,12 @@ object Configuration {
 
 trait PluginFactory {
   def props: Props
+  def httpHandler(plugin: ActorRef): Option[Props] = None
+}
+
+object Plugins {
+  case class RegisterContainerPlugin(commandDetails: CommandDetails, name: String) extends Command
+  case class NotifyNodeStatus(commandDetails: CommandDetails, nodeId: NodeId, nodeStatus: NodeState) extends Command
 }
 
 trait ResourceEvent

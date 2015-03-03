@@ -1,12 +1,12 @@
-package easyrider.business.core
+package easyrider.business.core.builtin
 
-import java.io.{FileOutputStream, File}
+import java.io.{File, FileOutputStream}
 
-import akka.actor.{Props, ActorRef, Actor}
+import akka.actor.{Actor, ActorRef, Props}
 import akka.event.LoggingReceive
 import akka.util.ByteString
-import easyrider._
 import easyrider.Repository._
+import easyrider._
 import org.apache.commons.io.IOUtils
 
 class RepositoryUpload(commandId: CommandId, version: Version, repository: ActorRef, repositoryDir: File) extends Actor {
