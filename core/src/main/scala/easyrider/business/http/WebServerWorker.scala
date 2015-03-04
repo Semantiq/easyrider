@@ -59,7 +59,7 @@ class WebServerWorker(connection: ActorRef, apiFactory: ActorRef => Props,
     // TODO: introduce a URL pattern for all plugins
     case r @ HttpRequest(_, uri, _, _, _) if uri.path.startsWith(Uri.Path("/api/repository/")) =>
       // TODO: use actual plugin name from URL pattern
-      workersRegistry.forward(HttpWorkersRegistry.Handle("builtin", r))
+      workersRegistry.forward(HttpWorkersRegistry.Handle("BuiltinPluginFactory", r))
   }
 
   def businessLogicNoUpgrade(): Receive = {

@@ -52,11 +52,10 @@ class ApiActorTest() extends TestKit(ActorSystem()) with FlatSpecLike with Match
     val bus = TestProbe()
     val componentManager = TestProbe()
     val infrastructure = TestProbe()
-    val repositoryStorage = TestProbe()
     val client = TestProbe()
     val orchestrator = TestProbe()
     val authenticator = TestProbe()
-    val api = system.actorOf(ApiActor(bus.ref, applicationManager.ref, componentManager.ref, infrastructure.ref, repositoryStorage.ref, orchestrator.ref, authenticator.ref)(client.ref))
+    val api = system.actorOf(ApiActor(bus.ref, applicationManager.ref, componentManager.ref, infrastructure.ref, orchestrator.ref, authenticator.ref)(client.ref))
     (applicationManager, bus, client, api)
   }
 

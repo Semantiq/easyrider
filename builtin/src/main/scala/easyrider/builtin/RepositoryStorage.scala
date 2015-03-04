@@ -1,4 +1,4 @@
-package easyrider.business.core.builtin
+package easyrider.builtin
 
 import java.io.File
 
@@ -8,7 +8,6 @@ import easyrider.Applications.ApplicationId
 import easyrider.Events.{SnapshotSubscriptionStarted, SnapshotUpdatedEvent, StartSnapshotSubscription}
 import easyrider.Repository._
 import easyrider._
-import easyrider.business.core.builtin.RepositoryDirectoryLayout
 
 class RepositoryStorage(val easyriderData: File,
                         uploadFactory: (CommandId, Version, File) => Props,

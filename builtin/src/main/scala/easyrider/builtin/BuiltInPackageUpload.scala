@@ -1,15 +1,17 @@
-package easyrider.business.ssh
+package easyrider.builtin
 
 import akka.actor._
 import akka.event.LoggingReceive
 import akka.util.ByteString
-import easyrider.{BinaryData, RemoteAccess, CommandDetails}
 import easyrider.Infrastructure.NodeId
 import easyrider.Repository._
+import easyrider.{BinaryData, CommandDetails, RemoteAccess}
+
 import scala.concurrent.duration._
+import scala.language.postfixOps
 
 class BuiltInPackageUpload(sshSession: ActorRef, repository: ActorRef) extends Actor with ActorLogging {
-  import easyrider.business.ssh.BuiltInPackageUpload._
+  import easyrider.builtin.BuiltInPackageUpload._
 
   var caller: ActorRef = _
 

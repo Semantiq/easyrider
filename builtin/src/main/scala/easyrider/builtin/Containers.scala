@@ -1,4 +1,4 @@
-package easyrider.business.ssh
+package easyrider.builtin
 
 import akka.actor.{Actor, ActorRef, Props}
 import akka.event.LoggingReceive

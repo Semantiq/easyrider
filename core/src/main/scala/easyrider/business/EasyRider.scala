@@ -6,7 +6,6 @@ import java.util.ServiceLoader
 
 import akka.actor.ActorSystem
 import easyrider.business.core.CoreModule
-import easyrider.business.core.builtin.BuiltinPluginFactory
 import easyrider.business.http.HttpModule
 import easyrider.business.ssh.UnixServerInfrastructureFactory
 import easyrider.{PageProvider, PluginFactory}
@@ -26,7 +25,7 @@ class EasyRider(port: Int, easyRiderData: File) {
     http.workersRegistry, core.repository) _
 
   val unixInfrastructure = actorSystem.actorOf(pluginHolderFactory(new UnixServerInfrastructureFactory(), "UnixInfrastructure"), "UnixInfrastructure")
-  val builtinPlugin = actorSystem.actorOf(pluginHolderFactory(new BuiltinPluginFactory(), "builtin"))
+  //val builtinPlugin = actorSystem.actorOf(pluginHolderFactory(new BuiltinPluginFactory(), "builtin"))
 
   plugins.foreach { p =>
     actorSystem.actorOf(pluginHolderFactory(p, p.getClass.getSimpleName), p.getClass.getSimpleName)

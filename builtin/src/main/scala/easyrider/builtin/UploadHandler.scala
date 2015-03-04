@@ -1,7 +1,7 @@
-package easyrider.business.http
+package easyrider.builtin
 
-import akka.actor.{Stash, ActorRef, Props, Actor}
-import easyrider.Api.{Authentication, AuthenticateUser}
+import akka.actor.{Actor, ActorRef, Props, Stash}
+import easyrider.Api.Authentication
 import easyrider.Applications.ApplicationId
 import easyrider.CommandDetails
 import easyrider.Repository._

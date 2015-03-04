@@ -19,9 +19,7 @@ class HttpWorkersRegistry extends Actor with ActorLogging {
       }
     case Handle(name, request) =>
       handlers.get(name) match {
-        case Some(handler) =>
-          println("forwarding to " + handler)
-          handler.forward(request)
+        case Some(handler) => handler.forward(request)
         case None => HttpResponse(StatusCodes.NotFound, HttpEntity(s"Plugin $name not found or doesn't have http extension"))
       }
   }

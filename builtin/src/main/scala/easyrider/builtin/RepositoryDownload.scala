@@ -1,4 +1,4 @@
-package easyrider.business.core.builtin
+package easyrider.builtin
 
 import java.io.{File, RandomAccessFile}
 import java.nio.ByteBuffer

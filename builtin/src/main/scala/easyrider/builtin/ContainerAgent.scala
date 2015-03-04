@@ -1,4 +1,4 @@
-package easyrider.business.ssh
+package easyrider.builtin
 
 import java.net.URL
 import java.util.concurrent.TimeUnit
@@ -13,7 +13,6 @@ import easyrider.Infrastructure._
 import easyrider.RemoteAccess._
 import easyrider.Repository.Version
 import easyrider._
-import easyrider.business.core.EventPublisher
 
 class ContainerAgent(val eventBus: ActorRef, easyRiderUrl: URL, sshSession: ActorRef, builtInPackageUpload: () => Props,
                    configuration: ContainerConfiguration) extends Actor with SshNodeDirectoryLayout with ActorLogging with EventPublisher {

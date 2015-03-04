@@ -1,8 +1,7 @@
-package easyrider.business.core
+package easyrider
 
 import akka.actor.ActorRef
 import easyrider.Commands.CommandExecution
-import easyrider.Event
 
 trait EventPublisher {
   def eventBus: ActorRef

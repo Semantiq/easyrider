@@ -1,11 +1,10 @@
-package easyrider.business.core
+package easyrider.builtin
 
 import java.net.URL
 
 import akka.actor.ActorSystem
-import akka.testkit.{ImplicitSender, TestKit, TestProbe}
-import easyrider.business.ssh._
-import org.scalatest.{FlatSpecLike, Matchers}
+import akka.testkit.{TestProbe, ImplicitSender, TestKit}
+import org.scalatest.{Matchers, FlatSpecLike}
 
 class ContainersTest extends TestKit(ActorSystem()) with FlatSpecLike with Matchers with ImplicitSender {
   "SshAgentLessInfrastructure" should "return list of all nodes" in {
