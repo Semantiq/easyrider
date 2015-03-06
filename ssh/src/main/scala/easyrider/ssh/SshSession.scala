@@ -1,4 +1,4 @@
-package easyrider.business.ssh
+package easyrider.ssh
 
 import java.io.OutputStream
 import java.util.UUID
@@ -10,7 +10,6 @@ import akka.util.Timeout
 import com.jcraft.jsch.{ChannelExec, ChannelSftp, JSch, Session}
 import easyrider.RemoteAccess._
 import easyrider._
-import Nodes._
 import org.apache.commons.io.IOUtils
 
 import scala.concurrent.duration._

@@ -1,11 +1,11 @@
-package easyrider.business.ssh
+package easyrider.ssh
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.event.LoggingReceive
 import easyrider.Events.{GetSnapshot, GetSnapshotResponse, Snapshot}
 import easyrider.Infrastructure.NodeCreated
 import easyrider.Nodes._
-import easyrider.Plugins.{RegisterNodeManagementPlugin, NotifyNodeStatus}
+import easyrider.Plugins.{NotifyNodeStatus, RegisterNodeManagementPlugin}
 import easyrider.RemoteAccess.{RemoteAccessCommand, RemoteAccessEvent}
 import easyrider.{CommandDetails, PluginFactory, SnapshotEntryType, _}
 

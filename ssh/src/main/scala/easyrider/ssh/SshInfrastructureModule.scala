@@ -1,4 +1,4 @@
-package easyrider.business.ssh
+package easyrider.ssh
 
 class SshInfrastructureModule {
 
