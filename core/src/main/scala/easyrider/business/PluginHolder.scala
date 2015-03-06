@@ -3,7 +3,7 @@ package easyrider.business
 import akka.actor.{ActorLogging, Actor, ActorRef, Props}
 import akka.event.LoggingReceive
 import easyrider.Commands.{CommandExecution, Failure, Success}
-import easyrider.Plugins.{NotifyNodeStatus, RegisterContainerPlugin}
+import easyrider.Plugins.{RegisterNodeManagementPlugin, NotifyNodeStatus, RegisterContainerPlugin}
 import easyrider.RemoteAccess.RemoteAccessCommand
 import easyrider.Repository.RepositoryCommand
 import easyrider.business.http.HttpWorkersRegistry
@@ -52,6 +52,7 @@ class PluginHolder(eventBus: ActorRef, applicationManager: ActorRef, pluginFacto
         case c: RegisterContainerPlugin => containerPluginManager ! c
         case notify: NotifyNodeStatus => nodeManager ! notify
         case c: RemoteAccessCommand => nodeManager ! c
+        case c: RegisterNodeManagementPlugin => nodeManager ! c
         case c: RepositoryCommand => repository ! c
       }
     case m: AnyRef if sender != plugin =>

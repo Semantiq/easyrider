@@ -25,7 +25,6 @@ class EasyRider(port: Int, easyRiderData: File) {
     http.workersRegistry, core.repository) _
 
   val unixInfrastructure = actorSystem.actorOf(pluginHolderFactory(new UnixServerInfrastructureFactory(), "UnixInfrastructure"), "UnixInfrastructure")
-  //val builtinPlugin = actorSystem.actorOf(pluginHolderFactory(new BuiltinPluginFactory(), "builtin"))
 
   plugins.foreach { p =>
     actorSystem.actorOf(pluginHolderFactory(p, p.getClass.getSimpleName), p.getClass.getSimpleName)

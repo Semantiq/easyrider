@@ -7,7 +7,7 @@ app.service('Nodes', ['Api', function(Api) {
         me.allIds.length = 0;
         angular.forEach(snapshot.entries, function(value, key) {
             me.allIds.push({
-                jsonClass: "easyrider.Infrastructure$NodeId",
+                jsonClass: "easyrider.NodeId",
                 id: key
             });
         });

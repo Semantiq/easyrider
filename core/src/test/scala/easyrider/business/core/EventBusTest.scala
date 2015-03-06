@@ -8,7 +8,7 @@ import easyrider.Applications.{Application, ApplicationId, ApplicationUpdatedEve
 import easyrider.Commands.{CommandExecution, Success}
 import easyrider.Events._
 import easyrider.Implicits._
-import easyrider.Infrastructure.{NodeCreated, NodeId, NodeState, NodeUpdatedEvent}
+import easyrider.Infrastructure.{NodeCreated, NodeState, NodeUpdatedEvent}
 import easyrider._
 import easyrider.business.core
 import org.apache.commons.io.FileUtils

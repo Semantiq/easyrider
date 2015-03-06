@@ -12,14 +12,14 @@ import easyrider.Orchestrator.OrchestrationCommand
 import easyrider.Repository.RepositoryCommand
 import easyrider._
 import easyrider.business.Configuration
-import easyrider.business.ssh.SshInfrastructure.SshInfrastructureCommand
+import Nodes.NodeManagementCommand
 import org.apache.commons.codec.digest.DigestUtils
 
 import scala.concurrent.duration.Duration
 
 class ApiActor(bus: ActorRef, applicationManager: ActorRef, sshInfrastructure: ActorRef,
                client: ActorRef, orchestrator: ActorRef,
-               authenticator: ActorRef, repository: ActorRef) extends Actor with Stash with ActorLogging {
+               authenticator: ActorRef, repository: ActorRef, nodeManager: ActorRef) extends Actor with Stash with ActorLogging {
   import easyrider.Api._
 
   def receive = awaitingCredentials()
@@ -87,8 +87,8 @@ class ApiActor(bus: ActorRef, applicationManager: ActorRef, sshInfrastructure: A
       applicationManager ! c
     case c: OrchestrationCommand =>
       orchestrator ! c
-    case c: SshInfrastructureCommand =>
-      sshInfrastructure ! c
+    case c: NodeManagementCommand =>
+      nodeManager ! c
   }
 
   private def saltedHash(string: String) = DigestUtils.sha512Hex(string + ":" + Configuration.builtinPasswordHash)
@@ -96,6 +96,6 @@ class ApiActor(bus: ActorRef, applicationManager: ActorRef, sshInfrastructure: A
 
 object ApiActor {
   def apply(bus: ActorRef, applicationManager: ActorRef, sshInfrastructure: ActorRef,
-            orchestrator: ActorRef, authenticator: ActorRef, repository: ActorRef)(client: ActorRef) = Props(classOf[ApiActor],
-            bus, applicationManager, sshInfrastructure, client, orchestrator, authenticator, repository)
+            orchestrator: ActorRef, authenticator: ActorRef, repository: ActorRef, nodeManager: ActorRef)(client: ActorRef) = Props(classOf[ApiActor],
+            bus, applicationManager, sshInfrastructure, client, orchestrator, authenticator, repository, nodeManager)
 }

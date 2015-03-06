@@ -10,8 +10,6 @@ import easyrider.Events.{Subscribe, Subscribed}
 import easyrider.Implicits._
 import easyrider.Infrastructure._
 import easyrider.Repository.Version
-import easyrider.business.ssh.SshInfrastructure
-import SshInfrastructure.NodeConfiguration
 import easyrider._
 import easyrider.business.EasyRiderTest
 import org.apache.commons.io.FileUtils
@@ -27,7 +25,7 @@ class SshInfrastructureManagementTest extends EasyRiderTest(ActorSystem("test"))
     client.send(api, Subscribe(CommandDetails(), "nodeEvents", classOf[NodeUpdatedEvent], EventKey()))
     client.expectMsgClass(classOf[Subscribed[_]])
 
-    client.send(api, SshInfrastructure.CreateNode(CommandDetails(), NodeConfiguration(NodeId("nodeA"), "localhost", 22, "test", "test")))
+    client.send(api, Nodes.CreateNode(CommandDetails(), testNodeConfiguration))
     client.expectMsgClass(classOf[NodeUpdatedEvent])
   }
 
@@ -49,7 +47,7 @@ class SshInfrastructureManagementTest extends EasyRiderTest(ActorSystem("test"))
     client.send(api, Subscribe(CommandDetails(), "containerState", classOf[ContainerStateChangedEvent], EventKey()))
     client.expectMsgClass(classOf[Subscribed[_]])
 
-    client.send(api, SshInfrastructure.CreateNode(CommandDetails(), NodeConfiguration(NodeId("nodeA"), "localhost", 22, "test", "test")))
+    client.send(api, Nodes.CreateNode(CommandDetails(), testNodeConfiguration))
     client.send(api, Applications.CreateApplication(CommandDetails(), Application(ApplicationId("app"), Seq())))
     client.send(api, Applications.CreateStage(CommandDetails(), Stage(StageId(ApplicationId("app"), "qa"), Seq())))
     client.send(api, Applications.CreateContainerConfiguration(CommandDetails(), ContainerConfiguration(ContainerId(StageId(ApplicationId("app"), "qa"), "0"), NodeId("nodeA"), Seq())))
@@ -81,7 +79,7 @@ class SshInfrastructureManagementTest extends EasyRiderTest(ActorSystem("test"))
     client.send(api, Subscribe(CommandDetails(), "configurationDeployment", classOf[DeployConfigurationFileComplete], EventKey()))
     client.expectMsgClass(classOf[Subscribed[_]])
 
-    client.send(api, SshInfrastructure.CreateNode(CommandDetails(), NodeConfiguration(NodeId("nodeA"), "localhost", 22, "test", "test")))
+    client.send(api, Nodes.CreateNode(CommandDetails(), testNodeConfiguration))
     client.send(api, Applications.CreateApplication(CommandDetails(), Application(ApplicationId("app"), Seq(
       Property("literal.string", "feature.emails", "true")
     ))))
@@ -100,5 +98,13 @@ class SshInfrastructureManagementTest extends EasyRiderTest(ActorSystem("test"))
 
     client.expectMsgClass(classOf[DeployConfigurationFileComplete])
     client.expectMsgClass(classOf[DeployConfigurationFileComplete])
+  }
+
+  private def testNodeConfiguration: NodeConfiguration = {
+    NodeConfiguration(NodeId("nodeA"), "ssh", Seq(
+      Property("ssh", "host", "localhost"),
+      Property("ssh", "port", "22"),
+      Property("ssh", "login", "test"),
+      Property("ssh", "password", "test")))
   }
 }

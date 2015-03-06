@@ -4,9 +4,9 @@ import java.util.UUID
 
 import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
-import easyrider.Api.{Authentication, AuthenticateUser}
+import easyrider.Api.{AuthenticateUser, Authentication}
 import easyrider.Applications._
-import easyrider.Infrastructure.{NodeId, NodeCreated, NodeUpdatedEvent}
+import easyrider.Infrastructure.{NodeCreated, NodeUpdatedEvent}
 import easyrider._
 import org.scalatest.{FlatSpecLike, Matchers}
 
@@ -55,7 +55,8 @@ class ApiActorTest() extends TestKit(ActorSystem()) with FlatSpecLike with Match
     val client = TestProbe()
     val orchestrator = TestProbe()
     val authenticator = TestProbe()
-    val api = system.actorOf(ApiActor(bus.ref, applicationManager.ref, componentManager.ref, infrastructure.ref, orchestrator.ref, authenticator.ref)(client.ref))
+    val nodeManager = TestProbe()
+    val api = system.actorOf(ApiActor(bus.ref, applicationManager.ref, componentManager.ref, infrastructure.ref, orchestrator.ref, authenticator.ref, nodeManager.ref)(client.ref))
     (applicationManager, bus, client, api)
   }
 

@@ -4,8 +4,7 @@ import akka.actor.ActorSystem
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import easyrider.Applications._
 import easyrider.Commands.Failure
-import easyrider.Events.{GetSnapshot, GetSnapshotResponse, Snapshot}
-import easyrider.Infrastructure.{CreateContainer, NodeId}
+import easyrider.Infrastructure.CreateContainer
 import easyrider._
 import org.scalatest.{FlatSpecLike, Matchers}
 

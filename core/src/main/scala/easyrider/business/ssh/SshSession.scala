@@ -10,7 +10,7 @@ import akka.util.Timeout
 import com.jcraft.jsch.{ChannelExec, ChannelSftp, JSch, Session}
 import easyrider.RemoteAccess._
 import easyrider._
-import easyrider.business.ssh.SshInfrastructure._
+import Nodes._
 import org.apache.commons.io.IOUtils
 
 import scala.concurrent.duration._
@@ -110,8 +110,8 @@ class SshSession(eventBus: ActorRef, configuration: NodeConfiguration) extends A
 
   private def connect() = {
     val jsch = new JSch()
-    val session = jsch.getSession(configuration.login, configuration.host, configuration.port)
-    session.setPassword(configuration.password)
+    val session = jsch.getSession(configuration("login").get, configuration("host").get, configuration("port").get.toInt)
+    session.setPassword(configuration("password").get)
     session.setConfig("StrictHostKeyChecking", "no")
     session.connect()
     session

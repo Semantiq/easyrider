@@ -3,9 +3,8 @@ package easyrider.builtin
 import akka.actor._
 import akka.event.LoggingReceive
 import akka.util.ByteString
-import easyrider.Infrastructure.NodeId
 import easyrider.Repository._
-import easyrider.{BinaryData, CommandDetails, RemoteAccess}
+import easyrider.{NodeId, BinaryData, CommandDetails, RemoteAccess}
 
 import scala.concurrent.duration._
 import scala.language.postfixOps

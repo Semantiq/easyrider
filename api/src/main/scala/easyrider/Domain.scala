@@ -6,9 +6,11 @@ import akka.actor.{ActorRef, Props}
 import akka.util.ByteString
 import easyrider.Applications._
 import easyrider.Commands.{CommandExecution, Failure, Success}
-import easyrider.Infrastructure.{NodeState, NodeId}
+import easyrider.Infrastructure.NodeState
 import easyrider.Repository.Version
 import org.joda.time.DateTime
+
+import scala.language.implicitConversions
 
 case class ComponentId(id: String)
 object ComponentId {
@@ -102,10 +104,13 @@ trait SnapshotUpdate[T] extends Event {
 
 case class PackageType(name: String)
 
+case class NodeId(id: String) {
+  require(id.matches("""^[a-zA-Z0-9_]+$"""), "Node id can contain only letters and underscores")
+}
+
+case class Property(namespace: String, name: String, value: String)
+
 object Infrastructure {
-  case class NodeId(id: String) {
-    require(id.matches("""^[a-zA-Z0-9_]+$"""), "Node id can contain only letters and underscores")
-  }
   sealed trait ContainerState
   case object ContainerCreationFailed extends ContainerState
   case object ContainerCreated extends ContainerState
@@ -268,7 +273,6 @@ object Repository {
 case class VersionRecommendedEvent()
 
 object Applications {
-  case class Property(namespace: String, name: String, value: String)
   case class EffectiveConfiguration(entries: Map[String, String])
 
   case class ApplicationId(id: String) {
@@ -325,7 +329,25 @@ trait PluginFactory {
 
 object Plugins {
   case class RegisterContainerPlugin(commandDetails: CommandDetails, name: String) extends Command
+  case class RegisterNodeManagementPlugin(commandDetails: CommandDetails, name: String) extends Command
   case class NotifyNodeStatus(commandDetails: CommandDetails, nodeId: NodeId, nodeStatus: NodeState) extends Command
+}
+
+case class NodeConfiguration(id: NodeId, nodeType: String, properties: Seq[Property]) {
+  def apply(propertyName: String): Option[String] = properties.find(p => p.name == propertyName).map(p => p.value)
+}
+
+object Nodes {
+  trait NodeManagementCommand extends Command
+  case class CreateNode(commandDetails: CommandDetails, nodeConfiguration: NodeConfiguration) extends NodeManagementCommand
+  case class UpdateNode(commandDetails: CommandDetails, nodeConfiguration: NodeConfiguration) extends NodeManagementCommand
+  case class RemoveNode(commandDetails: CommandDetails, nodeId: NodeId, keepData: Boolean = true) extends NodeManagementCommand
+
+  case class NodeConfigurationUpdatedEvent(eventDetails: EventDetails, nodeConfiguration: NodeConfiguration,
+                                           captureOutput: Boolean = false,
+                                           var snapshotUpdate: SnapshotUpdateDetails[NodeConfiguration] = null) extends Event with SnapshotUpdate[NodeConfiguration] {
+    snapshotUpdate = SnapshotUpdateDetails(SnapshotEntryType(classOf[NodeConfiguration]), EventKey(nodeConfiguration.id.id), if (eventDetails.removal) None else Some(nodeConfiguration))
+  }
 }
 
 trait ResourceEvent
