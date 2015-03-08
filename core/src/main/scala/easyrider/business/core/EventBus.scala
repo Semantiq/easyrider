@@ -44,13 +44,13 @@ class EventBus(easyRiderData: File) extends Actor with ActorLogging {
       case command @ StartSnapshotSubscription(CommandDetails(commandId, _), entryType) =>
         snapshotSubscribers += SnapshotSubscriber(commandId, entryType, sender())
         sender() ! SnapshotSubscriptionStarted(EventDetails(EventId.generate(), EventKey(), Seq(commandId)), commandId,
-          snapshots.getOrElse(entryType, Snapshot(entryType, Map())))
+          snapshots.getOrElse(entryType, emptySnapshot(entryType)))
         context.watch(sender())
       case command @ StopSnapshotSubscription(_, subscriptionId) =>
         snapshotSubscribers = snapshotSubscribers.filter(s => s.commandId != subscriptionId)
     }
     case command @ GetSnapshot(_, entryType) =>
-      sender() ! command.success(snapshots(entryType))
+      sender() ! command.success(snapshots.getOrElse(entryType, emptySnapshot(entryType)))
     case GetReplay(queryId, subscriptionIds, since) =>
       val filter = subscriptions.filter(s => subscriptionIds.contains(s.subscriptionId))
       val withinTime = eventLog.dropWhile(e => e.eventDetails.publicationTime isBefore since)
@@ -64,17 +64,22 @@ class EventBus(easyRiderData: File) extends Actor with ActorLogging {
     event match {
       case updateEvent: SnapshotUpdate[_] =>
         val update = updateEvent.snapshotUpdate
-        val current = snapshots.getOrElse(update.entryType, Snapshot(update.entryType, Map())).asInstanceOf[Snapshot[Any]]
+        val entryType: SnapshotEntryType = update.entryType
+        val current = snapshots.getOrElse(entryType, emptySnapshot(entryType)).asInstanceOf[Snapshot[Any]]
         val updated = current updatedWith updateEvent.snapshotUpdate.asInstanceOf[SnapshotUpdateDetails[Any]]
-        snapshots += (update.entryType -> updated)
+        snapshots += (entryType -> updated)
         snapshotSubscribers
-          .filter(s => s.entryType == update.entryType)
+          .filter(s => s.entryType == entryType)
           .foreach {s =>
             s.subscriber ! SnapshotUpdatedEvent(EventDetails(EventId.generate(), EventKey(), Seq(s.commandId)), s.commandId, update)
           }
         saveSnapshots(snapshots)
       case _ => // old style event, ignore
     }
+  }
+
+  def emptySnapshot(entryType: SnapshotEntryType): Snapshot[_] = {
+    Snapshot(entryType, Map())
   }
 
   private def eventLogFile = new File(easyRiderData, "eventLogFile.json")
