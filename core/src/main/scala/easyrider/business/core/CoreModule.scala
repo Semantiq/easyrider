@@ -8,6 +8,7 @@ import easyrider.business.core.repsoritory.Repository
 
 class CoreModule(easyRiderData: File, easyRiderUrl: URL, actorSystem: ActorSystem) {
   val eventBus = actorSystem.actorOf(EventBus(easyRiderData), "EventBus")
+  val executionMonitor = actorSystem.actorOf(CommandExecutionMonitor(eventBus), "CommandExecutionMonitor")
   val repository = actorSystem.actorOf(Repository(eventBus), "Repository")
   val containerPluginManager = actorSystem.actorOf(ContainerPluginManager())
   val nodeManager = actorSystem.actorOf(NodeManager(eventBus))
