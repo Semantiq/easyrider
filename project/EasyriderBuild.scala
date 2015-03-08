@@ -53,7 +53,7 @@ object EasyriderBuild extends Build {
     id = "core",
     base = file("core"),
     settings = Project.defaultSettings ++ Revolver.settings ++ settings ++ super.settings ++ packageArchetype.java_application ++ Seq(
-      mappings in Universal += file("core/src/main/bin/init") -> "init"
+      mappings in Universal += file("core/src/main/bin/run") -> "bin/run"
     )) dependsOn (api, ssh, builtin % "runtime")
 
   Project(id = "easyrider", base = file("."), settings = Project.defaultSettings) dependsOn (api, core, ssh, builtin)

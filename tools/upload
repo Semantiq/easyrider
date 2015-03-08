@@ -11,8 +11,8 @@ while getopts a:v:f:d:t option; do
 done
 
 if [ "$DIR" != "" ]; then
-    ( cd $DIR; tar -c * | bzip2 > ../app.tar.bz2 )
-    FILE=$DIR/../app.tar.bz2
+    ( cd $DIR; tar -c * | gzip > ../app.tar.gz )
+    FILE=$DIR/../app.tar.gz
 fi
 
 if [ "$FILE" == "" ] || [ "$APP" == "" ] || [ "$VERSION" == "" ]; then
