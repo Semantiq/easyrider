@@ -31,15 +31,20 @@ class UnixServerInfrastructure(sshSession: (NodeConfiguration, ActorRef) => Prop
   }
 
   def running = LoggingReceive {
-    case addNode: CreateNode if !nodes.contains(addNode.nodeConfiguration.id) =>
-      val node = context.actorOf(sshSession(addNode.nodeConfiguration, self), addNode.nodeConfiguration.id.id)
-      nodes += (addNode.nodeConfiguration.id -> node)
-      context.parent ! NodeConfigurationUpdatedEvent(EventDetails(EventId.generate(), EventKey(), Seq(addNode.commandDetails.commandId)), addNode.nodeConfiguration)
-      context.parent ! NotifyNodeStatus(CommandDetails(), addNode.nodeConfiguration.id, NodeCreated)
-    case command: RemoteAccessCommand =>
-      // TODO: handle incorrect nodeId
-      nodes(command.nodeId) ! command
-    case e: RemoteAccessEvent => context.parent ! e
+    case message if sender() == context.parent => message match {
+      case addNode: CreateNode if !nodes.contains(addNode.nodeConfiguration.id) =>
+        val node = context.actorOf(sshSession(addNode.nodeConfiguration, self), addNode.nodeConfiguration.id.id)
+        nodes += (addNode.nodeConfiguration.id -> node)
+        context.parent ! NodeConfigurationUpdatedEvent(EventDetails(EventId.generate(), EventKey(), Seq(addNode.commandDetails.commandId)), addNode.nodeConfiguration)
+        context.parent ! NotifyNodeStatus(CommandDetails(), addNode.nodeConfiguration.id, NodeCreated)
+      case command: RemoteAccessCommand =>
+        // TODO: handle incorrect nodeId
+        nodes(command.nodeId) ! command
+    }
+    case message if sender() != context.parent => message match {
+      case e: RemoteAccessEvent => context.parent ! e
+      case any => context.parent ! any
+    }
   }
 
   override def receive = initializing

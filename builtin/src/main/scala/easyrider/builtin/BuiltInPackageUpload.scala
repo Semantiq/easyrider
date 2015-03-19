@@ -3,8 +3,9 @@ package easyrider.builtin
 import akka.actor._
 import akka.event.LoggingReceive
 import akka.util.ByteString
+import easyrider.Commands.Failure
 import easyrider.Repository._
-import easyrider.{NodeId, BinaryData, CommandDetails, RemoteAccess}
+import easyrider._
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -15,7 +16,7 @@ class BuiltInPackageUpload(sshSession: ActorRef, repository: ActorRef) extends A
   var caller: ActorRef = _
 
   def initializing() = LoggingReceive {
-    case command@Upload(version, nodeId, packageFolder, packageFile) =>
+    case command@Upload(_, version, nodeId, packageFolder, packageFile) =>
       repository ! StartDownload(version)
       caller = sender()
       context.become(initializingDownload(command))
@@ -29,6 +30,9 @@ class BuiltInPackageUpload(sshSession: ActorRef, repository: ActorRef) extends A
   }
 
   def initializingUpload(command: Upload, download: ActorRef, data: ByteString) = LoggingReceive {
+    case failure: Failure =>
+      caller ! command.failure(s"Package upload failed: ${failure.failureMessage}")
+      context.stop(self)
     case RemoteAccess.UploadNextChunk(_, uploadId, _, _) =>
       download ! Ack
       sshSession ! RemoteAccess.UploadChunk(CommandDetails(), command.nodeId, uploadId, BinaryData(data))
@@ -66,6 +70,6 @@ class BuiltInPackageUpload(sshSession: ActorRef, repository: ActorRef) extends A
 object BuiltInPackageUpload {
   def apply(sshSession: ActorRef, repository: ActorRef)() = Props(classOf[BuiltInPackageUpload], sshSession, repository)
 
-  case class Upload(version: Version, nodeId: NodeId, packageFolder: String, packageFile: String)
+  case class Upload(commandDetails: CommandDetails, version: Version, nodeId: NodeId, packageFolder: String, packageFile: String) extends Command
   case class UploadComplete()
 }

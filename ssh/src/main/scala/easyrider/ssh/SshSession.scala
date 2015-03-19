@@ -61,16 +61,23 @@ class SshSession(eventBus: ActorRef, configuration: NodeConfiguration) extends A
       log.debug("Command error: {}", outputErr)
       log.debug("Command exit code: {}", exitStatus)
       sender ! RunRemoteCommandSuccess(EventDetails(EventId.generate(), EventKey(commandDetails.commandId.id), Seq(commandDetails.commandId)), Some(output), commandDetails.commandId)
-    case UpdateFile(commandDetails, nodeId, path, filename, content) =>
+    case command @ UpdateFile(commandDetails, nodeId, path, filename, content) =>
       log.debug("Writing {} bytes to {}/{}", content.length, path, filename)
       val channel = session.openChannel("sftp").asInstanceOf[ChannelSftp]
-      channel.connect()
-      channel.cd(path)
-      val output = channel.put(filename)
-      IOUtils.copy(content.iterator.asInputStream, output)
-      output.close()
-      sender ! UpdateFileSuccess(EventDetails(EventId.generate(), EventKey(commandDetails.commandId.id), Seq(commandDetails.commandId)), commandDetails.commandId)
-      channel.disconnect()
+      try {
+        channel.connect()
+        channel.cd(path)
+        val output = channel.put(filename)
+        IOUtils.copy(content.iterator.asInputStream, output)
+        output.close()
+        sender ! UpdateFileSuccess(EventDetails(EventId.generate(), EventKey(commandDetails.commandId.id), Seq(commandDetails.commandId)), commandDetails.commandId)
+      } catch {
+        case e: com.jcraft.jsch.SftpException =>
+          log.error(e, "Ssh error while updating file")
+          sender() ! command.failure(s"File update failed: ${e.getMessage}")
+      } finally {
+        channel.disconnect()
+      }
     case ReceiveTimeout =>
       Try(session.disconnect()) match {
         case Failure(exception) => log.error(exception, "Couldn't disconnect from SSH: {}", configuration.id.id)

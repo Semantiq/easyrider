@@ -7,10 +7,10 @@ trait EventPublisher {
   def eventBus: ActorRef
   def sender(): ActorRef
 
-  def publishEvent(event: Event): Unit = {
+  def publishEvent(event: Event, respondTo: ActorRef = sender()): Unit = {
     eventBus ! event
     if (event.isInstanceOf[CommandExecution]) {
-      sender() ! event
+      respondTo ! event
     }
   }
 }
