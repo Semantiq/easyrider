@@ -13,6 +13,7 @@ import easyrider.Infrastructure._
 import easyrider.RemoteAccess._
 import easyrider.Repository.Version
 import easyrider._
+import easyrider.process.{ParallelProcess, CommandMonitor, SequentialProcess}
 
 import scala.concurrent.Future
 
