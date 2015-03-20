@@ -41,7 +41,7 @@ class EventBus(easyRiderData: File) extends Actor with ActorLogging {
       case command @ UnSubscribe(commandId, subscriptionId) =>
         sender() ! UnSubscribed(command.queryId, subscriptionId)
         subscriptions = subscriptions.filter(s => s.subscriptionId != subscriptionId)
-      case command @ StartSnapshotSubscription(CommandDetails(commandId, _), entryType) =>
+      case command @ StartSnapshotSubscription(CommandDetails(commandId), entryType) =>
         snapshotSubscribers += SnapshotSubscriber(commandId, entryType, sender())
         sender() ! SnapshotSubscriptionStarted(EventDetails(EventId.generate(), EventKey(), Seq(commandId)), commandId,
           snapshots.getOrElse(entryType, emptySnapshot(entryType)))

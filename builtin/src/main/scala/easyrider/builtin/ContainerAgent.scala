@@ -79,18 +79,18 @@ class ContainerAgent(val eventBus: ActorRef, easyRiderUrl: URL, sshSession: Acto
       val script = "./bin/run" // TODO: evaluate from config
       val args = "" // TODO: evaluate from config
       ParallelProcess(context)(successes => successes.head,
-        CommandMonitor(context)(sshSession, RunRemoteCommand(CommandDetails(CommandId.generate(), TraceMode()), configuration.nodeId, s"(cd ${versionsDir(containerId)}/${version.number}; $script $args > /dev/null 2> /dev/null &\necho $$! > ./running.pid)")),
-        CommandMonitor(context)(sshSession, RunRemoteCommand(CommandDetails(CommandId.generate(), TraceMode()), configuration.nodeId, "echo '" + version.number + "' > " + containerDir(containerId) + "/running.version")))
+        CommandMonitor(context)(sshSession, RunRemoteCommand(CommandDetails(), configuration.nodeId, s"(cd ${versionsDir(containerId)}/${version.number}; $script $args > /dev/null 2> /dev/null &\necho $$! > ./running.pid)")),
+        CommandMonitor(context)(sshSession, RunRemoteCommand(CommandDetails(), configuration.nodeId, "echo '" + version.number + "' > " + containerDir(containerId) + "/running.version")))
       .onSuccess(_ => eventBus ! ContainerStateChangedEvent(EventDetails(EventId.generate(), containerId.eventKey, Seq(commandDetails.commandId)), containerId, ContainerRunning(version)))
       .onFailure(failure => sender() ! failure)
       .run()
     case StopContainer(commandDetails, containerId, immediate) =>
-      sshSession ? RunRemoteCommand(CommandDetails(CommandId.generate(), TraceMode()), configuration.nodeId, "cat " + containerDir(containerId) + "/running.version") flatMap {
+      sshSession ? RunRemoteCommand(CommandDetails(), configuration.nodeId, "cat " + containerDir(containerId) + "/running.version") flatMap {
         case RunRemoteCommandSuccess(_, Some(output), _, _) =>
           val runningVersionNumber = output.trim()
           // TODO: this event needs to be sent immediately without waiting for ssh session
           eventBus ! ContainerStateChangedEvent(EventDetails(EventId.generate(), containerId.eventKey, Seq(commandDetails.commandId)), containerId, ContainerStopping(Version(containerId.stageId.applicationId, runningVersionNumber.trim)))
-          sshSession ? RunRemoteCommand(CommandDetails(CommandId.generate(), TraceMode()), configuration.nodeId, "(cd ./" + versionsDir(containerId) + "/" + runningVersionNumber + "/; kill -15 `cat running.pid`; rm running.pid)")
+          sshSession ? RunRemoteCommand(CommandDetails(), configuration.nodeId, "(cd ./" + versionsDir(containerId) + "/" + runningVersionNumber + "/; kill -15 `cat running.pid`; rm running.pid)")
       } onSuccess {
         case _: RunRemoteCommandSuccess =>
           eventBus ! ContainerStateChangedEvent(EventDetails(EventId.generate(), containerId.eventKey, Seq(commandDetails.commandId)), containerId, ContainerCreated)
@@ -99,13 +99,13 @@ class ContainerAgent(val eventBus: ActorRef, easyRiderUrl: URL, sshSession: Acto
       if (!force) {
         // TODO: check that the container is stopped before continuing
       }
-      sshSession ? RunRemoteCommand(CommandDetails(CommandId.generate(), TraceMode()), configuration.nodeId, s"rm -rf ${containerDir(containerId)}") onSuccess {
+      sshSession ? RunRemoteCommand(CommandDetails(), configuration.nodeId, s"rm -rf ${containerDir(containerId)}") onSuccess {
         case _: RunRemoteCommandSuccess =>
           eventBus ! ContainerStateChangedEvent(EventDetails(EventId.generate(), containerId.eventKey, Seq(commandDetails.commandId), removal = true), containerId, ContainerRemoved)
       }
     case DeployConfigurationFile(commandDetails, containerId, path, fileName, content) =>
       log.info("Deploying configuration {}: {}/{}", containerId, path, fileName)
-      sshSession ? UpdateFile(CommandDetails(CommandId.generate(), TraceMode()), configuration.nodeId, path, fileName, content) onSuccess {
+      sshSession ? UpdateFile(CommandDetails(), configuration.nodeId, path, fileName, content) onSuccess {
         case _: UpdateFileSuccess => eventBus ! DeployConfigurationFileComplete(EventDetails(EventId.generate(), containerId.eventKey, Seq(commandDetails.commandId)), containerId)
       }
     case UnDeployVersion(commandDetails, containerId, version) =>

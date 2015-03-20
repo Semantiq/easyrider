@@ -26,8 +26,7 @@ object Implicits {
   implicit def class2eventType(x: Class[_]): EventType = EventType(ComponentId.core, x.getName)
 }
 
-case class TraceMode(progress: Boolean = false, confirmation: Boolean = true, consequences: Boolean = false)
-case class CommandDetails(commandId: CommandId = CommandId.generate(), trace: TraceMode = TraceMode())
+case class CommandDetails(commandId: CommandId = CommandId.generate())
 
 trait Command {
   def commandDetails: CommandDetails
