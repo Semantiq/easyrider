@@ -4,6 +4,7 @@ app.service("Connection", ["$rootScope", function($rootScope) {
 	me.on = {};
 	me.onSnapshotUpdate = {};
 	me.onExecution = function(msg) {};
+	me.onDisconnect = function() {};
 
 	me.lastCloudMessage = 0;
 	me.lastToCloudMessage = 0;
@@ -42,9 +43,10 @@ app.service("Connection", ["$rootScope", function($rootScope) {
 		me.ws = new WebSocket("ws://" + location.host);
 		me.ws.onclose = function() {
 			me.open = false;
+            me.onDisconnect();
 			setTimeout(function() {
 				connect();
-			}, 500);
+			}, 1000);
 		};
 		me.ws.onopen = function() {
 			me.open = true;

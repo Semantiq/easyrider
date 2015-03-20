@@ -76,10 +76,9 @@ app.service("Api", ["Connection", "$interval", "$timeout", "$cookieStore", funct
                 loading: true,
                 callbacks: [ callback ]
             };
+            subscriptionsRequested.push(startSubscription);
             if (me.isAuthenticated) {
                 Connection.send(startSubscription);
-            } else {
-                sendAfterAuthentication.push(startSubscription);
             }
         } else {
             var snapshot = snapshots[entryType];
@@ -138,10 +137,13 @@ app.service("Api", ["Connection", "$interval", "$timeout", "$cookieStore", funct
 		for(i in sendAfterAuthentication)
 			Connection.send(sendAfterAuthentication[i]);
 		sendAfterAuthentication = [];
-		Connection.keepAlive = $interval(function() {
-			Connection.send({jsonClass: 'easyrider.Api$KeepAlive'});
-		}, 30000);
-		// TODO: cancel on disconnect
+        if (!Connection.keepAlive) {
+            Connection.keepAlive = $interval(function() {
+                if (me.isAuthenticated) {
+                    Connection.send({jsonClass: 'easyrider.Api$KeepAlive'});
+                }
+            }, 30000);
+		}
 	};
 
 	Connection.on["easyrider.Api$AuthenticationFailure"] = function() {
@@ -220,9 +222,6 @@ app.service("Api", ["Connection", "$interval", "$timeout", "$cookieStore", funct
             commandId: {
                 jsonClass: "easyrider.CommandId",
                 id: nextId()
-            },
-            traceMode: {
-                jsonClass: "easyrider.TraceMode"
             }
         };
 	}
