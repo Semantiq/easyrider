@@ -1,11 +1,18 @@
-import sbt._
-import Keys._
-import spray.revolver.RevolverPlugin._
+import java.time.format.DateTimeFormatter
+
 import com.typesafe.sbt.SbtNativePackager._
+import com.typesafe.sbt.packager.Keys._
+import com.typesafe.sbt.packager.universal._
+import sbt.Keys._
+import sbt._
+import spray.revolver.RevolverPlugin._
+import EasyRiderKeys._
+import java.time._
 
 object EasyriderBuild extends Build {
   val akkaVersion = "2.3.5"
   override val settings = Seq(
+    version := Instant.now().atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("yyyyMMdd-hhmmss")),
     scalaVersion := "2.10.4",
     libraryDependencies ++= Seq(
       "com.typesafe.akka" %% "akka-actor" % akkaVersion,
@@ -52,9 +59,18 @@ object EasyriderBuild extends Build {
   lazy val core = Project(
     id = "core",
     base = file("core"),
-    settings = Project.defaultSettings ++ Revolver.settings ++ settings ++ super.settings ++ packageArchetype.java_application ++ Seq(
-      mappings in Universal += file("core/src/main/bin/run") -> "bin/run"
+    settings = Project.defaultSettings ++ Revolver.settings ++ settings ++ super.settings ++ packageArchetype.java_application ++
+        EasyRiderPlugin.projectSettings ++ Seq(
+      mappings in Universal += file("core/src/main/bin/run") -> "bin/run",
+      topLevelDirectory := None,
+      appName := "easyrider",
+      repositoryUrl := "http://localhost:8080",
+      login := "admin",
+      password := "test"
     )) dependsOn (api, ssh, builtin % "runtime")
 
-  Project(id = "easyrider", base = file("."), settings = Project.defaultSettings) dependsOn (api, core, ssh, builtin)
+  Project(id = "easyrider", base = file("."), settings = Project.defaultSettings)
+    .enablePlugins(UniversalPlugin)
+    .enablePlugins(EasyRiderPlugin)
+    .dependsOn(api, core, ssh, builtin)
 }
