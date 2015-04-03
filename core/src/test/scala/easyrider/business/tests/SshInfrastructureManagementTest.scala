@@ -52,16 +52,16 @@ class SshInfrastructureManagementTest extends EasyRiderTest(ActorSystem("test"))
     client.send(api, Applications.CreateStage(CommandDetails(), Stage(StageId(ApplicationId("app"), "qa"), Seq())))
     client.send(api, Applications.CreateContainerConfiguration(CommandDetails(), ContainerConfiguration(ContainerId(StageId(ApplicationId("app"), "qa"), "0"), NodeId("nodeA"), Seq())))
 
-    client.expectMsgClass(classOf[ContainerStateChangedEvent]).state should be (ContainerCreated)
+    client.expectMsgClass(classOf[ContainerStateChangedEvent]).snapshotUpdate.entry.get should be (ContainerCreated)
 
     client.send(api, Infrastructure.DeployVersion(CommandDetails(), ContainerId(StageId(ApplicationId("app"), "qa"), "0"), Version(ApplicationId("app"), "1.0.0")))
 
-    client.expectMsgClass(classOf[VersionDeploymentProgressEvent]).state should be (DeploymentInProgress)
-    client.expectMsgClass(classOf[VersionDeploymentProgressEvent]).state should be (DeploymentCompleted)
+    client.expectMsgClass(classOf[VersionDeploymentProgressEvent]).snapshotUpdate.entry.get should be (DeploymentInProgress)
+    client.expectMsgClass(classOf[VersionDeploymentProgressEvent]).snapshotUpdate.entry.get should be (DeploymentCompleted)
 
     client.send(api, Infrastructure.StartContainer(CommandDetails(), ContainerId(StageId(ApplicationId("app"), "qa"), "0"), Version(ApplicationId("app"), "1.0.0")))
 
-    client.expectMsgClass(classOf[ContainerStateChangedEvent]).state should be (ContainerRunning(Version(ApplicationId("app"), "1.0.0")))
+    client.expectMsgClass(classOf[ContainerStateChangedEvent]).snapshotUpdate.entry.get should be (ContainerRunning(Version(ApplicationId("app"), "1.0.0")))
 
     client.send(api, Infrastructure.StopContainer(CommandDetails(), ContainerId(StageId(ApplicationId("app"), "qa"), "0")))
 
