@@ -1,6 +1,6 @@
 package easyrider.json
 
-import easyrider.Applications.{ApplicationUpdatedEvent, ApplicationId, CreateApplication}
+import easyrider.Applications.{Application, ApplicationUpdatedEvent, ApplicationId, CreateApplication}
 import easyrider._
 import org.json4s.JsonAST.JString
 import org.json4s._
@@ -9,7 +9,7 @@ import org.json4s.native.Serialization
 
 class JsonSerializer {
   private implicit val formats = Serialization.formats(ShortTypeHints) ++
-    Seq(IdentifierSerializer, EventKeySerializer) ++
+    Seq(IdentifierSerializer, EventKeySerializer, SnapshotEntryTypeSerializer) ++
     JodaTimeSerializers.all
 
   def readCommand(string: String): Command = {
@@ -33,7 +33,7 @@ class JsonSerializer {
   private object ShortTypeHints extends TypeHints {
     private val typeForHint = Map[String, Class[_]](
       "CreateApplication" -> classOf[CreateApplication],
-      "ApplicationUpdatedEvent" -> classOf[ApplicationUpdatedEvent]
+      "ApplicationUpdated" -> classOf[ApplicationUpdatedEvent]
     )
 
     private val hintForType: Map[Class[_], String] = typeForHint map (_.swap)
@@ -68,4 +68,19 @@ class JsonSerializer {
     }
   }
 
+  private object SnapshotEntryTypeSerializer extends Serializer[SnapshotEntryType[_]] {
+    private val entryTypeForName = Map[String, SnapshotEntryType[_]](
+      "Application" -> SnapshotEntryType(classOf[Application])
+    )
+
+    private val nameForEntryType = entryTypeForName.map(_.swap)
+
+    override def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, JValue), SnapshotEntryType[_]] = {
+      case (typeInfo, JString(name)) if typeInfo.clazz == classOf[SnapshotEntryType[_]] => entryTypeForName(name)
+    }
+
+    override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
+      case entryType: SnapshotEntryType[_] => JString(nameForEntryType(entryType))
+    }
+  }
 }
