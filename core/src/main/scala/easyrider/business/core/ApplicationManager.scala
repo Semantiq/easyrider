@@ -117,8 +117,9 @@ class ApplicationManager(val eventBus: ActorRef, infrastructure: ActorRef) exten
         case Some(container) => infrastructure.forward(AddressedContainerCommand("builtin", container.nodeId, command))
         case None => sender ! command.failure(s"Container ${command.containerId.containerName} does not exist")
       }
-    case ContainerStateChangedEvent(eventDetails, containerId, state, _) => state match {
+    case ContainerStateChangedEvent(eventDetails, SnapshotUpdateDetails(_, eventKey, Some(state))) => state match {
       case ContainerRemoved =>
+        val containerId = ContainerId.fromEventKey(eventKey)
         containers.get(containerId) match {
           case Some(container) =>
             eventBus ! ContainerConfigurationRemoved(EventDetails(EventId.generate(), containerId.eventKey, Seq(eventDetails.eventId), removal = true), SnapshotUpdateDetails(SnapshotEntryType(classOf[ContainerConfiguration]), containerId.eventKey, None))

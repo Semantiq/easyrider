@@ -17,14 +17,13 @@ class ApiActorTest() extends TestKit(ActorSystem()) with FlatSpecLike with Match
     val watcher = TestProbe()
     watcher watch api
 
-    client.send(api, NodeUpdatedEvent(EventDetails(EventId("1"), EventKey(), Seq()), NodeId("node0"), NodeCreated, SnapshotUpdateDetails(SnapshotEntryType(classOf[NodeState]), NodeId("node0").eventKey, Some(NodeCreated))))
+    client.send(api, NodeUpdatedEvent(EventDetails(EventId("1"), EventKey(), Seq()), SnapshotUpdateDetails(SnapshotEntryType(classOf[NodeState]), NodeId("node0").eventKey, Some(NodeCreated))))
 
     watcher.expectTerminated(api)
   }
 
   it should "transfer events in two ways after authentication" in {
-    def dummyEvent = NodeUpdatedEvent(EventDetails(EventId(UUID.randomUUID.toString), EventKey(), Seq()), NodeId("node0"),
-      NodeCreated, SnapshotUpdateDetails(SnapshotEntryType(classOf[NodeState]), NodeId("node0").eventKey, Some(NodeCreated)))
+    def dummyEvent = NodeUpdatedEvent(EventDetails(EventId(UUID.randomUUID.toString), EventKey(), Seq()), SnapshotUpdateDetails(SnapshotEntryType(classOf[NodeState]), NodeId("node0").eventKey, Some(NodeCreated)))
     val (_, bus, client, api) = setup()
 
     client.send(api, AuthenticateUser("test", "test"))

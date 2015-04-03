@@ -151,11 +151,9 @@ object Infrastructure {
   case class FindNodesResult(sender: ComponentId, queryId: QueryId, nodes: Seq[NodeId]) extends Result
 
   trait InfrastructureEvent extends Event
-  case class ContainerStateChangedEvent(eventDetails: EventDetails, containerId: ContainerId, state: ContainerState,
-                                         snapshotUpdate: SnapshotUpdateDetails[ContainerState]) extends InfrastructureEvent with SnapshotUpdate[ContainerState]
-  case class VersionDeploymentProgressEvent(eventDetails: EventDetails, version: Version, state: DeploymentState,
-                                             snapshotUpdate: SnapshotUpdateDetails[DeploymentInfo]) extends InfrastructureEvent with SnapshotUpdate[DeploymentInfo]
-  case class NodeUpdatedEvent(eventDetails: EventDetails, nodeId: NodeId, state: NodeState, snapshotUpdate: SnapshotUpdateDetails[NodeState]) extends InfrastructureEvent with SnapshotUpdate[NodeState]
+  case class ContainerStateChangedEvent(eventDetails: EventDetails, snapshotUpdate: SnapshotUpdateDetails[ContainerState]) extends InfrastructureEvent with SnapshotUpdate[ContainerState]
+  case class VersionDeploymentProgressEvent(eventDetails: EventDetails, snapshotUpdate: SnapshotUpdateDetails[DeploymentInfo]) extends InfrastructureEvent with SnapshotUpdate[DeploymentInfo]
+  case class NodeUpdatedEvent(eventDetails: EventDetails, snapshotUpdate: SnapshotUpdateDetails[NodeState]) extends InfrastructureEvent with SnapshotUpdate[NodeState]
   case class ContainerCreatedEvent(eventDetails: EventDetails) extends InfrastructureEvent
   case class ContainerCreationError(eventDetails: EventDetails)
 
@@ -286,6 +284,12 @@ object Applications {
     def eventKey = EventKey(stageId.applicationId.id, stageId.id, id)
     def containerName = stageId.applicationId.id + "-" + stageId.id + "-" + id
   }
+  object ContainerId {
+    def fromEventKey(eventKey: EventKey) = {
+      val Seq(applicationId, stageId, containerId) = eventKey.key
+      ContainerId(StageId(ApplicationId(applicationId), stageId), containerId)
+    }
+  }
   case class ContainerConfiguration(id: ContainerId, nodeId: NodeId, properties: Seq[Property])
   trait ApplicationCommand extends Command
   case class CreateApplication(commandDetails: CommandDetails, application: Application) extends ApplicationCommand
@@ -298,8 +302,7 @@ object Applications {
   case class UpdateContainerConfiguration(commandDetails: CommandDetails, container: ContainerConfiguration) extends ApplicationCommand
 
   trait ApplicationEvent extends Event
-  case class ApplicationUpdatedEvent(eventDetails: EventDetails, executionOf: CommandId, snapshotUpdate: SnapshotUpdateDetails[Application], successMessage: String = "Completed") extends ApplicationEvent with SnapshotUpdate[Application] with Success {
-  }
+  case class ApplicationUpdatedEvent(eventDetails: EventDetails, executionOf: CommandId, snapshotUpdate: SnapshotUpdateDetails[Application], successMessage: String = "Completed") extends ApplicationEvent with SnapshotUpdate[Application] with Success
   case class EffectiveConfigurationChanged(eventDetails: EventDetails, containerId: ContainerId, effectiveConfiguration: EffectiveConfiguration) extends ApplicationEvent
 
   trait StageEvent extends Event

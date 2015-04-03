@@ -65,8 +65,8 @@ class SshInfrastructureManagementTest extends EasyRiderTest(ActorSystem("test"))
 
     client.send(api, Infrastructure.StopContainer(CommandDetails(), ContainerId(StageId(ApplicationId("app"), "qa"), "0")))
 
-    client.expectMsgClass(classOf[ContainerStateChangedEvent]).state should be (ContainerStopping(Version(ApplicationId("app"), "1.0.0")))
-    client.expectMsgClass(classOf[ContainerStateChangedEvent]).state should be (ContainerCreated)
+    client.expectMsgClass(classOf[ContainerStateChangedEvent]).snapshotUpdate.entry.get should be (ContainerStopping(Version(ApplicationId("app"), "1.0.0")))
+    client.expectMsgClass(classOf[ContainerStateChangedEvent]).snapshotUpdate.entry.get should be (ContainerCreated)
   }
 
   it should "deploy effective configuration" in withEasyrider { easyrider =>
