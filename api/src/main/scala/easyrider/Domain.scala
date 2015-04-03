@@ -109,6 +109,7 @@ case class PackageType(name: String)
 
 case class NodeId(id: String) {
   require(id.matches("""^[a-zA-Z0-9_]+$"""), "Node id can contain only letters and underscores")
+  def eventKey = EventKey(id)
 }
 
 case class Property(namespace: String, name: String, value: String)
@@ -151,16 +152,10 @@ object Infrastructure {
 
   trait InfrastructureEvent extends Event
   case class ContainerStateChangedEvent(eventDetails: EventDetails, containerId: ContainerId, state: ContainerState,
-                                         var snapshotUpdate: SnapshotUpdateDetails[ContainerState] = null) extends InfrastructureEvent with SnapshotUpdate[ContainerState] {
-    snapshotUpdate = SnapshotUpdateDetails(SnapshotEntryType(classOf[ContainerState]), containerId.eventKey, if (eventDetails.removal) None else Some(state))
-  }
+                                         snapshotUpdate: SnapshotUpdateDetails[ContainerState]) extends InfrastructureEvent with SnapshotUpdate[ContainerState]
   case class VersionDeploymentProgressEvent(eventDetails: EventDetails, version: Version, state: DeploymentState,
-                                             var snapshotUpdate: SnapshotUpdateDetails[DeploymentInfo] = null) extends InfrastructureEvent with SnapshotUpdate[DeploymentInfo] {
-    snapshotUpdate = SnapshotUpdateDetails(SnapshotEntryType(classOf[DeploymentInfo]), eventDetails.eventKey, if (eventDetails.removal) None else Some(DeploymentInfo(version, state)))
-  }
-  case class NodeUpdatedEvent(eventDetails: EventDetails, nodeId: NodeId, state: NodeState, var snapshotUpdate: SnapshotUpdateDetails[NodeState] = null) extends InfrastructureEvent with SnapshotUpdate[NodeState] {
-    snapshotUpdate = SnapshotUpdateDetails(SnapshotEntryType(classOf[NodeState]), EventKey(nodeId.id), Some(state))
-  }
+                                             snapshotUpdate: SnapshotUpdateDetails[DeploymentInfo]) extends InfrastructureEvent with SnapshotUpdate[DeploymentInfo]
+  case class NodeUpdatedEvent(eventDetails: EventDetails, nodeId: NodeId, state: NodeState, snapshotUpdate: SnapshotUpdateDetails[NodeState]) extends InfrastructureEvent with SnapshotUpdate[NodeState]
   case class ContainerCreatedEvent(eventDetails: EventDetails) extends InfrastructureEvent
   case class ContainerCreationError(eventDetails: EventDetails)
 

@@ -1,11 +1,11 @@
 package easyrider.business.core
 
 import akka.actor.{Actor, ActorRef, Props}
-import easyrider.Infrastructure.NodeUpdatedEvent
+import easyrider.Infrastructure.{NodeState, NodeUpdatedEvent}
 import easyrider.Nodes.CreateNode
 import easyrider.Plugins.{RegisterNodeManagementPlugin, NotifyNodeStatus}
 import easyrider.RemoteAccess.RemoteAccessCommand
-import easyrider.{NodeId, EventDetails, EventId, EventKey}
+import easyrider._
 
 class NodeManager(eventBus: ActorRef) extends Actor {
   var nodes = Map[NodeId, ActorRef]()
@@ -14,7 +14,8 @@ class NodeManager(eventBus: ActorRef) extends Actor {
   override def receive: Receive = {
     case NotifyNodeStatus(commandDetails, nodeId, nodeStatus) =>
       nodes += nodeId -> sender()
-      eventBus ! NodeUpdatedEvent(EventDetails(EventId.generate(), EventKey(nodeId.id), Seq()), nodeId, nodeStatus)
+      val snapshotUpdate = SnapshotUpdateDetails(SnapshotEntryType(classOf[NodeState]), nodeId.eventKey, Some(nodeStatus))
+      eventBus ! NodeUpdatedEvent(EventDetails(EventId.generate(), EventKey(nodeId.id), Seq()), nodeId, nodeStatus, snapshotUpdate)
     case RegisterNodeManagementPlugin(commandDetails, nodeType) =>
       nodeTypes += nodeType -> sender()
     case command: RemoteAccessCommand =>

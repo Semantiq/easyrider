@@ -11,6 +11,7 @@ import easyrider.Events._
 import easyrider.Implicits._
 import easyrider.Infrastructure.{NodeCreated, NodeState, NodeUpdatedEvent}
 import easyrider._
+import jdk.nashorn.internal.runtime.regexp.joni.constants.NodeStatus
 import org.apache.commons.io.FileUtils
 import org.scalatest._
 
@@ -68,14 +69,14 @@ class EventBusTest() extends TestKit(ActorSystem()) with FlatSpecLike with Match
     snapshot.snapshot.entryType should be (SnapshotEntryType(classOf[NodeState]))
     snapshot.snapshot.entries should be (Map())
 
-    client.send(bus, NodeUpdatedEvent(EventDetails(EventId.generate(), EventKey("1"), Seq()), NodeId("1"), NodeCreated))
+    client.send(bus, NodeUpdatedEvent(EventDetails(EventId.generate(), EventKey("1"), Seq()), NodeId("1"), NodeCreated, SnapshotUpdateDetails(SnapshotEntryType(classOf[NodeStatus]), NodeId("1").eventKey, Some(NodeCreated))))
     val update = client.expectMsgClass(classOf[SnapshotUpdatedEvent[NodeState]])
     val updatedSnapshot = snapshot.snapshot.updatedWith(update.update)
     update.executionOf should be (CommandId("1"))
     updatedSnapshot.entries should be (Map("1" -> NodeCreated))
 
     client.send(bus, StopSnapshotSubscription(CommandDetails(), CommandId("1")))
-    client.send(bus, NodeUpdatedEvent(EventDetails(EventId.generate(), EventKey("2"), Seq()), NodeId("2"), NodeCreated))
+    client.send(bus, NodeUpdatedEvent(EventDetails(EventId.generate(), EventKey("2"), Seq()), NodeId("2"), NodeCreated, SnapshotUpdateDetails(SnapshotEntryType(classOf[NodeStatus]), NodeId("1").eventKey, Some(NodeCreated))))
     client.expectNoMsg()
   }
 
@@ -90,5 +91,5 @@ class EventBusTest() extends TestKit(ActorSystem()) with FlatSpecLike with Match
   case class DummyProgress(eventDetails: EventDetails, executionOf: CommandId) extends CommandExecution
   case class DummySuccess(eventDetails: EventDetails, executionOf: CommandId, successMessage: String) extends Success
   val dummySubscribe = Subscribe(CommandDetails(), "all", classOf[NodeUpdatedEvent], EventKey())
-  val dummyEvent = NodeUpdatedEvent(EventDetails(EventId("1"), EventKey(), Seq()), NodeId("nodeId"), NodeCreated)
+  val dummyEvent = NodeUpdatedEvent(EventDetails(EventId("1"), EventKey(), Seq()), NodeId("nodeId"), NodeCreated, SnapshotUpdateDetails(SnapshotEntryType(classOf[NodeStatus]), NodeId("nodeId").eventKey, Some(NodeCreated)))
 }
