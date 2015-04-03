@@ -61,14 +61,18 @@ sealed trait Result {
   def queryId: QueryId
 }
 
+trait Identifier[Target] {
+  def id: String
+}
+
 sealed trait Cause
-case class EventId(id: String) extends Cause
+case class EventId(id: String) extends Cause with Identifier[Event]
 
 object EventId {
   def generate() = EventId(UUID.randomUUID().toString)
 }
 
-case class CommandId(id: String) extends Cause
+case class CommandId(id: String) extends Cause with Identifier[Command]
 object CommandId {
   def generate() = CommandId(UUID.randomUUID().toString)
 }
@@ -274,7 +278,7 @@ case class VersionRecommendedEvent()
 object Applications {
   case class EffectiveConfiguration(entries: Map[String, String])
 
-  case class ApplicationId(id: String) {
+  case class ApplicationId(id: String) extends Identifier[Application] {
     require(id.matches("""^[a-zA-Z0-9_]+$"""), "Application id can contain only letters and underscores")
     def eventKey = EventKey(id)
   }
@@ -301,20 +305,16 @@ object Applications {
   case class UpdateContainerConfiguration(commandDetails: CommandDetails, container: ContainerConfiguration) extends ApplicationCommand
 
   trait ApplicationEvent extends Event
-  case class ApplicationUpdatedEvent(eventDetails: EventDetails, application: Application, executionOf: CommandId = CommandId("?"), successMessage: String = "Completed", var snapshotUpdate: SnapshotUpdateDetails[Application] = null) extends ApplicationEvent with SnapshotUpdate[Application] with Success {
-    snapshotUpdate = SnapshotUpdateDetails(SnapshotEntryType(classOf[Application]), application.id.eventKey, if (eventDetails.removal) None else Some(application))
+  case class ApplicationUpdatedEvent(eventDetails: EventDetails, executionOf: CommandId, snapshotUpdate: SnapshotUpdateDetails[Application], successMessage: String = "Completed") extends ApplicationEvent with SnapshotUpdate[Application] with Success {
   }
   case class EffectiveConfigurationChanged(eventDetails: EventDetails, containerId: ContainerId, effectiveConfiguration: EffectiveConfiguration) extends ApplicationEvent
 
   trait StageEvent extends Event
-  case class StageUpdatedEvent(eventDetails: EventDetails, stage: Stage, var snapshotUpdate: SnapshotUpdateDetails[Stage] = null) extends StageEvent with SnapshotUpdate[Stage] {
-    snapshotUpdate = SnapshotUpdateDetails(SnapshotEntryType(classOf[Stage]), stage.id.eventKey, if (eventDetails.removal) None else Some(stage))
-  }
+  case class StageUpdatedEvent(eventDetails: EventDetails, stage: Stage, snapshotUpdate: SnapshotUpdateDetails[Stage], executionOf: CommandId, successMessage: String = "Completed") extends StageEvent with SnapshotUpdate[Stage] with Success
 
   trait ContainerEvent extends Event
-  case class ContainerConfigurationUpdatedEvent(eventDetails: EventDetails, container: ContainerConfiguration, var snapshotUpdate: SnapshotUpdateDetails[ContainerConfiguration] = null) extends ContainerEvent with SnapshotUpdate[ContainerConfiguration] {
-    snapshotUpdate = SnapshotUpdateDetails(SnapshotEntryType(classOf[ContainerConfiguration]), container.id.eventKey, if (eventDetails.removal) None else Some(container))
-  }
+  case class ContainerConfigurationUpdatedEvent(eventDetails: EventDetails, container: ContainerConfiguration, snapshotUpdate: SnapshotUpdateDetails[ContainerConfiguration], executionOf: CommandId, successMessage: String = "Completed") extends ContainerEvent with SnapshotUpdate[ContainerConfiguration] with Success
+  case class ContainerConfigurationRemoved(eventDetails: EventDetails, snapshotUpdate: SnapshotUpdateDetails[ContainerConfiguration]) extends ContainerEvent with SnapshotUpdate[ContainerConfiguration]
 }
 
 object Configuration {

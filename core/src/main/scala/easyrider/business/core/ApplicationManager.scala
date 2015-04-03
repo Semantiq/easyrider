@@ -50,20 +50,23 @@ class ApplicationManager(val eventBus: ActorRef, infrastructure: ActorRef) exten
       case ExistingApplication(_) => sender ! command.failure(s"Application ${application.id.id} already exists")
       case _ =>
         applications += (application.id -> application)
-        publishEvent(ApplicationUpdatedEvent(EventDetails(EventId.generate(), EventKey(application.id.id), Seq(commandDetails.commandId)), application, commandDetails.commandId))
+        val snapshotUpdate = SnapshotUpdateDetails(SnapshotEntryType(classOf[Application]), application.id.eventKey, Some(application))
+        publishEvent(ApplicationUpdatedEvent(EventDetails(EventId.generate(), EventKey(application.id.id), Seq(commandDetails.commandId)), commandDetails.commandId, snapshotUpdate))
     }
     case command @ RemoveApplication(commandDetails, applicationId) => applicationId match {
       case NonExistingApplication(_) => sender ! command.failure(s"Application ${applicationId.id} does not exist")
       case ApplicationWithStages(_) => sender ! command.failure(s"Remove all stages from ${applicationId.id} first")
       case ExistingApplication(application) =>
         applications -= applicationId
-        publishEvent(ApplicationUpdatedEvent(EventDetails(EventId.generate(), application.id.eventKey, Seq(commandDetails.commandId), removal = true), application, commandDetails.commandId))
+        val snapshotUpdate = SnapshotUpdateDetails[Application](SnapshotEntryType(classOf[Application]), application.id.eventKey, None)
+        publishEvent(ApplicationUpdatedEvent(EventDetails(EventId.generate(), application.id.eventKey, Seq(commandDetails.commandId), removal = true), commandDetails.commandId, snapshotUpdate))
     }
     case command @ UpdateApplication(commandDetails, application) => application match {
       case NonExistingApplication(_) => sender ! command.failure(s"Application ${application.id} does not exist")
       case _ =>
         applications += (application.id -> application)
-        eventBus ! ApplicationUpdatedEvent(EventDetails(EventId.generate(), application.id.eventKey, Seq(commandDetails.commandId)), application, commandDetails.commandId)
+        val snapshotUpdate = SnapshotUpdateDetails(SnapshotEntryType(classOf[Application]), application.id.eventKey, Some(application))
+        publishEvent(ApplicationUpdatedEvent(EventDetails(EventId.generate(), application.id.eventKey, Seq(commandDetails.commandId)), commandDetails.commandId, snapshotUpdate))
         updateEffectiveConfigurationForContainersThat(_.id.stageId.applicationId == application.id, commandDetails.commandId)
     }
     case command @ CreateStage(commandDetails, stage) => stage match {
@@ -71,41 +74,46 @@ class ApplicationManager(val eventBus: ActorRef, infrastructure: ActorRef) exten
       case ExistingStage(_) => sender ! command.failure(s"Stage ${stage.id.id} for application ${stage.id.applicationId.id} is already defined")
       case _ =>
         stages += (stage.id -> stage)
-        eventBus ! StageUpdatedEvent(EventDetails(EventId.generate(), stage.id.eventKey, Seq(commandDetails.commandId)), stage)
+        val snapshotUpdate = SnapshotUpdateDetails(SnapshotEntryType(classOf[Stage]), stage.id.eventKey, Some(stage))
+        publishEvent(StageUpdatedEvent(EventDetails(EventId.generate(), stage.id.eventKey, Seq(commandDetails.commandId)), stage, snapshotUpdate, commandDetails.commandId))
     }
     case command @ RemoveStage(commandDetails, stageId) => stageId match {
       case NonExistingStage(_) => sender ! command.failure(s"Stage ${stageId.id} of application ${stageId.applicationId.id} does not exist")
       case ExistingStage(stage) =>
         stages -= stageId
-        eventBus ! StageUpdatedEvent(EventDetails(EventId.generate(), stage.id.eventKey, Seq(commandDetails.commandId), removal = true), stage)
+        val snapshotUpdate = SnapshotUpdateDetails[Stage](SnapshotEntryType(classOf[Stage]), stage.id.eventKey, None)
+        publishEvent(StageUpdatedEvent(EventDetails(EventId.generate(), stage.id.eventKey, Seq(commandDetails.commandId), removal = true), stage, snapshotUpdate, commandDetails.commandId))
     }
     case command @ UpdateStage(commandDetails, stage) => stage.id match {
       case NonExistingStage(_) => sender ! command.failure(s"Stage ${stage.id.id} of application ${stage.id.applicationId.id}")
       case ExistingStage(_) =>
         stages += (stage.id -> stage)
-        eventBus ! StageUpdatedEvent(EventDetails(EventId.generate(), stage.id.eventKey, Seq(commandDetails.commandId)), stage)
+        val snapshotUpdate = SnapshotUpdateDetails(SnapshotEntryType(classOf[Stage]), stage.id.eventKey, Some(stage))
+        publishEvent(StageUpdatedEvent(EventDetails(EventId.generate(), stage.id.eventKey, Seq(commandDetails.commandId)), stage, snapshotUpdate, commandDetails.commandId))
         updateEffectiveConfigurationForContainersThat(_.id.stageId == stage.id, commandDetails.commandId)
     }
     case command @ CreateContainerConfiguration(commandDetails, container) => container match {
       case ExistingContainer(_) => sender ! command.failure(s"Container ${container.id.id} in application ${container.id.stageId.applicationId.id} stage ${container.id.stageId.id} already exists")
       case NonExistingStage(_) => sender ! command.failure(s"Stage ${container.id.stageId.id} of application ${container.id.stageId.applicationId.id} does not exist")
       case _ =>
+        val snapshotUpdate = SnapshotUpdateDetails(SnapshotEntryType(classOf[ContainerConfiguration]), container.id.eventKey, Some(container))
         // TODO: can this be correlated with original command? what if it fails?
         infrastructure.forward(CreateContainer(CommandDetails(), container.nodeId, container.id))
         containers += (container.id -> container)
-        eventBus ! ContainerConfigurationUpdatedEvent(EventDetails(EventId.generate(), container.id.eventKey, Seq(commandDetails.commandId)), container)
+        publishEvent(ContainerConfigurationUpdatedEvent(EventDetails(EventId.generate(), container.id.eventKey, Seq(commandDetails.commandId)), container, snapshotUpdate = snapshotUpdate, executionOf = commandDetails.commandId))
         eventBus ! EffectiveConfigurationChanged(EventDetails(EventId.generate(), container.id.eventKey, Seq(commandDetails.commandId)), container.id, getEffectiveConfiguration(container.id).get)
     }
     case command @ UpdateContainerConfiguration(commandDetails, container) => container match {
       case NonExistingContainer(_) => sender ! command.failure(s"Container ${container.id.id} does not exist in application ${container.id.stageId.applicationId.id} stage ${container.id.stageId.id}")
       case _ =>
         containers += (container.id -> container)
-        eventBus ! ContainerConfigurationUpdatedEvent(EventDetails(EventId.generate(), container.id.eventKey, Seq(commandDetails.commandId)), container)
+        val snapshotUpdate = SnapshotUpdateDetails(SnapshotEntryType(classOf[ContainerConfiguration]), container.id.eventKey, Some(container))
+        publishEvent(ContainerConfigurationUpdatedEvent(EventDetails(EventId.generate(), container.id.eventKey, Seq(commandDetails.commandId)), container, snapshotUpdate = snapshotUpdate, executionOf = commandDetails.commandId))
         eventBus ! EffectiveConfigurationChanged(EventDetails(EventId.generate(), container.id.eventKey, Seq(commandDetails.commandId)), container.id, getEffectiveConfiguration(container.id).get)
     }
     case command: ContainerCommand =>
       containers.get(command.containerId) match {
-          // TODO: use the applications' container-type
+        // TODO: use the applications' container-type
         case Some(container) => infrastructure.forward(AddressedContainerCommand("builtin", container.nodeId, command))
         case None => sender ! command.failure(s"Container ${command.containerId.containerName} does not exist")
       }
@@ -113,7 +121,7 @@ class ApplicationManager(val eventBus: ActorRef, infrastructure: ActorRef) exten
       case ContainerRemoved =>
         containers.get(containerId) match {
           case Some(container) =>
-            eventBus ! ContainerConfigurationUpdatedEvent(EventDetails(EventId.generate(), containerId.eventKey, Seq(eventDetails.eventId), removal = true), container)
+            eventBus ! ContainerConfigurationRemoved(EventDetails(EventId.generate(), containerId.eventKey, Seq(eventDetails.eventId), removal = true), SnapshotUpdateDetails(SnapshotEntryType(classOf[ContainerConfiguration]), containerId.eventKey, None))
             containers -= containerId
           case None => // do nothing
         }

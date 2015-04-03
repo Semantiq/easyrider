@@ -1,3 +1,4 @@
+
 package easyrider.business.core
 
 import java.io.File
@@ -16,6 +17,8 @@ import org.joda.time.DateTime
 import org.scalatest._
 
 class EventBusTest() extends TestKit(ActorSystem()) with FlatSpecLike with Matchers {
+  val application = Application(ApplicationId("app"), Seq())
+
   "EventBus" should "send events to subscribers" in {
     val bus = system.actorOf(core.EventBus(emptyDirectory))
 
@@ -49,7 +52,7 @@ class EventBusTest() extends TestKit(ActorSystem()) with FlatSpecLike with Match
     val client = TestProbe()
     client.send(bus, NodeUpdatedEvent(EventDetails(EventId("1"), EventKey("node0"), Seq(CommandId("1"))), NodeId("node0"), NodeCreated))
     client.send(bus, NodeUpdatedEvent(EventDetails(EventId("2"), EventKey("node0"), Seq(CommandId("2")), removal = true), NodeId("node0"), NodeCreated))
-    client.send(bus, ApplicationUpdatedEvent(EventDetails(EventId("3"), EventKey("app"), Seq(CommandId("3"))), Application(ApplicationId("app"), Seq())))
+    client.send(bus, ApplicationUpdatedEvent(EventDetails(EventId("3"), EventKey("app"), Seq(CommandId("3"))), CommandId("3"), snapshotUpdate = SnapshotUpdateDetails(SnapshotEntryType(classOf[Application]), application.id.eventKey, Some(application))))
     client.send(bus, Subscribe(CommandDetails(), "node-events", classOf[NodeUpdatedEvent], EventKey()))
     client.expectMsgClass(classOf[Subscribed[_]])
     client.send(bus, GetReplay(QueryId.generate(), Seq("node-events"), DateTime.now().minusMinutes(1)))
@@ -61,7 +64,7 @@ class EventBusTest() extends TestKit(ActorSystem()) with FlatSpecLike with Match
     val directory = emptyDirectory
     val bus0 = system.actorOf(core.EventBus(directory))
     val client = TestProbe()
-    client.send(bus0, ApplicationUpdatedEvent(EventDetails(EventId("3"), EventKey("app"), Seq(CommandId("3"))), Application(ApplicationId("app"), Seq())))
+    client.send(bus0, ApplicationUpdatedEvent(EventDetails(EventId("3"), EventKey("app"), Seq(CommandId("3"))), CommandId("3"), snapshotUpdate = SnapshotUpdateDetails(SnapshotEntryType(classOf[Application]), application.id.eventKey, Some(application))))
     client.watch(bus0)
     client.send(bus0, PoisonPill)
     client.expectMsgClass(classOf[Terminated])
