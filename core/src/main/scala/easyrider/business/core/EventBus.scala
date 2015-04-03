@@ -16,10 +16,10 @@ class EventBus(easyRiderData: File) extends Actor with ActorLogging {
   import easyrider.Events._
   private implicit val formats = Serialization.formats(FullTypeHints(List(classOf[AnyRef]))) ++ JodaTimeSerializers.all ++ EventBusSerializers.serializers
 
-  private case class Subscription(eventType: EventType, eventKey: EventKey, receiver: ActorRef, subscriptionId: String) {
-    def matches(event: Event) = eventType.matches(class2eventType(event.getClass)) && eventKey.contains(event.eventDetails.eventKey)
+  private case class Subscription(eventType: EventType, receiver: ActorRef, subscriptionId: String) {
+    def matches(event: Event) = eventType.matches(class2eventType(event.getClass))
   }
-  private case class SnapshotSubscriber(commandId: CommandId, entryType: SnapshotEntryType, subscriber: ActorRef)
+  private case class SnapshotSubscriber(commandId: CommandId, entryType: SnapshotEntryType[_], subscriber: ActorRef)
   private var snapshots = loadSnapshots()
   private var snapshotSubscribers = Set[SnapshotSubscriber]()
   private var subscriptions = Set[Subscription]()
@@ -34,14 +34,14 @@ class EventBus(easyRiderData: File) extends Actor with ActorLogging {
     case command: EventBusCommand => command match {
       case Subscribe(_, subscriptionId, eventType, eventKey) =>
         sender() ! Subscribed(command.queryId, subscriptionId, eventType)
-        subscriptions += Subscription(eventType, eventKey, sender(), subscriptionId)
+        subscriptions += Subscription(eventType, sender(), subscriptionId)
         context.watch(sender())
       case command @ UnSubscribe(commandId, subscriptionId) =>
         sender() ! UnSubscribed(command.queryId, subscriptionId)
         subscriptions = subscriptions.filter(s => s.subscriptionId != subscriptionId)
       case command @ StartSnapshotSubscription(CommandDetails(commandId), entryType) =>
         snapshotSubscribers += SnapshotSubscriber(commandId, entryType, sender())
-        sender() ! SnapshotSubscriptionStarted(EventDetails(EventId.generate(), EventKey(), Seq(commandId)), commandId,
+        sender() ! SnapshotSubscriptionStarted(EventDetails(EventId.generate()), commandId,
           snapshots.getOrElse(entryType, emptySnapshot(entryType)))
         context.watch(sender())
       case command @ StopSnapshotSubscription(_, subscriptionId) =>
@@ -57,31 +57,31 @@ class EventBus(easyRiderData: File) extends Actor with ActorLogging {
     event match {
       case updateEvent: SnapshotUpdate[_] =>
         val update = updateEvent.snapshotUpdate
-        val entryType: SnapshotEntryType = update.entryType
+        val entryType: SnapshotEntryType[_] = update.entryType
         val current = snapshots.getOrElse(entryType, emptySnapshot(entryType)).asInstanceOf[Snapshot[Any]]
         val updated = current updatedWith updateEvent.snapshotUpdate.asInstanceOf[SnapshotUpdateDetails[Any]]
         snapshots += (entryType -> updated)
         snapshotSubscribers
           .filter(s => s.entryType == entryType)
           .foreach {s =>
-            s.subscriber ! SnapshotUpdatedEvent(EventDetails(EventId.generate(), EventKey(), Seq(s.commandId)), s.commandId, update)
+            s.subscriber ! SnapshotUpdatedEvent(EventDetails(EventId.generate()), s.commandId, update)
           }
         saveSnapshots(snapshots)
       case _ => // old style event, ignore
     }
   }
 
-  def emptySnapshot(entryType: SnapshotEntryType): Snapshot[_] = {
+  def emptySnapshot(entryType: SnapshotEntryType[_]): Snapshot[_] = {
     Snapshot(entryType, Map())
   }
 
   private def snapshotFile = new File(easyRiderData, "snapshot.json")
 
-  private def saveSnapshots(snapshots: Map[SnapshotEntryType, Snapshot[_]]) = {
+  private def saveSnapshots(snapshots: Map[SnapshotEntryType[_], Snapshot[_]]) = {
     FileUtils.write(snapshotFile, serializeSnapshots(snapshots))
   }
 
-  private def loadSnapshots(): Map[SnapshotEntryType, Snapshot[_]] = {
+  private def loadSnapshots(): Map[SnapshotEntryType[_], Snapshot[_]] = {
     if (snapshotFile.exists()) {
       val string = FileUtils.readFileToString(snapshotFile)
       val snapshots = read[Seq[Snapshot[_]]](string)
@@ -92,7 +92,7 @@ class EventBus(easyRiderData: File) extends Actor with ActorLogging {
     }
   }
 
-  private def serializeSnapshots(snapshots: Map[SnapshotEntryType, Snapshot[_]]): String = {
+  private def serializeSnapshots(snapshots: Map[SnapshotEntryType[_], Snapshot[_]]): String = {
     implicit val formats = Serialization.formats(FullTypeHints(List(classOf[AnyRef]))) ++ JodaTimeSerializers.all ++ EventBusSerializers.serializers
     writePretty(snapshots.values)
   }

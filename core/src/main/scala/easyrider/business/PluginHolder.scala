@@ -37,17 +37,19 @@ class PluginHolder(eventBus: ActorRef, applicationManager: ActorRef, pluginFacto
         case c: GetSnapshot => eventBus ! c
         case e: Event =>
           eventBus ! e
-          if (e.isInstanceOf[CommandExecution]) {
-            commands.foreach {
-              case (commandId, receiver) if e.eventDetails.causedBy contains commandId =>
-                receiver ! e
-                e match {
-                  case e: Success => commands -= commandId
-                  case e: Failure => commands -= commandId
-                  case _ =>
-                }
-              case _ => // ignore
-            }
+          e match {
+            case execution: CommandExecution =>
+              commands.foreach {
+                case (commandId, receiver) if execution.executionOf == commandId =>
+                  receiver ! e
+                  e match {
+                    case e: Success => commands -= commandId
+                    case e: Failure => commands -= commandId
+                    case _ =>
+                  }
+                case _ => // ignore
+              }
+            case _ =>
           }
         case c: RegisterContainerPlugin => containerPluginManager ! c
         case notify: NotifyNodeStatus => nodeManager ! notify

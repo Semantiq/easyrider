@@ -16,7 +16,7 @@ class JsonSerializerTest extends FlatSpec with Matchers {
 
   "ApplicationUpdatedEvent" should "have a friendly JSON representation" in {
     val application = Application(ApplicationId("test"), Seq())
-    val event = ApplicationUpdatedEvent(EventDetails(EventId("1-1"), EventKey("test"), Seq()),
+    val event = ApplicationUpdatedEvent(EventDetails(EventId("1-1")),
       executionOf = CommandId("1"),
       snapshotUpdate = SnapshotUpdateDetails(SnapshotEntryType(classOf[Application]), ApplicationId("test").eventKey, Some(application)))
     val string = serializer.write(event)

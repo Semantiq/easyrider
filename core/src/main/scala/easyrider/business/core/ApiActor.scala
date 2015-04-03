@@ -64,7 +64,7 @@ class ApiActor(bus: ActorRef, applicationManager: ActorRef, sshInfrastructure: A
       else
         bus ! e
     case c: Command =>
-      bus ! CommandSentEvent(EventDetails(EventId.generate(), EventKey(), Seq(c.commandDetails.commandId)), c, Some(authenticated), c.commandDetails.commandId)
+      bus ! CommandSentEvent(EventDetails(EventId.generate()), c, Some(authenticated), c.commandDetails.commandId)
       processCommand(c)
     case r: Result =>
       client ! r

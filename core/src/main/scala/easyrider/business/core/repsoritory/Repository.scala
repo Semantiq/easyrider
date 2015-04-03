@@ -9,15 +9,15 @@ class Repository(eventBus: ActorRef) extends Actor with ActorLogging {
   override def receive = LoggingReceive {
     case NotifyNewVersion(commandDetails, versionMetadata) =>
       eventBus ! VersionAvailableEvent(
-        EventDetails(EventId.generate(), versionMetadata.version.eventKey, Seq(commandDetails.commandId)),
+        EventDetails(EventId.generate()),
         versionMetadata.version,
         SnapshotUpdateDetails(SnapshotEntryType(classOf[VersionMetadata]), versionMetadata.version.eventKey, Some(versionMetadata)))
     case AddLabel(commandDetails, version, name) =>
-      val label = Label(name, commandDetails.commandId)
+      Label(name, commandDetails.commandId)
       // TODO: implement
     case DeleteVersion(commandDetails, version) =>
       eventBus ! VersionAvailableEvent(
-        EventDetails(EventId.generate(), EventKey(), Seq(commandDetails.commandId), removal = true),
+        EventDetails(EventId.generate()),
         version,
         SnapshotUpdateDetails(SnapshotEntryType(classOf[VersionMetadata]), version.eventKey, None))
 

@@ -28,13 +28,13 @@ class ContainerAgent(val eventBus: ActorRef, easyRiderUrl: URL, sshSession: Acto
       if (version != "") {
         val state = ContainerRunning(Version(configuration.id.stageId.applicationId, version))
         val snapshotUpdate = SnapshotUpdateDetails[ContainerState](SnapshotEntryType(classOf[ContainerState]), configuration.id.eventKey, Some(state))
-        eventBus ! ContainerStateChangedEvent(EventDetails(EventId.generate(), configuration.id.eventKey, Seq()), snapshotUpdate)
+        eventBus ! ContainerStateChangedEvent(EventDetails(EventId.generate()), snapshotUpdate)
       }
   }
 
   def configured = LoggingReceive {
     case command@CreateContainer(commandDetails, _, containerId) =>
-      def eventDetails = EventDetails(EventId.generate(), containerId.eventKey, Seq(commandDetails.commandId))
+      def eventDetails = EventDetails(EventId.generate())
       SequentialProcess(context)(
         CommandMonitor(context)(sshSession, RunRemoteCommand(CommandDetails(), configuration.nodeId, "mkdir -p " + versionsDir(containerId))),
         CommandMonitor(context)(sshSession, RunRemoteCommand(CommandDetails(), configuration.nodeId, "mkdir -p " + logDir(containerId))),
@@ -48,7 +48,7 @@ class ContainerAgent(val eventBus: ActorRef, easyRiderUrl: URL, sshSession: Acto
       val packageFile = version.number + ".tar.gz"
       val packageFolder = versionsDir(containerId)
       val originalSender = sender()
-      eventBus ! VersionDeploymentProgressEvent(EventDetails(EventId.generate(), eventKey, Seq(commandDetails.commandId)), snapshotUpdate(eventKey, version, DeploymentInProgress))
+      eventBus ! VersionDeploymentProgressEvent(EventDetails(EventId.generate()), snapshotUpdate(eventKey, version, DeploymentInProgress))
       val upload = context.actorOf(builtInPackageUpload())
       upload ? BuiltInPackageUpload.Upload(CommandDetails(), version, configuration.nodeId, packageFolder, packageFile) flatMap {
         case _: BuiltInPackageUpload.UploadComplete => sshSession ? RunRemoteCommand(CommandDetails(), configuration.nodeId, s"rm -r $packageFolder/${version.number}")
@@ -70,12 +70,12 @@ class ContainerAgent(val eventBus: ActorRef, easyRiderUrl: URL, sshSession: Acto
         case failure: Failure => Future(failure)
       } onSuccess {
         case _: RunRemoteCommandSuccess => publishEvent(
-          VersionDeploymentProgressEvent(EventDetails(EventId.generate(), eventKey, Seq(commandDetails.commandId)), snapshotUpdate(eventKey, version, DeploymentCompleted)),
+          VersionDeploymentProgressEvent(EventDetails(EventId.generate()), snapshotUpdate(eventKey, version, DeploymentCompleted)),
           originalSender)
         case failure: Failure =>
           val deploymentFailed = DeploymentFailed(failure.failureMessage)
           publishEvent(
-          VersionDeploymentProgressEvent(EventDetails(EventId.generate(), eventKey, Seq(commandDetails.commandId)), snapshotUpdate(eventKey, version, deploymentFailed)),
+          VersionDeploymentProgressEvent(EventDetails(EventId.generate()), snapshotUpdate(eventKey, version, deploymentFailed)),
           originalSender)
       }
     case StartContainer(commandDetails, containerId, version) =>
@@ -84,7 +84,7 @@ class ContainerAgent(val eventBus: ActorRef, easyRiderUrl: URL, sshSession: Acto
       ParallelProcess(context)(successes => successes.head,
         CommandMonitor(context)(sshSession, RunRemoteCommand(CommandDetails(), configuration.nodeId, s"(cd ${versionsDir(containerId)}/${version.number}; $script $args > /dev/null 2> /dev/null &\necho $$! > ./running.pid)")),
         CommandMonitor(context)(sshSession, RunRemoteCommand(CommandDetails(), configuration.nodeId, "echo '" + version.number + "' > " + containerDir(containerId) + "/running.version")))
-      .onSuccess(_ => eventBus ! ContainerStateChangedEvent(EventDetails(EventId.generate(), containerId.eventKey, Seq(commandDetails.commandId)), snapshotUpdate(ContainerRunning(version))))
+      .onSuccess(_ => eventBus ! ContainerStateChangedEvent(EventDetails(EventId.generate()), snapshotUpdate(ContainerRunning(version))))
       .onFailure(failure => sender() ! failure)
       .run()
     case StopContainer(commandDetails, containerId, immediate) =>
@@ -93,11 +93,11 @@ class ContainerAgent(val eventBus: ActorRef, easyRiderUrl: URL, sshSession: Acto
           val runningVersionNumber = output.trim()
           // TODO: this event needs to be sent immediately without waiting for ssh session
           val stopping = ContainerStopping(Version(containerId.stageId.applicationId, runningVersionNumber.trim))
-          eventBus ! ContainerStateChangedEvent(EventDetails(EventId.generate(), containerId.eventKey, Seq(commandDetails.commandId)), snapshotUpdate(stopping))
+          eventBus ! ContainerStateChangedEvent(EventDetails(EventId.generate()), snapshotUpdate(stopping))
           sshSession ? RunRemoteCommand(CommandDetails(), configuration.nodeId, "(cd ./" + versionsDir(containerId) + "/" + runningVersionNumber + "/; kill -15 `cat running.pid`; rm running.pid)")
       } onSuccess {
         case _: RunRemoteCommandSuccess =>
-          eventBus ! ContainerStateChangedEvent(EventDetails(EventId.generate(), containerId.eventKey, Seq(commandDetails.commandId)), snapshotUpdate(ContainerCreated))
+          eventBus ! ContainerStateChangedEvent(EventDetails(EventId.generate()), snapshotUpdate(ContainerCreated))
       }
     case RemoveContainer(commandDetails, containerId, force) =>
       if (!force) {
@@ -105,30 +105,31 @@ class ContainerAgent(val eventBus: ActorRef, easyRiderUrl: URL, sshSession: Acto
       }
       sshSession ? RunRemoteCommand(CommandDetails(), configuration.nodeId, s"rm -rf ${containerDir(containerId)}") onSuccess {
         case _: RunRemoteCommandSuccess =>
-          eventBus ! ContainerStateChangedEvent(EventDetails(EventId.generate(), containerId.eventKey, Seq(commandDetails.commandId), removal = true), snapshotUpdate(ContainerRemoved))
+          eventBus ! ContainerStateChangedEvent(EventDetails(EventId.generate()), snapshotUpdateRemoval())
       }
     case DeployConfigurationFile(commandDetails, containerId, path, fileName, content) =>
       log.info("Deploying configuration {}: {}/{}", containerId, path, fileName)
       sshSession ? UpdateFile(CommandDetails(), configuration.nodeId, path, fileName, content) onSuccess {
-        case _: UpdateFileSuccess => eventBus ! DeployConfigurationFileComplete(EventDetails(EventId.generate(), containerId.eventKey, Seq(commandDetails.commandId)), containerId)
+        case _: UpdateFileSuccess => eventBus ! DeployConfigurationFileComplete(EventDetails(EventId.generate()), containerId)
       }
     case UnDeployVersion(commandDetails, containerId, version) =>
       val eventKey = containerId.eventKey append version.number
-      eventBus ! VersionDeploymentProgressEvent(EventDetails(EventId.generate(), eventKey, Seq(commandDetails.commandId)), snapshotUpdate(eventKey, version, UnDeploymentInProgress))
+      eventBus ! VersionDeploymentProgressEvent(EventDetails(EventId.generate()), snapshotUpdate(eventKey, version, UnDeploymentInProgress))
       sshSession ? RunRemoteCommand(CommandDetails(), configuration.nodeId, s"rm -r ${versionsDir(containerId)}/${version.number}") flatMap {
         case _: RunRemoteCommandSuccess => sshSession ? RunRemoteCommand(CommandDetails(), configuration.nodeId, s"rm ${versionsDir(containerId)}/${version.number}.tar.bz2")
         case failure: Failure => Future(failure)
       } onSuccess {
-        case _: RunRemoteCommandSuccess => eventBus ! VersionDeploymentProgressEvent(EventDetails(EventId.generate(), eventKey, Seq(commandDetails.commandId), removal = true), snapshotUpdateRemoval(eventKey, version))
+        case _: RunRemoteCommandSuccess => eventBus ! VersionDeploymentProgressEvent(EventDetails(EventId.generate()), snapshotUpdateRemoval(eventKey, version))
         case failure: Failure =>
           val failed = DeploymentFailed(failure.failureMessage)
-          eventBus ! VersionDeploymentProgressEvent(EventDetails(EventId.generate(), eventKey, Seq(commandDetails.commandId)), snapshotUpdate(eventKey, version, failed))
+          eventBus ! VersionDeploymentProgressEvent(EventDetails(EventId.generate()), snapshotUpdate(eventKey, version, failed))
       }
   }
 
   override def receive = configured
 
   private def snapshotUpdate(state: ContainerState) = SnapshotUpdateDetails(SnapshotEntryType(classOf[ContainerState]), configuration.id.eventKey, Some(state))
+  private def snapshotUpdateRemoval() = SnapshotUpdateDetails[ContainerState](SnapshotEntryType(classOf[ContainerState]), configuration.id.eventKey, None)
   private def snapshotUpdate(eventKey: EventKey, version: Version, state: DeploymentState) = SnapshotUpdateDetails(SnapshotEntryType(classOf[DeploymentInfo]), eventKey, Some(DeploymentInfo(version, state)))
   private def snapshotUpdateRemoval(eventKey: EventKey, version: Version) = SnapshotUpdateDetails[DeploymentInfo](SnapshotEntryType(classOf[DeploymentInfo]), eventKey, None)
 

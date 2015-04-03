@@ -30,8 +30,8 @@ case class CommandDetails(commandId: CommandId = CommandId.generate())
 
 trait Command {
   def commandDetails: CommandDetails
-  def failure(message: String) = Failure(EventDetails(EventId.generate(), EventKey(commandDetails.commandId.id), Seq(commandDetails.commandId)), message, None, commandDetails.commandId)
-  def failure(message: String, exception: Throwable) = Failure(EventDetails(EventId.generate(), EventKey(commandDetails.commandId.id), Seq(commandDetails.commandId)), message, Some(exception), commandDetails.commandId)
+  def failure(message: String) = Failure(EventDetails(EventId.generate()), message, None, commandDetails.commandId)
+  def failure(message: String, exception: Throwable) = Failure(EventDetails(EventId.generate()), message, Some(exception), commandDetails.commandId)
 }
 
 object Commands {
@@ -62,17 +62,21 @@ sealed trait Result {
 }
 
 trait Identifier[Target] {
-  def id: String
+  def eventKey: EventKey
 }
 
 sealed trait Cause
-case class EventId(id: String) extends Cause with Identifier[Event]
+case class EventId(id: String) extends Cause with Identifier[Event] {
+  def eventKey = EventKey(id)
+}
 
 object EventId {
   def generate() = EventId(UUID.randomUUID().toString)
 }
 
-case class CommandId(id: String) extends Cause with Identifier[Command]
+case class CommandId(id: String) extends Cause with Identifier[Command] {
+  def eventKey = EventKey(id)
+}
 object CommandId {
   def generate() = CommandId(UUID.randomUUID().toString)
 }
@@ -88,18 +92,20 @@ case class EventKey(key: String*) {
   def append(extraKey: String) = EventKey(key :+ extraKey :_*)
 }
 
-case class EventDetails(eventId: EventId, eventKey: EventKey, causedBy: Seq[Cause], removal: Boolean = false,
-                         publicationTime: DateTime = DateTime.now())
+case class EventDetails(eventId: EventId, publicationTime: DateTime = DateTime.now())
 
 trait Event {
   def eventDetails: EventDetails
 }
 
-case class SnapshotEntryType(clazz: String)
+case class SnapshotEntryType[T](clazz: String)
 object SnapshotEntryType {
-  def apply(clazz: Class[_]) = new SnapshotEntryType(clazz.getName)
+  def apply[T](clazz: Class[T]) = new SnapshotEntryType[T](clazz.getName)
 }
-case class SnapshotUpdateDetails[T](entryType: SnapshotEntryType, eventKey: EventKey, entry: Option[T])
+case class SnapshotUpdateDetails[T](entryType: SnapshotEntryType[T], eventKey: EventKey, entry: Option[T])
+object SnapshotUpdateDetails {
+  def apply[T](eventKey: EventKey, entry: Option[T])(implicit entryType: SnapshotEntryType[T]): SnapshotUpdateDetails[T] = SnapshotUpdateDetails(entryType, eventKey, entry)
+}
 
 trait SnapshotUpdate[T] extends Event {
   def snapshotUpdate: SnapshotUpdateDetails[T]
@@ -212,15 +218,14 @@ object Events {
   case class UnSubscribe(commandDetails: CommandDetails, subscriptionId: String) extends EventBusCommand
   case class Subscribed[T](queryId: QueryId, subscriptionId: String, eventType: EventType) extends Result
   case class UnSubscribed(queryId: QueryId, subscriptionId: String) extends Result
-  case class GetSnapshot(commandDetails: CommandDetails, entryType: SnapshotEntryType) extends Command {
-    def success[T](snapshot: Snapshot[T]) = GetSnapshotResponse(EventDetails(EventId.generate(), EventKey(),
-      Seq(commandDetails.commandId)), snapshot, commandDetails.commandId)
+  case class GetSnapshot(commandDetails: CommandDetails, entryType: SnapshotEntryType[_]) extends Command {
+    def success[T](snapshot: Snapshot[T]) = GetSnapshotResponse(EventDetails(EventId.generate()), snapshot, commandDetails.commandId)
   }
   case class GetSnapshotResponse[T](eventDetails: EventDetails, snapshot: Snapshot[T], executionOf: CommandId,
                                     successMessage: String = "Snapshot delivered") extends Success
 
   // snapshot based subscriptions
-  case class Snapshot[T](entryType: SnapshotEntryType, entries: Map[String, T]) {
+  case class Snapshot[T](entryType: SnapshotEntryType[T], entries: Map[String, T]) {
     def updatedWith(update: SnapshotUpdateDetails[T]): Snapshot[T] = {
       def asString(eventKey: EventKey) = eventKey.key.mkString(":")
       Snapshot(entryType, update.entry match {
@@ -229,7 +234,7 @@ object Events {
       })
     }
   }
-  case class StartSnapshotSubscription[T](commandDetails: CommandDetails, entryType: SnapshotEntryType) extends EventBusCommand
+  case class StartSnapshotSubscription[T](commandDetails: CommandDetails, entryType: SnapshotEntryType[T]) extends EventBusCommand
   case class SnapshotSubscriptionStarted[T](eventDetails: EventDetails, executionOf: CommandId, snapshot: Snapshot[T]) extends Event with CommandExecution
   case class SnapshotUpdatedEvent[T](eventDetails: EventDetails, executionOf: CommandId, update: SnapshotUpdateDetails[T]) extends Event with CommandExecution
   case class StopSnapshotSubscription(commandDetails: CommandDetails, subscriptionId: CommandId) extends EventBusCommand
@@ -341,6 +346,9 @@ object Nodes {
   case class NodeConfigurationUpdatedEvent(eventDetails: EventDetails, snapshotUpdate: SnapshotUpdateDetails[NodeConfiguration]) extends Event with SnapshotUpdate[NodeConfiguration]
 }
 
+/*
+TODO: use for inspiration in next phases
+
 trait ResourceEvent
 case class ResourceCreatedEvent() extends ResourceEvent
 case class ResourceUpdatedEvent() extends ResourceEvent
@@ -353,3 +361,4 @@ case class MeasurementEvent() extends CapacityEvent
 case class CapacityUpdatedEvent() extends CapacityEvent
 
 case class CommandExplainedResponse()
+*/

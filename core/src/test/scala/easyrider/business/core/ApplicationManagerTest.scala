@@ -21,7 +21,7 @@ class ApplicationManagerTest extends TestKit(ActorSystem()) with FlatSpecLike wi
     expectSuccessfulCompletionOf(CommandId("2"))
     val event = eventBus.expectMsgClass(classOf[ApplicationUpdatedEvent])
 
-    event.eventDetails shouldBe 'removal
+    event.snapshotUpdate.entry shouldBe None
   }
 
   def expectSuccessfulCompletionOf(id: CommandId): Unit = {
@@ -73,11 +73,11 @@ class ApplicationManagerTest extends TestKit(ActorSystem()) with FlatSpecLike wi
     val apps = system.actorOf(ApplicationManager(eventBus.ref, infrastructure.ref))
     eventBus.expectMsgClass(classOf[Subscribe]).eventType should be(EventType(ComponentId("core"), classOf[ContainerStateChangedEvent].getName))
     eventBus.expectMsgClass(classOf[GetSnapshot]).entryType should be(SnapshotEntryType(classOf[Application]))
-    eventBus.reply(GetSnapshotResponse(EventDetails(EventId.generate(), EventKey(), Seq()), Snapshot(SnapshotEntryType(classOf[Application]), Map()), CommandId("?")))
+    eventBus.reply(GetSnapshotResponse(EventDetails(EventId.generate()), Snapshot(SnapshotEntryType(classOf[Application]), Map()), CommandId("?")))
     eventBus.expectMsgClass(classOf[GetSnapshot]).entryType should be(SnapshotEntryType(classOf[Stage]))
-    eventBus.reply(GetSnapshotResponse(EventDetails(EventId.generate(), EventKey(), Seq()), Snapshot(SnapshotEntryType(classOf[Stage]), Map()), CommandId("?")))
+    eventBus.reply(GetSnapshotResponse(EventDetails(EventId.generate()), Snapshot(SnapshotEntryType(classOf[Stage]), Map()), CommandId("?")))
     eventBus.expectMsgClass(classOf[GetSnapshot]).entryType should be(SnapshotEntryType(classOf[ContainerConfiguration]))
-    eventBus.reply(GetSnapshotResponse(EventDetails(EventId.generate(), EventKey(), Seq()), Snapshot(SnapshotEntryType(classOf[ContainerConfiguration]), Map()), CommandId("?")))
+    eventBus.reply(GetSnapshotResponse(EventDetails(EventId.generate()), Snapshot(SnapshotEntryType(classOf[ContainerConfiguration]), Map()), CommandId("?")))
     (eventBus, infrastructure, apps)
   }
 }

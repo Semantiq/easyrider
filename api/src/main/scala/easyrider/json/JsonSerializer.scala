@@ -28,6 +28,8 @@ class JsonSerializer {
     Serialization.write(event)
   }
 
+  private val separator = ":"
+
   private object ShortTypeHints extends TypeHints {
     private val typeForHint = Map[String, Class[_]](
       "CreateApplication" -> classOf[CreateApplication],
@@ -50,13 +52,12 @@ class JsonSerializer {
       case (typeInfo, JString(id)) if classOf[ApplicationId].isAssignableFrom(typeInfo.clazz) => ApplicationId(id)
     }
     override def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
-      case id: Identifier[_] => JString(id.id)
+      case id: Identifier[_] => JString(id.eventKey.key.mkString(separator))
     }
   }
 
   private object EventKeySerializer extends Serializer[EventKey] {
     private val EventKeyClass = classOf[EventKey]
-    private val separator = ":"
 
     override def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, JValue), EventKey] = {
       case (TypeInfo(EventKeyClass, _), JString(eventKeyString))  =>

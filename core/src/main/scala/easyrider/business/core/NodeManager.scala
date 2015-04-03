@@ -15,7 +15,7 @@ class NodeManager(eventBus: ActorRef) extends Actor {
     case NotifyNodeStatus(commandDetails, nodeId, nodeStatus) =>
       nodes += nodeId -> sender()
       val snapshotUpdate = SnapshotUpdateDetails(SnapshotEntryType(classOf[NodeState]), nodeId.eventKey, Some(nodeStatus))
-      eventBus ! NodeUpdatedEvent(EventDetails(EventId.generate(), EventKey(nodeId.id), Seq()), snapshotUpdate)
+      eventBus ! NodeUpdatedEvent(EventDetails(EventId.generate()), snapshotUpdate)
     case RegisterNodeManagementPlugin(commandDetails, nodeType) =>
       nodeTypes += nodeType -> sender()
     case command: RemoteAccessCommand =>

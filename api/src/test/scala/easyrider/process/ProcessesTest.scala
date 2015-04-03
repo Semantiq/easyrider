@@ -60,9 +60,9 @@ class ProcessesTest extends TestKit(ActorSystem()) with FlatSpecLike with Matche
     val command2sender = runner.lastSender
 
     expectNoMsg()
-    command1sender ! RunRemoteCommandSuccess(EventDetails(EventId.generate(), EventKey(), Seq()), None, command1.commandDetails.commandId)
+    command1sender ! RunRemoteCommandSuccess(EventDetails(EventId.generate()), None, command1.commandDetails.commandId)
     expectNoMsg()
-    command2sender ! RunRemoteCommandSuccess(EventDetails(EventId.generate(), EventKey(), Seq()), None, command2.commandDetails.commandId)
+    command2sender ! RunRemoteCommandSuccess(EventDetails(EventId.generate()), None, command2.commandDetails.commandId)
 
     expectMsgClass(classOf[Success])
   }
@@ -79,7 +79,7 @@ class ProcessesTest extends TestKit(ActorSystem()) with FlatSpecLike with Matche
 
     val command1 = runner.expectMsgClass(classOf[RunRemoteCommand])
     val command1sender = runner.lastSender
-    val command2 = runner.expectMsgClass(classOf[RunRemoteCommand])
+    runner.expectMsgClass(classOf[RunRemoteCommand])
 
     expectNoMsg()
     command1sender ! command1.failure("Something went wrong")
@@ -88,7 +88,7 @@ class ProcessesTest extends TestKit(ActorSystem()) with FlatSpecLike with Matche
 
   def respondWithSuccess(runner: TestProbe) = {
     val command = runner.expectMsgClass(classOf[AnyRef]).asInstanceOf[RunRemoteCommand]
-    runner.lastSender ! RunRemoteCommandSuccess(EventDetails(EventId.generate(), EventKey(), Seq()), None, command.commandDetails.commandId)
+    runner.lastSender ! RunRemoteCommandSuccess(EventDetails(EventId.generate()), None, command.commandDetails.commandId)
   }
 
   def respondWithFailure(runner: TestProbe) = {
