@@ -338,11 +338,7 @@ object Nodes {
   case class UpdateNode(commandDetails: CommandDetails, nodeConfiguration: NodeConfiguration) extends NodeManagementCommand
   case class RemoveNode(commandDetails: CommandDetails, nodeId: NodeId, keepData: Boolean = true) extends NodeManagementCommand
 
-  case class NodeConfigurationUpdatedEvent(eventDetails: EventDetails, nodeConfiguration: NodeConfiguration,
-                                           captureOutput: Boolean = false,
-                                           var snapshotUpdate: SnapshotUpdateDetails[NodeConfiguration] = null) extends Event with SnapshotUpdate[NodeConfiguration] {
-    snapshotUpdate = SnapshotUpdateDetails(SnapshotEntryType(classOf[NodeConfiguration]), EventKey(nodeConfiguration.id.id), if (eventDetails.removal) None else Some(nodeConfiguration))
-  }
+  case class NodeConfigurationUpdatedEvent(eventDetails: EventDetails, snapshotUpdate: SnapshotUpdateDetails[NodeConfiguration]) extends Event with SnapshotUpdate[NodeConfiguration]
 }
 
 trait ResourceEvent

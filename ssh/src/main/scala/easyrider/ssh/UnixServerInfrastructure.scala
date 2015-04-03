@@ -35,7 +35,8 @@ class UnixServerInfrastructure(sshSession: (NodeConfiguration, ActorRef) => Prop
       case addNode: CreateNode if !nodes.contains(addNode.nodeConfiguration.id) =>
         val node = context.actorOf(sshSession(addNode.nodeConfiguration, self), addNode.nodeConfiguration.id.id)
         nodes += (addNode.nodeConfiguration.id -> node)
-        context.parent ! NodeConfigurationUpdatedEvent(EventDetails(EventId.generate(), EventKey(), Seq(addNode.commandDetails.commandId)), addNode.nodeConfiguration)
+        val snapshotUpdate = SnapshotUpdateDetails(SnapshotEntryType(classOf[NodeConfiguration]), addNode.nodeConfiguration.id.eventKey, Some(addNode.nodeConfiguration))
+        context.parent ! NodeConfigurationUpdatedEvent(EventDetails(EventId.generate(), EventKey(), Seq(addNode.commandDetails.commandId)), snapshotUpdate)
         context.parent ! NotifyNodeStatus(CommandDetails(), addNode.nodeConfiguration.id, NodeCreated)
       case command: RemoteAccessCommand =>
         // TODO: handle incorrect nodeId
