@@ -11,16 +11,14 @@ import easyrider.Events._
 import easyrider.Implicits._
 import easyrider.Infrastructure.{NodeCreated, NodeState, NodeUpdatedEvent}
 import easyrider._
-import easyrider.business.core
 import org.apache.commons.io.FileUtils
-import org.joda.time.DateTime
 import org.scalatest._
 
 class EventBusTest() extends TestKit(ActorSystem()) with FlatSpecLike with Matchers {
   val application = Application(ApplicationId("app"), Seq())
 
   "EventBus" should "send events to subscribers" in {
-    val bus = system.actorOf(core.EventBus(emptyDirectory))
+    val bus = system.actorOf(EventBus(emptyDirectory))
 
     val publisher = TestProbe()
     val subscriber = TestProbe()
@@ -32,7 +30,7 @@ class EventBusTest() extends TestKit(ActorSystem()) with FlatSpecLike with Match
   }
 
   it should "not send events after un-subscribe" in {
-    val bus = system.actorOf(core.EventBus(emptyDirectory))
+    val bus = system.actorOf(EventBus(emptyDirectory))
 
     val publisher = TestProbe()
     val subscriber = TestProbe()
@@ -47,36 +45,21 @@ class EventBusTest() extends TestKit(ActorSystem()) with FlatSpecLike with Match
     subscriber.expectNoMsg()
   }
 
-  it should "replay events matching a subscription" in {
-    val bus = system.actorOf(core.EventBus(emptyDirectory))
-    val client = TestProbe()
-    client.send(bus, NodeUpdatedEvent(EventDetails(EventId("1"), EventKey("node0"), Seq(CommandId("1"))), NodeId("node0"), NodeCreated))
-    client.send(bus, NodeUpdatedEvent(EventDetails(EventId("2"), EventKey("node0"), Seq(CommandId("2")), removal = true), NodeId("node0"), NodeCreated))
-    client.send(bus, ApplicationUpdatedEvent(EventDetails(EventId("3"), EventKey("app"), Seq(CommandId("3"))), CommandId("3"), snapshotUpdate = SnapshotUpdateDetails(SnapshotEntryType(classOf[Application]), application.id.eventKey, Some(application))))
-    client.send(bus, Subscribe(CommandDetails(), "node-events", classOf[NodeUpdatedEvent], EventKey()))
-    client.expectMsgClass(classOf[Subscribed[_]])
-    client.send(bus, GetReplay(QueryId.generate(), Seq("node-events"), DateTime.now().minusMinutes(1)))
-    val replay = client.expectMsgClass(classOf[GetReplayResponse])
-    replay.events.size should be (2)
-  }
-
-  it should "recover events from file" in {
+  it should "recover snapshots from file" in {
     val directory = emptyDirectory
-    val bus0 = system.actorOf(core.EventBus(directory))
+    val bus0 = system.actorOf(EventBus(directory))
     val client = TestProbe()
     client.send(bus0, ApplicationUpdatedEvent(EventDetails(EventId("3"), EventKey("app"), Seq(CommandId("3"))), CommandId("3"), snapshotUpdate = SnapshotUpdateDetails(SnapshotEntryType(classOf[Application]), application.id.eventKey, Some(application))))
     client.watch(bus0)
     client.send(bus0, PoisonPill)
     client.expectMsgClass(classOf[Terminated])
-    val bus1 = system.actorOf(core.EventBus(directory))
-    client.send(bus1, Subscribe(CommandDetails(), "app-events", classOf[ApplicationUpdatedEvent], EventKey()))
-    client.send(bus1, GetReplay(QueryId.generate(), Seq("app-events"), DateTime.now().minusMinutes(1)))
-    client.expectMsgClass(classOf[Subscribed[_]])
-    client.expectMsgClass(classOf[GetReplayResponse]).events should have size 1
+    val bus1 = system.actorOf(EventBus(directory))
+    client.send(bus1, GetSnapshot(CommandDetails(), SnapshotEntryType(classOf[Application])))
+    client.expectMsgClass(classOf[GetSnapshotResponse[Application]]).snapshot.entries.size should be (1)
   }
 
   it should "handle snapshot subscriptions" in {
-    val bus = system.actorOf(core.EventBus(emptyDirectory))
+    val bus = system.actorOf(EventBus(emptyDirectory))
     val client = TestProbe()
 
     client.send(bus, StartSnapshotSubscription(CommandDetails(CommandId("1")), SnapshotEntryType(classOf[NodeState])))

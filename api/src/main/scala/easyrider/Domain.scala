@@ -225,8 +225,6 @@ object Events {
   }
   case class GetSnapshotResponse[T](eventDetails: EventDetails, snapshot: Snapshot[T], executionOf: CommandId,
                                     successMessage: String = "Snapshot delivered") extends Success
-  case class GetReplay(queryId: QueryId, subscriptions: Seq[String], since: DateTime) extends Query
-  case class GetReplayResponse(queryId: QueryId, events: Seq[Event]) extends Result
 
   // snapshot based subscriptions
   case class Snapshot[T](entryType: SnapshotEntryType, entries: Map[String, T]) {

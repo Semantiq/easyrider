@@ -6,13 +6,13 @@ import akka.actor._
 import akka.event.LoggingReceive
 import easyrider.Applications.ApplicationCommand
 import easyrider.Commands.Failure
-import easyrider.Events.{EventBusCommand, GetReplay}
+import easyrider.Events.EventBusCommand
 import easyrider.Infrastructure.ContainerCommand
+import easyrider.Nodes.NodeManagementCommand
 import easyrider.Orchestrator.OrchestrationCommand
 import easyrider.Repository.RepositoryCommand
 import easyrider._
 import easyrider.business.Configuration
-import Nodes.NodeManagementCommand
 import org.apache.commons.codec.digest.DigestUtils
 
 import scala.concurrent.duration.Duration
@@ -66,8 +66,6 @@ class ApiActor(bus: ActorRef, applicationManager: ActorRef, sshInfrastructure: A
     case c: Command =>
       bus ! CommandSentEvent(EventDetails(EventId.generate(), EventKey(), Seq(c.commandDetails.commandId)), c, Some(authenticated), c.commandDetails.commandId)
       processCommand(c)
-    case r: GetReplay =>
-      bus ! r
     case r: Result =>
       client ! r
     case f: Failure =>

@@ -23,13 +23,11 @@ class EventBus(easyRiderData: File) extends Actor with ActorLogging {
   private var snapshots = loadSnapshots()
   private var snapshotSubscribers = Set[SnapshotSubscriber]()
   private var subscriptions = Set[Subscription]()
-  private var eventLog = loadEventLog()
 
   override def receive: Receive = LoggingReceive {
     case event: Event =>
       processSnapshotUpdate(event)
       processGenericSubscriptions(event)
-      eventLog +:= event
     case Terminated(subscriber) =>
       subscriptions = subscriptions.filter(s => s.receiver != subscriber)
       snapshotSubscribers = snapshotSubscribers.filter(s => s.subscriber != subscriber)
@@ -51,11 +49,6 @@ class EventBus(easyRiderData: File) extends Actor with ActorLogging {
     }
     case command @ GetSnapshot(_, entryType) =>
       sender() ! command.success(snapshots.getOrElse(entryType, emptySnapshot(entryType)))
-    case GetReplay(queryId, subscriptionIds, since) =>
-      val filter = subscriptions.filter(s => subscriptionIds.contains(s.subscriptionId))
-      val withinTime = eventLog.dropWhile(e => e.eventDetails.publicationTime isBefore since)
-      val matching = withinTime.filter(e => filter.exists(f => f.matches(e)))
-      sender() ! GetReplayResponse(queryId, matching)
   }
 
   private def processGenericSubscriptions(event: Event) = subscriptions filter (_ matches event) foreach (_.receiver ! event)
@@ -82,7 +75,6 @@ class EventBus(easyRiderData: File) extends Actor with ActorLogging {
     Snapshot(entryType, Map())
   }
 
-  private def eventLogFile = new File(easyRiderData, "eventLogFile.json")
   private def snapshotFile = new File(easyRiderData, "snapshot.json")
 
   private def saveSnapshots(snapshots: Map[SnapshotEntryType, Snapshot[_]]) = {
@@ -97,16 +89,6 @@ class EventBus(easyRiderData: File) extends Actor with ActorLogging {
     } else {
       log.info("Could not find snapshot file ({}). Starting with empty snapshots", snapshotFile)
       Map()
-    }
-  }
-
-  private def loadEventLog(): Seq[Event] = {
-    if (eventLogFile.exists()) {
-      val string = FileUtils.readFileToString(eventLogFile)
-      read[Seq[Event]](string)
-    } else {
-      log.info("Could not find event log file ({}). Starting with empty event log", eventLogFile)
-      Seq()
     }
   }
 
