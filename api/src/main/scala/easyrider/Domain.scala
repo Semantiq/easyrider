@@ -5,7 +5,7 @@ import java.util.UUID
 import akka.actor.{ActorRef, Props}
 import akka.util.ByteString
 import easyrider.Applications._
-import easyrider.Commands.{CommandExecution, Failure, Success}
+import easyrider.Commands.{CommandFailure, CommandExecution, Failure, Success}
 import easyrider.Infrastructure.NodeState
 import easyrider.Repository.Version
 import org.joda.time.DateTime
@@ -200,11 +200,11 @@ object Orchestrator {
 }
 
 object Api {
-  trait Authenticate
-  case class AuthenticateUser(username: String, password: String) extends Authenticate
-  case class ReAuthenticateUser(username: String, signature: String) extends Authenticate
-  case class Authentication(username: String, authenticate: Option[Authenticate] = None)
-  case class AuthenticationFailure()
+  trait Authenticate extends Command
+  case class AuthenticateUser(commandDetails: CommandDetails, username: String, password: String) extends Authenticate
+  case class ReAuthenticateUser(commandDetails: CommandDetails, username: String, signature: String) extends Authenticate
+  case class Authentication(eventDetails: EventDetails, username: String, signature: Option[String] = None, executionOf: CommandId, successMessage: String = "Authenticated") extends Success
+  case class AuthenticationFailure(eventDetails: EventDetails, executionOf: CommandId, failureMessage: String = "Authentication failed") extends CommandFailure
   case class KeepAlive()
   
   case class CommandSentEvent(eventDetails: EventDetails, command: Command, authentication: Option[Authentication] = None, executionOf: CommandId = CommandId("?")) extends CommandExecution

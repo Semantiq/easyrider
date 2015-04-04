@@ -24,9 +24,9 @@ class ApiActorTest() extends TestKit(ActorSystem()) with FlatSpecLike with Match
     def dummyEvent = NodeUpdatedEvent(EventDetails(EventId.generate()), SnapshotUpdateDetails(SnapshotEntryType(classOf[NodeState]), NodeId("node0").eventKey, Some(NodeCreated)))
     val (_, bus, client, api) = setup()
 
-    client.send(api, AuthenticateUser("test", "test"))
+    client.send(api, AuthenticateUser(CommandDetails(CommandId("1")), "test", "test"))
 
-    client.expectMsg(Authentication("test"))
+    client.expectMsgClass(classOf[Authentication]).username shouldBe "test"
 
     val event1 = dummyEvent
     client.send(api, event1)
@@ -39,7 +39,7 @@ class ApiActorTest() extends TestKit(ActorSystem()) with FlatSpecLike with Match
   it should "add application and indicate it by event" in {
     val (applicationManager, bus, client, api) = setup()
     val command: ApplicationCommand = CreateApplication(CommandDetails(), Application(ApplicationId("app"), Seq()))
-    client.send(api, AuthenticateUser("test", "test"))
+    client.send(api, AuthenticateUser(CommandDetails(CommandId("1")), "test", "test"))
 
     client.send(api, command)
     applicationManager.expectMsg(command)

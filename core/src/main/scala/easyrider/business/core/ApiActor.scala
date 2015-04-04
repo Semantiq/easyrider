@@ -29,13 +29,13 @@ class ApiActor(bus: ActorRef, applicationManager: ActorRef, sshInfrastructure: A
       authenticator ! authenticationRequest
       context.become(authenticating())
       context.setReceiveTimeout(Duration(1, TimeUnit.SECONDS))
-    case request @ ReAuthenticateUser(user, signature) =>
+    case request @ ReAuthenticateUser(commandDetails, user, signature) =>
       if (signature == saltedHash(user)) {
-        val authentication = Authentication(user, Some(request))
+        val authentication = Authentication(EventDetails(EventId.generate()), user, Some(signature), executionOf = commandDetails.commandId)
         client ! authentication
         context.become(authenticated(authentication))
       } else {
-        client ! AuthenticationFailure()
+        client ! AuthenticationFailure(EventDetails(EventId.generate()), commandDetails.commandId)
       }
     case message =>
       log.warning("Received message before authentication, disconnecting: {}", message)
@@ -43,13 +43,13 @@ class ApiActor(bus: ActorRef, applicationManager: ActorRef, sshInfrastructure: A
   }
 
   def authenticating(): Receive = {
-    case auth @ Authentication(username, _) =>
+    case auth: Authentication =>
       context.become(authenticated(auth))
       unstashAll()
-      client ! auth.copy(authenticate = Some(ReAuthenticateUser(username, saltedHash(username))))
+      client ! auth.copy(signature = Some(saltedHash(auth.username)))
       context.setReceiveTimeout(Duration.Inf)
     case ReceiveTimeout => context.stop(self)
-    case failure @ AuthenticationFailure() =>
+    case failure: AuthenticationFailure =>
       log.warning(s"Authentication failure for $client: $failure")
       client ! failure
       context.become(awaitingCredentials())

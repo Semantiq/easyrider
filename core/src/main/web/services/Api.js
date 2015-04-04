@@ -11,7 +11,7 @@ app.service("Api", ["Connection", "$interval", "$timeout", "$cookieStore", funct
 
 	me.objects = {
 		Authenticate: function(username, password) {
-			this.jsonClass = "easyrider.Api$AuthenticateUser";
+			me.command("easyrider.Api$AuthenticateUser", this);
 			this.username = username;
 			this.password = password;
 		}
@@ -97,9 +97,6 @@ app.service("Api", ["Connection", "$interval", "$timeout", "$cookieStore", funct
 		    commandId: {
 		        jsonClass: "easyrider.CommandId",
 		        id: nextId()
-		    },
-		    traceMode: {
-		        jsonClass: "easyrider.TraceMode"
 		    }
 		};
 		if(me.isAuthenticated) {

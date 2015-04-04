@@ -69,6 +69,12 @@ object EasyriderBuild extends Build {
       password := "test"
     )) dependsOn (api, ssh, builtin % "runtime")
 
+  lazy val testing = Project(
+    id = "testing",
+    base = file("testing"),
+    settings = Project.defaultSettings ++ Revolver.settings ++ settings ++ super.settings
+  ).dependsOn(api)
+
   Project(id = "easyrider", base = file("."), settings = Project.defaultSettings)
     .enablePlugins(UniversalPlugin)
     .enablePlugins(EasyRiderPlugin)
