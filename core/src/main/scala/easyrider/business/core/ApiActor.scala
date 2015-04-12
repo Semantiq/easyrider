@@ -17,6 +17,7 @@ import org.apache.commons.codec.digest.DigestUtils
 
 import scala.concurrent.duration.Duration
 
+// TODO: use ApiConnector instead, when ready
 class ApiActor(bus: ActorRef, applicationManager: ActorRef, sshInfrastructure: ActorRef,
                client: ActorRef, orchestrator: ActorRef,
                authenticator: ActorRef, repository: ActorRef, nodeManager: ActorRef) extends Actor with Stash with ActorLogging {

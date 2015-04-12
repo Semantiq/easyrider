@@ -16,7 +16,7 @@ class EasyRider(port: Int, easyRiderData: File) {
   val actorSystem = ActorSystem("EasyRider")
   val core = new CoreModule(easyRiderData, easyRiderUrl, actorSystem)
   val pages = ServiceLoader.load(classOf[PageProvider]).iterator().toSeq
-  val http = new HttpModule(actorSystem, core.apiFactory, port, pages)
+  val http = new HttpModule(actorSystem, core.apiFactory, core.newApiFactory, port, pages)
   val plugins = ServiceLoader.load(classOf[PluginFactory]).iterator().toSeq
   println("pages: " + pages)
   println("plugins: " + plugins)

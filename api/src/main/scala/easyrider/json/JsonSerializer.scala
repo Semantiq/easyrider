@@ -1,6 +1,10 @@
 package easyrider.json
 
-import easyrider.Applications.{Application, ApplicationUpdatedEvent, ApplicationId, CreateApplication}
+import easyrider.Api.{AuthenticationFailure, Authentication, AuthenticateUser}
+import easyrider.Applications._
+import easyrider.Commands.Failure
+import easyrider.Infrastructure.RemoveContainer
+import easyrider.Nodes.CreateNode
 import easyrider._
 import org.json4s.JsonAST.JString
 import org.json4s._
@@ -32,8 +36,23 @@ class JsonSerializer {
 
   private object ShortTypeHints extends TypeHints {
     private val typeForHint = Map[String, Class[_]](
+      "AuthenticateUser" -> classOf[AuthenticateUser],
+      "Authentication" -> classOf[Authentication],
+      "AuthenticationFailure" -> classOf[AuthenticationFailure],
+
       "CreateApplication" -> classOf[CreateApplication],
-      "ApplicationUpdated" -> classOf[ApplicationUpdatedEvent]
+      "RemoveApplication" -> classOf[RemoveApplication],
+      "ApplicationUpdated" -> classOf[ApplicationUpdatedEvent],
+
+      "CreateStage" -> classOf[CreateStage],
+      "StageUpdated" -> classOf[StageUpdatedEvent],
+      "RemoveStage" -> classOf[RemoveStage],
+
+      "RemoveContainer" -> classOf[RemoveContainer],
+
+      "CreateNode" -> classOf[CreateNode],
+
+      "Failure" -> classOf[Failure]
     )
 
     private val hintForType: Map[Class[_], String] = typeForHint map (_.swap)
@@ -70,7 +89,8 @@ class JsonSerializer {
 
   private object SnapshotEntryTypeSerializer extends Serializer[SnapshotEntryType[_]] {
     private val entryTypeForName = Map[String, SnapshotEntryType[_]](
-      "Application" -> SnapshotEntryType(classOf[Application])
+      "Application" -> SnapshotEntryType(classOf[Application]),
+      "Stage" -> SnapshotEntryType(classOf[Stage])
     )
 
     private val nameForEntryType = entryTypeForName.map(_.swap)

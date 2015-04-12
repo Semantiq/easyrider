@@ -115,7 +115,7 @@ class ApplicationManager(val eventBus: ActorRef, infrastructure: ActorRef) exten
       containers.get(command.containerId) match {
         // TODO: use the applications' container-type
         case Some(container) => infrastructure.forward(AddressedContainerCommand("builtin", container.nodeId, command))
-        case None => sender ! command.failure(s"Container ${command.containerId.containerName} does not exist")
+        case None => publishEvent(command.failure(s"Container ${command.containerId.containerName} does not exist"))
       }
     case ContainerStateChangedEvent(eventDetails, SnapshotUpdateDetails(_, eventKey, Some(state))) => state match {
       case ContainerRemoved =>

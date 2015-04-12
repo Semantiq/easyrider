@@ -1,6 +1,6 @@
 package easyrider.testing
 
-import akka.actor.{ActorSystem, ActorRef, Props}
+import akka.actor.{ActorRef, Props}
 import akka.io.IO
 import spray.can.Http
 import spray.can.server.UHttp
@@ -13,7 +13,7 @@ object WebSocketProbe {
   def apply(master: ActorRef): Props = {
     val ssl = false
     val host = "127.0.0.1"
-    val port = 8080
+    val port = 8081
     val headers = List(
       HttpHeaders.Host(host, port),
       HttpHeaders.Connection("Upgrade"),

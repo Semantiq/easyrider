@@ -19,4 +19,5 @@ class CoreModule(easyRiderData: File, easyRiderUrl: URL, actorSystem: ActorSyste
   val releaseManager = actorSystem.actorOf(ReleaseManager(eventBus, orchestrator), "ReleaseManager")
   val authenticator = actorSystem.actorOf(Authenticator(), "Authenticator")
   val apiFactory = ApiActor(eventBus, applicationManager, containerPluginManager, orchestrator, authenticator, repository, nodeManager) _
+  val newApiFactory = ApiConnector(eventBus, applicationManager, containerPluginManager, nodeManager, repository, authenticator) _
 }
